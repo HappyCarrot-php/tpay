@@ -2,7 +2,7 @@ import '../../domain/entities/cliente_entity.dart';
 
 class ClienteModel extends ClienteEntity {
   const ClienteModel({
-    required super.idCliente,
+    required super.id,
     super.usuarioId,
     required super.nombre,
     required super.apellidoPaterno,
@@ -29,7 +29,7 @@ class ClienteModel extends ClienteEntity {
 
   factory ClienteModel.fromJson(Map<String, dynamic> json) {
     return ClienteModel(
-      idCliente: json['id'] as int,
+      id: json['id_cliente'] as int, // Campo de BD es id_cliente
       usuarioId: json['usuario_id'] as String?,
       nombre: json['nombre'] as String,
       apellidoPaterno: json['apellido_paterno'] as String,
@@ -61,17 +61,16 @@ class ClienteModel extends ClienteEntity {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': idCliente,
+      'id_cliente': id,
       'usuario_id': usuarioId,
       'nombre': nombre,
       'apellido_paterno': apellidoPaterno,
       'apellido_materno': apellidoMaterno,
-      'nombre_completo': nombreCompleto,
       'telefono': telefono,
       'email': email,
       'rfc': rfc,
       'curp': curp,
-      'fecha_nacimiento': fechaNacimiento?.toIso8601String(),
+      'fecha_nacimiento': fechaNacimiento?.toIso8601String().split('T')[0], // Solo fecha
       'direccion': direccion,
       'ciudad': ciudad,
       'estado': estado,
@@ -82,8 +81,6 @@ class ClienteModel extends ClienteEntity {
       'calificacion_cliente': calificacionCliente,
       'notas': notas,
       'activo': activo,
-      'creado': creado.toIso8601String(),
-      'actualizado': actualizado.toIso8601String(),
     };
   }
 
@@ -98,7 +95,7 @@ class ClienteModel extends ClienteEntity {
       if (rfc != null) 'rfc': rfc,
       if (curp != null) 'curp': curp,
       if (fechaNacimiento != null)
-        'fecha_nacimiento': fechaNacimiento!.toIso8601String(),
+        'fecha_nacimiento': fechaNacimiento!.toIso8601String().split('T')[0],
       if (direccion != null) 'direccion': direccion,
       if (ciudad != null) 'ciudad': ciudad,
       if (estado != null) 'estado': estado,

@@ -28,7 +28,7 @@ class MovimientoModel extends MovimientoEntity {
     return MovimientoModel(
       id: json['id'] as int,
       idCliente: json['id_cliente'] as int,
-      nombreCliente: json['cliente_nombre'] as String?, // Del JOIN en vista
+      nombreCliente: json['nombre_cliente'] as String?, // Del JOIN con tabla clientes
       monto: (json['monto'] as num).toDouble(),
       interes: (json['interes'] as num).toDouble(),
       tasaInteresPorcentaje: json['tasa_interes_porcentaje'] != null

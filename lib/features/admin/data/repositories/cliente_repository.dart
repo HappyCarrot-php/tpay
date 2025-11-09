@@ -8,7 +8,7 @@ class ClienteRepository {
 
   // Obtener todos los clientes
   Future<List<ClienteModel>> obtenerClientes({
-    bool soloActivos = false,
+    bool soloActivos = true,
   }) async {
     try {
       var query = _supabase.from(SupabaseConstants.clientesTable).select();
@@ -17,7 +17,7 @@ class ClienteRepository {
         query = query.eq('activo', true);
       }
 
-      final response = await query.order('nombre', ascending: true);
+      final response = await query.order('nombre_completo', ascending: true);
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
@@ -27,15 +27,17 @@ class ClienteRepository {
     }
   }
 
-  // Buscar clientes por nombre o ID
+  // Buscar clientes por nombre completo o ID
   Future<List<ClienteModel>> buscarClientes(String query) async {
     try {
+      final idCliente = int.tryParse(query);
+      
       final response = await _supabase
           .from(SupabaseConstants.clientesTable)
           .select()
-          .or('nombre.ilike.%$query%,apellidos.ilike.%$query%,id.eq.${int.tryParse(query) ?? 0}')
+          .or('nombre_completo.ilike.%$query%,id_cliente.eq.${idCliente ?? 0}')
           .eq('activo', true)
-          .order('nombre', ascending: true);
+          .order('nombre_completo', ascending: true);
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
@@ -51,12 +53,29 @@ class ClienteRepository {
       final response = await _supabase
           .from(SupabaseConstants.clientesTable)
           .select()
-          .eq('id', id)
+          .eq('id_cliente', id)
           .single();
 
       return ClienteModel.fromJson(response);
     } catch (e) {
       throw Exception('Error al obtener cliente: $e');
+    }
+  }
+
+  // Buscar cliente por nombre exacto
+  Future<ClienteModel?> buscarClientePorNombre(String nombreCompleto) async {
+    try {
+      final response = await _supabase
+          .from(SupabaseConstants.clientesTable)
+          .select()
+          .ilike('nombre_completo', nombreCompleto.trim())
+          .eq('activo', true)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return ClienteModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Error al buscar cliente por nombre: $e');
     }
   }
 
@@ -67,8 +86,9 @@ class ClienteRepository {
       final response = await _supabase
           .from(SupabaseConstants.movimientosTable)
           .select('saldo_pendiente')
-          .eq('cliente_id', clienteId)
-          .eq('estado_pagado', false);
+          .eq('id_cliente', clienteId)
+          .eq('estado_pagado', false)
+          .eq('eliminado', false);
 
       double deudaTotal = 0;
       for (var mov in response) {
@@ -85,12 +105,11 @@ class ClienteRepository {
   Future<ClienteModel> crearCliente(ClienteModel cliente) async {
     try {
       final userId = SupabaseService().currentUserId;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
 
       final data = cliente.toInsertJson();
-      data['creado_por'] = userId;
+      if (userId != null) {
+        data['usuario_id'] = userId;
+      }
 
       final response = await _supabase
           .from(SupabaseConstants.clientesTable)
@@ -104,13 +123,46 @@ class ClienteRepository {
     }
   }
 
+  // Crear cliente simple (solo nombre y apellidos)
+  Future<ClienteModel> crearClienteSimple({
+    required String nombre,
+    required String apellidoPaterno,
+    String? apellidoMaterno,
+    String? telefono,
+    String? email,
+  }) async {
+    try {
+      final userId = SupabaseService().currentUserId;
+
+      final data = {
+        'nombre': nombre,
+        'apellido_paterno': apellidoPaterno,
+        if (apellidoMaterno != null) 'apellido_materno': apellidoMaterno,
+        if (telefono != null) 'telefono': telefono,
+        if (email != null) 'email': email,
+        if (userId != null) 'usuario_id': userId,
+        'activo': true,
+      };
+
+      final response = await _supabase
+          .from(SupabaseConstants.clientesTable)
+          .insert(data)
+          .select()
+          .single();
+
+      return ClienteModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Error al crear cliente simple: $e');
+    }
+  }
+
   // Actualizar cliente
   Future<ClienteModel> actualizarCliente(ClienteModel cliente) async {
     try {
       final response = await _supabase
           .from(SupabaseConstants.clientesTable)
           .update(cliente.toJson())
-          .eq('id', cliente.idCliente)
+          .eq('id_cliente', cliente.id)
           .select()
           .single();
 
@@ -125,9 +177,28 @@ class ClienteRepository {
     try {
       await _supabase
           .from(SupabaseConstants.clientesTable)
-          .update({'activo': false}).eq('id', id);
+          .update({'activo': false})
+          .eq('id_cliente', id);
     } catch (e) {
       throw Exception('Error al desactivar cliente: $e');
+    }
+  }
+
+  // Contar clientes activos
+  Future<int> contarClientes({bool soloActivos = true}) async {
+    try {
+      var query = _supabase
+          .from(SupabaseConstants.clientesTable)
+          .select();
+
+      if (soloActivos) {
+        query = query.eq('activo', true);
+      }
+
+      final response = await query;
+      return (response as List).length;
+    } catch (e) {
+      throw Exception('Error al contar clientes: $e');
     }
   }
 }

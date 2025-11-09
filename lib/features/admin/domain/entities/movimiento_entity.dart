@@ -1,7 +1,7 @@
 class MovimientoEntity {
   final int id;
-  final int idCliente;
-  final String? nombreCliente; // Viene del JOIN
+  final int idCliente; // Se mantiene idCliente para consistencia en código
+  final String? nombreCliente; // Viene del JOIN con clientes
   final double monto;
   final double interes;
   final double? tasaInteresPorcentaje;

@@ -21,27 +21,52 @@ class AbonoRepository {
     }
   }
 
-  // Registrar abono usando RPC
-  Future<int> registrarAbono({
+  // Registrar abono y actualizar movimiento
+  Future<AbonoModel> registrarAbono({
     required int movimientoId,
-    required double monto,
+    required double montoAbono,
     String? metodoPago,
     String? referencia,
     String? notas,
   }) async {
     try {
-      final response = await _supabase.rpc(
-        SupabaseConstants.registrarAbonoRpc,
-        params: {
-          'p_movimiento_id': movimientoId,
-          'p_monto': monto,
-          if (metodoPago != null) 'p_metodo_pago': metodoPago,
-          if (referencia != null) 'p_referencia': referencia,
-          if (notas != null) 'p_notas': notas,
-        },
-      );
+      final userId = SupabaseService().currentUserId;
 
-      return response as int;
+      // 1. Insertar abono en tabla abonos
+      final abonoData = {
+        'id_movimiento': movimientoId,
+        'monto_abono': montoAbono,
+        'fecha_abono': DateTime.now().toIso8601String(),
+        if (metodoPago != null) 'metodo_pago': metodoPago,
+        if (referencia != null) 'referencia': referencia,
+        if (notas != null) 'notas': notas,
+        if (userId != null) 'usuario_registro': userId,
+      };
+
+      final abonoResponse = await _supabase
+          .from(SupabaseConstants.abonosTable)
+          .insert(abonoData)
+          .select()
+          .single();
+
+      // 2. Actualizar campo abonos en movimientos
+      // Obtener el total actual de abonos
+      final movResponse = await _supabase
+          .from(SupabaseConstants.movimientosTable)
+          .select('abonos')
+          .eq('id', movimientoId)
+          .single();
+
+      final abonosActuales = (movResponse['abonos'] as num?)?.toDouble() ?? 0;
+      final nuevosAbonos = abonosActuales + montoAbono;
+
+      // Actualizar campo abonos (saldo_pendiente se calcula automáticamente)
+      await _supabase
+          .from(SupabaseConstants.movimientosTable)
+          .update({'abonos': nuevosAbonos})
+          .eq('id', movimientoId);
+
+      return AbonoModel.fromJson(abonoResponse);
     } catch (e) {
       throw Exception('Error al registrar abono: $e');
     }

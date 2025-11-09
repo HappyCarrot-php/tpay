@@ -3,6 +3,7 @@ import '../../data/models/movimiento_model.dart';
 import '../../data/repositories/movimiento_repository.dart';
 import '../../data/repositories/abono_repository.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/supabase_service.dart';
 
 class LoanActionButtons extends StatelessWidget {
   final MovimientoModel prestamo;
@@ -220,6 +221,8 @@ class LoanActionButtons extends StatelessWidget {
 
   void _agregarAbono(BuildContext context) {
     final montoController = TextEditingController();
+    final metodoPagoController = TextEditingController();
+    final notasController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -232,38 +235,60 @@ class LoanActionButtons extends StatelessWidget {
             Text('Registrar Abono'),
           ],
         ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Préstamo #${prestamo.id}'),
-              Text('Saldo pendiente: \$${prestamo.saldoPendiente.toStringAsFixed(2)}'),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: montoController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Monto del abono',
-                  prefixText: '\$',
-                  border: OutlineInputBorder(),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Préstamo #${prestamo.id}'),
+                Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
+                Text('Saldo pendiente: \$${prestamo.saldoPendiente.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: montoController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Monto del abono *',
+                    prefixText: '\$',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Ingresa un monto';
+                    }
+                    final monto = double.tryParse(value);
+                    if (monto == null || monto <= 0) {
+                      return 'Monto inválido';
+                    }
+                    if (monto > prestamo.saldoPendiente) {
+                      return 'No puede exceder el saldo';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresa un monto';
-                  }
-                  final monto = double.tryParse(value);
-                  if (monto == null || monto <= 0) {
-                    return 'Monto inválido';
-                  }
-                  if (monto > prestamo.saldoPendiente) {
-                    return 'No puede exceder el saldo';
-                  }
-                  return null;
-                },
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: metodoPagoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Método de pago (opcional)',
+                    hintText: 'Efectivo, Transferencia, etc.',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: notasController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Notas (opcional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -275,11 +300,17 @@ class LoanActionButtons extends StatelessWidget {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 final monto = double.parse(montoController.text);
+                final metodoPago = metodoPagoController.text.trim();
+                final notas = notasController.text.trim();
+                
                 Navigator.pop(context);
+                
                 try {
                   await AbonoRepository().registrarAbono(
                     movimientoId: prestamo.id,
-                    monto: monto,
+                    montoAbono: monto,
+                    metodoPago: metodoPago.isNotEmpty ? metodoPago : null,
+                    notas: notas.isNotEmpty ? notas : null,
                   );
                   
                   // Calcular nueva deuda después del abono
@@ -305,8 +336,8 @@ class LoanActionButtons extends StatelessWidget {
                   
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Abono registrado exitosamente'),
+                      SnackBar(
+                        content: Text('Abono de \$${monto.toStringAsFixed(2)} registrado'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -325,7 +356,7 @@ class LoanActionButtons extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Registrar'),
+            child: const Text('Registrar Abono'),
           ),
         ],
       ),
@@ -333,16 +364,162 @@ class LoanActionButtons extends StatelessWidget {
   }
 
   void _editarPrestamo(BuildContext context) {
-    // TODO: Implementar edición de préstamo
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Función de edición en desarrollo'),
-        backgroundColor: Colors.blue,
+    final montoController = TextEditingController(text: prestamo.monto.toString());
+    final interesController = TextEditingController(text: prestamo.interes.toString());
+    final notasController = TextEditingController(text: prestamo.notas ?? '');
+    DateTime fechaPago = prestamo.fechaPago;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.edit, color: Colors.purple),
+              SizedBox(width: 8),
+              Text('Editar Préstamo'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Préstamo #${prestamo.id}'),
+                  Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: montoController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Monto *',
+                      prefixText: '\$',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Requerido';
+                      final monto = double.tryParse(value);
+                      if (monto == null || monto <= 0) return 'Monto inválido';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: interesController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Interés *',
+                      prefixText: '\$',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Requerido';
+                      final interes = double.tryParse(value);
+                      if (interes == null || interes < 0) return 'Interés inválido';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: fechaPago,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                      );
+                      if (picked != null) {
+                        setState(() => fechaPago = picked);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Fecha de pago',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('${fechaPago.day}/${fechaPago.month}/${fechaPago.year}'),
+                          const Icon(Icons.calendar_today, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: notasController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Notas (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final monto = double.parse(montoController.text);
+                  final interes = double.parse(interesController.text);
+                  final notas = notasController.text.trim();
+                  
+                  Navigator.pop(context);
+                  
+                  try {
+                    await MovimientoRepository().actualizarPrestamo(
+                      id: prestamo.id,
+                      monto: monto,
+                      interes: interes,
+                      fechaPago: fechaPago,
+                      notas: notas.isNotEmpty ? notas : null,
+                    );
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Préstamo actualizado correctamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      onActionComplete();
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+              child: const Text('Guardar Cambios'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _eliminarPrestamo(BuildContext context) {
+    final passwordController = TextEditingController();
+    final motivoController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -353,8 +530,81 @@ class LoanActionButtons extends StatelessWidget {
             Text('Eliminar Préstamo'),
           ],
         ),
-        content: Text(
-          '¿Estás seguro de eliminar el préstamo #${prestamo.id}? Esta acción no se puede deshacer.',
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '¿Estás seguro de eliminar el préstamo #${prestamo.id}?',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
+                Text('Monto: \$${prestamo.monto.toStringAsFixed(2)}'),
+                Text('Saldo: \$${prestamo.saldoPendiente.toStringAsFixed(2)}'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Esta acción marcará el préstamo como eliminado (no se borra de la BD).',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: motivoController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo de eliminación *',
+                    hintText: 'Explica por qué se elimina este préstamo',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'El motivo es obligatorio';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña de tu cuenta *',
+                    hintText: 'Confirma tu identidad',
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'La contraseña es obligatoria';
+                    }
+                    if (value.length < 6) {
+                      return 'Contraseña debe tener al menos 6 caracteres';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -362,21 +612,73 @@ class LoanActionButtons extends StatelessWidget {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implementar eliminación lógica
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Función de eliminación en desarrollo'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final password = passwordController.text;
+                final motivo = motivoController.text.trim();
+                
+                Navigator.pop(context);
+                
+                // Mostrar indicador de carga
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                );
+                
+                try {
+                  // Verificar contraseña (re-autenticar)
+                  final supabase = SupabaseService().client;
+                  final email = supabase.auth.currentUser?.email;
+                  
+                  if (email == null) {
+                    throw Exception('No se pudo obtener el email del usuario');
+                  }
+                  
+                  // Re-autenticar para verificar contraseña
+                  await supabase.auth.signInWithPassword(
+                    email: email,
+                    password: password,
+                  );
+                  
+                  // Si llegamos aquí, la contraseña es correcta
+                  await MovimientoRepository().eliminarPrestamo(prestamo.id, motivo);
+                  
+                  // Cancelar notificaciones del préstamo
+                  await NotificationService().cancelLoanNotifications(prestamo.id);
+                  
+                  if (context.mounted) {
+                    Navigator.pop(context); // Cerrar loading
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Préstamo eliminado correctamente'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    onActionComplete();
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context); // Cerrar loading
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().contains('Invalid')
+                            ? 'Contraseña incorrecta'
+                            : 'Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            child: const Text('Confirmar Eliminación'),
           ),
         ],
       ),
     );
   }
 }
+
+```

@@ -44,15 +44,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       await _authRepository.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
         nombre: _nombreController.text.trim(),
         apellidoPaterno: _apellidoPaternoController.text.trim(),
         apellidoMaterno: _apellidoMaternoController.text.trim().isEmpty
             ? null
             : _apellidoMaternoController.text.trim(),
-        email: _emailController.text.trim().isEmpty
-            ? null
-            : _emailController.text.trim(),
-        password: _passwordController.text,
         telefono: _telefonoController.text.trim().isEmpty
             ? null
             : _telefonoController.text.trim(),
@@ -60,16 +58,53 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (!mounted) return;
 
-      // Mostrar mensaje de éxito
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cuenta creada exitosamente. Inicia sesión.'),
-          backgroundColor: Colors.green,
+      // Mostrar diálogo de éxito
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 32),
+              SizedBox(width: 12),
+              Text('¡Registrado Exitosamente!'),
+            ],
+          ),
+          content: const Text(
+            'Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión.',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context.go('/login');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00BCD4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+              ),
+              child: const Text(
+                'IR A INICIAR SESIÓN',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
       );
-
-      // Navegar a login
-      context.go('/login');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,6 +161,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   // Nombre (REQUERIDO)
                   TextFormField(
                     controller: _nombreController,
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
                       labelText: 'Nombre *',
                       prefixIcon:
@@ -147,6 +184,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       if (value == null || value.trim().isEmpty) {
                         return 'El nombre es obligatorio';
                       }
+                      if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(value)) {
+                        return 'Solo letras';
+                      }
                       return null;
                     },
                   ),
@@ -155,6 +195,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   // Apellido Paterno (REQUERIDO)
                   TextFormField(
                     controller: _apellidoPaternoController,
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
                       labelText: 'Apellido Paterno *',
                       prefixIcon:
@@ -176,6 +218,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       if (value == null || value.trim().isEmpty) {
                         return 'El apellido paterno es obligatorio';
                       }
+                      if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(value)) {
+                        return 'Solo letras';
+                      }
                       return null;
                     },
                   ),
@@ -184,6 +229,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   // Apellido Materno (OPCIONAL)
                   TextFormField(
                     controller: _apellidoMaternoController,
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
                       labelText: 'Apellido Materno (opcional)',
                       prefixIcon:
@@ -201,13 +248,22 @@ class _RegisterPageState extends State<RegisterPage> {
                             const BorderSide(color: Color(0xFF00BCD4), width: 2),
                       ),
                     ),
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(value)) {
+                          return 'Solo letras';
+                        }
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
 
                   // Teléfono (OPCIONAL)
                   TextFormField(
                     controller: _telefonoController,
-                    keyboardType: TextInputType.phone,
+                    keyboardType: TextInputType.number,
+                    maxLength: 10,
                     decoration: InputDecoration(
                       labelText: 'Teléfono (opcional)',
                       prefixIcon:
@@ -224,16 +280,29 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide:
                             const BorderSide(color: Color(0xFF00BCD4), width: 2),
                       ),
+                      helperText: '10 dígitos',
+                      counterText: '',
                     ),
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        if (value.length != 10) {
+                          return 'Debe tener 10 dígitos';
+                        }
+                        if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                          return 'Solo números';
+                        }
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
 
-                  // Email (OPCIONAL - usado para login)
+                  // Email (REQUERIDO - usado para login)
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Email (opcional)',
+                      labelText: 'Email *',
                       prefixIcon:
                           const Icon(Icons.email, color: Color(0xFF00BCD4)),
                       border: OutlineInputBorder(
@@ -248,9 +317,20 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide:
                             const BorderSide(color: Color(0xFF00BCD4), width: 2),
                       ),
-                      helperText: 'Si proporcionas email, puedes usarlo para entrar',
+                      helperText: 'Usarás este email para iniciar sesión',
                       helperMaxLines: 2,
                     ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El email es obligatorio';
+                      }
+                      // Validar formato de email
+                      if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                          .hasMatch(value)) {
+                        return 'Email inválido';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
 

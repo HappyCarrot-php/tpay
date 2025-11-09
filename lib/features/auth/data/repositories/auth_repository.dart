@@ -41,9 +41,8 @@ class AuthRepository {
   }
 
   /// Registro de nuevo usuario (siempre rol cliente)
-  /// Email es opcional - si no se proporciona, se genera uno automático
   Future<PerfilModel> register({
-    String? email,
+    required String email,
     required String password,
     required String nombre,
     required String apellidoPaterno,
@@ -51,19 +50,15 @@ class AuthRepository {
     String? telefono,
   }) async {
     try {
-      // Si no se proporciona email, generar uno basado en nombre
-      final emailToUse = email ??
-          '${nombre.toLowerCase().replaceAll(' ', '')}_${DateTime.now().millisecondsSinceEpoch}@tpay.local';
-
       // Registrar en Supabase Auth
       final response = await _client.auth.signUp(
-        email: emailToUse,
+        email: email.trim(),
         password: password,
         data: {
           'nombre': nombre,
           'apellido_paterno': apellidoPaterno,
-          if (apellidoMaterno != null) 'apellido_materno': apellidoMaterno,
-          if (telefono != null) 'telefono': telefono,
+          'apellido_materno': apellidoMaterno ?? '',
+          'telefono': telefono ?? '',
         },
       );
 
@@ -71,12 +66,55 @@ class AuthRepository {
         throw Exception('No se pudo crear la cuenta');
       }
 
-      // El perfil se crea automáticamente con el trigger
-      // Esperar un momento para que se cree
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Esperar a que el trigger cree el perfil
+      await Future.delayed(const Duration(seconds: 2));
 
-      // Obtener el perfil creado
-      final perfil = await obtenerPerfilActual();
+      // Intentar obtener el perfil (máximo 5 intentos)
+      PerfilModel? perfil;
+      for (int i = 0; i < 5; i++) {
+        try {
+          final perfilData = await _client
+              .from(SupabaseConstants.perfilesTable)
+              .select()
+              .eq('id', response.user!.id)
+              .maybeSingle();
+
+          if (perfilData != null) {
+            perfil = PerfilModel.fromJson(perfilData);
+            break;
+          }
+
+          // Si no existe en el último intento, crearlo manualmente
+          if (i == 4) {
+            await _client.from(SupabaseConstants.perfilesTable).insert({
+              'id': response.user!.id,
+              'nombre': nombre,
+              'apellido_paterno': apellidoPaterno,
+              'apellido_materno': apellidoMaterno,
+              'telefono': telefono,
+              'rol': 'cliente',
+              'activo': true,
+            });
+
+            final perfilCreado = await _client
+                .from(SupabaseConstants.perfilesTable)
+                .select()
+                .eq('id', response.user!.id)
+                .single();
+
+            perfil = PerfilModel.fromJson(perfilCreado);
+          } else {
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+        } catch (e) {
+          if (i == 4) rethrow;
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+
+      if (perfil == null) {
+        throw Exception('No se pudo crear el perfil');
+      }
 
       return perfil;
     } on AuthException catch (e) {
@@ -149,11 +187,23 @@ class AuthRepository {
 
   /// Manejar errores de autenticación
   String _handleAuthError(AuthException error) {
+    final message = error.message.toLowerCase();
+    
+    // Detectar email duplicado
+    if (message.contains('already registered') || 
+        message.contains('already been registered') ||
+        message.contains('user already registered')) {
+      return 'Este email ya está registrado. Usa otro o inicia sesión.';
+    }
+    
     switch (error.statusCode) {
       case '400':
         return 'Email o contraseña incorrectos';
       case '422':
-        return 'Email inválido';
+        if (message.contains('invalid')) {
+          return 'Email inválido. Verifica el formato.';
+        }
+        return 'Datos inválidos. Verifica la información.';
       case '429':
         return 'Demasiados intentos. Intenta más tarde';
       default:

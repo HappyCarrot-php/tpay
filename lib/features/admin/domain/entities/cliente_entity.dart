@@ -1,5 +1,5 @@
 class ClienteEntity {
-  final int idCliente;
+  final int id; // Cambiado de idCliente a id para match con BD
   final String? usuarioId;
   final String nombre;
   final String apellidoPaterno;
@@ -24,7 +24,7 @@ class ClienteEntity {
   final DateTime actualizado;
 
   const ClienteEntity({
-    required this.idCliente,
+    required this.id,
     this.usuarioId,
     required this.nombre,
     required this.apellidoPaterno,
@@ -50,7 +50,7 @@ class ClienteEntity {
   });
 
   /// Obtener texto para dropdown: "ID - Nombre Completo"
-  String get displayText => '#$idCliente - $nombreCompleto';
+  String get displayText => '#$id - $nombreCompleto';
   
   /// Obtener iniciales para avatar
   String get iniciales {
