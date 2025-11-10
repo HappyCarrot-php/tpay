@@ -1,8 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/repositories/perfil_repository.dart';
 
-class AdminDrawer extends StatelessWidget {
+class AdminDrawer extends StatefulWidget {
   const AdminDrawer({super.key});
+
+  @override
+  State<AdminDrawer> createState() => _AdminDrawerState();
+}
+
+class _AdminDrawerState extends State<AdminDrawer> {
+  final _perfilRepo = PerfilRepository();
+  String _nombreCompleto = 'Cargando...';
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarNombre();
+  }
+
+  Future<void> _cargarNombre() async {
+    try {
+      final perfil = await _perfilRepo.obtenerPerfilActual();
+      if (mounted) {
+        setState(() {
+          _nombreCompleto = perfil?.nombreCompleto ?? 'Usuario';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _nombreCompleto = 'Usuario';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +53,11 @@ class AdminDrawer extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
                   child: Icon(
@@ -34,8 +66,8 @@ class AdminDrawer extends StatelessWidget {
                     color: Color(0xFF00BCD4),
                   ),
                 ),
-                SizedBox(height: 12),
-                Text(
+                const SizedBox(height: 12),
+                const Text(
                   'Panel Administrador',
                   style: TextStyle(
                     color: Colors.white,
@@ -44,8 +76,8 @@ class AdminDrawer extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'TPay',
-                  style: TextStyle(
+                  _nombreCompleto,
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                   ),
@@ -81,17 +113,6 @@ class AdminDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               context.go('/admin/clients');
-            },
-          ),
-          
-          // Movimientos
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.purple),
-            title: const Text('Movimientos'),
-            subtitle: const Text('Historial de operaciones'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/movements');
             },
           ),
           
@@ -143,28 +164,6 @@ class AdminDrawer extends StatelessWidget {
           
           const Divider(),
           
-          // Perfil
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Mi Perfil'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/profile');
-            },
-          ),
-          
-          // Configuración
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Configuración'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/settings');
-            },
-          ),
-          
-          const Divider(),
-          
           // Cerrar sesión
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -174,6 +173,18 @@ class AdminDrawer extends StatelessWidget {
             ),
             onTap: () {
               _confirmarCerrarSesion(context);
+            },
+          ),
+          
+          const Divider(),
+          
+          // Perfil (al final)
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/admin/profile');
             },
           ),
         ],

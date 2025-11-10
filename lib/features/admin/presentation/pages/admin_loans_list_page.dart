@@ -12,11 +12,15 @@ class AdminLoansListPage extends StatefulWidget {
 
 class _AdminLoansListPageState extends State<AdminLoansListPage> {
   final MovimientoRepository _movimientoRepository = MovimientoRepository();
+  final TextEditingController _busquedaController = TextEditingController();
   
   List<MovimientoModel> _todosLosPrestamos = [];
   List<MovimientoModel> _prestamos = [];
   bool _cargando = true;
-  String _filtroEstado = 'todos';
+  
+  // Filtros
+  String _filtroEstado = 'todos'; // todos, pagado, no_pagado
+  String _tipoBusqueda = 'todos'; // todos, id_prestamo, id_cliente, nombre_cliente
   
   // Paginación
   int _paginaActual = 0;
@@ -52,24 +56,34 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
   }
 
   void _aplicarFiltroYPaginacion() {
-    // Aplicar filtro
-    List<MovimientoModel> filtrados = _todosLosPrestamos;
-    if (_filtroEstado != 'todos') {
-      if (_filtroEstado == 'activo') {
-        filtrados = _todosLosPrestamos
-            .where((p) => !p.estadoPagado && !p.eliminado)
-            .toList();
-      } else if (_filtroEstado == 'pagado') {
-        filtrados = _todosLosPrestamos
-            .where((p) => p.estadoPagado && !p.eliminado)
-            .toList();
-      } else if (_filtroEstado == 'mora') {
-        // Mora: préstamos activos con fecha de pago vencida
-        final hoy = DateTime.now();
-        filtrados = _todosLosPrestamos
-            .where((p) => !p.estadoPagado && !p.eliminado && p.fechaPago.isBefore(hoy))
-            .toList();
+    List<MovimientoModel> filtrados = _todosLosPrestamos.where((p) => !p.eliminado).toList();
+    
+    // Aplicar búsqueda según tipo
+    final textoBusqueda = _busquedaController.text.trim().toLowerCase();
+    if (textoBusqueda.isNotEmpty) {
+      if (_tipoBusqueda == 'id_prestamo') {
+        final id = int.tryParse(textoBusqueda);
+        if (id != null) {
+          filtrados = filtrados.where((p) => p.id == id).toList();
+        }
+      } else if (_tipoBusqueda == 'id_cliente') {
+        final idCliente = int.tryParse(textoBusqueda);
+        if (idCliente != null) {
+          filtrados = filtrados.where((p) => p.idCliente == idCliente).toList();
+        }
+      } else if (_tipoBusqueda == 'nombre_cliente') {
+        filtrados = filtrados.where((p) {
+          final nombre = p.nombreCliente?.toLowerCase() ?? '';
+          return nombre.contains(textoBusqueda);
+        }).toList();
       }
+    }
+    
+    // Aplicar filtro de estado de pago
+    if (_filtroEstado == 'pagado') {
+      filtrados = filtrados.where((p) => p.estadoPagado).toList();
+    } else if (_filtroEstado == 'no_pagado') {
+      filtrados = filtrados.where((p) => !p.estadoPagado).toList();
     }
     
     // Aplicar paginación
@@ -83,44 +97,70 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
   }
 
   int get _totalPaginas {
-    List<MovimientoModel> filtrados = _todosLosPrestamos;
-    if (_filtroEstado != 'todos') {
-      if (_filtroEstado == 'activo') {
-        filtrados = _todosLosPrestamos
-            .where((p) => !p.estadoPagado && !p.eliminado)
-            .toList();
-      } else if (_filtroEstado == 'pagado') {
-        filtrados = _todosLosPrestamos
-            .where((p) => p.estadoPagado && !p.eliminado)
-            .toList();
-      } else if (_filtroEstado == 'mora') {
-        final hoy = DateTime.now();
-        filtrados = _todosLosPrestamos
-            .where((p) => !p.estadoPagado && !p.eliminado && p.fechaPago.isBefore(hoy))
-            .toList();
+    List<MovimientoModel> filtrados = _todosLosPrestamos.where((p) => !p.eliminado).toList();
+    
+    // Aplicar búsqueda
+    final textoBusqueda = _busquedaController.text.trim().toLowerCase();
+    if (textoBusqueda.isNotEmpty) {
+      if (_tipoBusqueda == 'id_prestamo') {
+        final id = int.tryParse(textoBusqueda);
+        if (id != null) {
+          filtrados = filtrados.where((p) => p.id == id).toList();
+        }
+      } else if (_tipoBusqueda == 'id_cliente') {
+        final idCliente = int.tryParse(textoBusqueda);
+        if (idCliente != null) {
+          filtrados = filtrados.where((p) => p.idCliente == idCliente).toList();
+        }
+      } else if (_tipoBusqueda == 'nombre_cliente') {
+        filtrados = filtrados.where((p) {
+          final nombre = p.nombreCliente?.toLowerCase() ?? '';
+          return nombre.contains(textoBusqueda);
+        }).toList();
       }
     }
+    
+    // Aplicar filtro de estado
+    if (_filtroEstado == 'pagado') {
+      filtrados = filtrados.where((p) => p.estadoPagado).toList();
+    } else if (_filtroEstado == 'no_pagado') {
+      filtrados = filtrados.where((p) => !p.estadoPagado).toList();
+    }
+    
     return (filtrados.length / _itemsPorPagina).ceil();
   }
 
   int get _totalFiltrados {
-    List<MovimientoModel> filtrados = _todosLosPrestamos;
-    if (_filtroEstado != 'todos') {
-      if (_filtroEstado == 'activo') {
-        filtrados = _todosLosPrestamos
-            .where((p) => !p.estadoPagado && !p.eliminado)
-            .toList();
-      } else if (_filtroEstado == 'pagado') {
-        filtrados = _todosLosPrestamos
-            .where((p) => p.estadoPagado && !p.eliminado)
-            .toList();
-      } else if (_filtroEstado == 'mora') {
-        final hoy = DateTime.now();
-        filtrados = _todosLosPrestamos
-            .where((p) => !p.estadoPagado && !p.eliminado && p.fechaPago.isBefore(hoy))
-            .toList();
+    List<MovimientoModel> filtrados = _todosLosPrestamos.where((p) => !p.eliminado).toList();
+    
+    // Aplicar búsqueda
+    final textoBusqueda = _busquedaController.text.trim().toLowerCase();
+    if (textoBusqueda.isNotEmpty) {
+      if (_tipoBusqueda == 'id_prestamo') {
+        final id = int.tryParse(textoBusqueda);
+        if (id != null) {
+          filtrados = filtrados.where((p) => p.id == id).toList();
+        }
+      } else if (_tipoBusqueda == 'id_cliente') {
+        final idCliente = int.tryParse(textoBusqueda);
+        if (idCliente != null) {
+          filtrados = filtrados.where((p) => p.idCliente == idCliente).toList();
+        }
+      } else if (_tipoBusqueda == 'nombre_cliente') {
+        filtrados = filtrados.where((p) {
+          final nombre = p.nombreCliente?.toLowerCase() ?? '';
+          return nombre.contains(textoBusqueda);
+        }).toList();
       }
     }
+    
+    // Aplicar filtro de estado
+    if (_filtroEstado == 'pagado') {
+      filtrados = filtrados.where((p) => p.estadoPagado).toList();
+    } else if (_filtroEstado == 'no_pagado') {
+      filtrados = filtrados.where((p) => !p.estadoPagado).toList();
+    }
+    
     return filtrados.length;
   }
 
@@ -247,53 +287,126 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Préstamos'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: _cambiarFiltro,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'todos',
-                child: Text('Todos'),
-              ),
-              const PopupMenuItem(
-                value: 'activo',
-                child: Text('Activos'),
-              ),
-              const PopupMenuItem(
-                value: 'pagado',
-                child: Text('Pagados'),
-              ),
-              const PopupMenuItem(
-                value: 'mora',
-                child: Text('En mora'),
-              ),
-            ],
-          ),
-        ],
-      ),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
-          : _prestamos.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay préstamos',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            )
           : Column(
+              children: [
+                // Barra de búsqueda y filtros
+                Container(
+                  color: Colors.grey[100],
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Dropdown de tipo de búsqueda
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: _tipoBusqueda,
+                              decoration: const InputDecoration(
+                                labelText: 'Buscar por',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                                DropdownMenuItem(value: 'id_prestamo', child: Text('ID Préstamo')),
+                                DropdownMenuItem(value: 'id_cliente', child: Text('ID Cliente')),
+                                DropdownMenuItem(value: 'nombre_cliente', child: Text('Nombre Cliente')),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _tipoBusqueda = value!;
+                                  _busquedaController.clear();
+                                  _paginaActual = 0;
+                                  _aplicarFiltroYPaginacion();
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: _filtroEstado,
+                              decoration: const InputDecoration(
+                                labelText: 'Estado',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                                DropdownMenuItem(value: 'pagado', child: Text('Pagados')),
+                                DropdownMenuItem(value: 'no_pagado', child: Text('No Pagados')),
+                              ],
+                              onChanged: (value) {
+                                _cambiarFiltro(value!);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Campo de búsqueda
+                      if (_tipoBusqueda != 'todos')
+                        TextField(
+                          controller: _busquedaController,
+                          decoration: InputDecoration(
+                            labelText: _tipoBusqueda == 'id_prestamo'
+                                ? 'Ingrese ID del préstamo'
+                                : _tipoBusqueda == 'id_cliente'
+                                    ? 'Ingrese ID del cliente'
+                                    : 'Ingrese nombre del cliente',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _busquedaController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      setState(() {
+                                        _busquedaController.clear();
+                                        _paginaActual = 0;
+                                        _aplicarFiltroYPaginacion();
+                                      });
+                                    },
+                                  )
+                                : null,
+                          ),
+                          keyboardType: _tipoBusqueda.contains('id')
+                              ? TextInputType.number
+                              : TextInputType.text,
+                          onChanged: (value) {
+                            setState(() {
+                              _paginaActual = 0;
+                              _aplicarFiltroYPaginacion();
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                
+                // Lista de préstamos
+                Expanded(
+                  child: _prestamos.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inbox, size: 64, color: Colors.grey[400]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay préstamos',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Column(
               children: [
                 // Información de paginación
                 if (_totalFiltrados > _itemsPorPagina)
@@ -465,7 +578,7 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                                       children: [
                                         Expanded(
                                           child: _buildInfoItem(
-                                            'Saldo',
+                                            'Deuda Actual',
                                             _formatCurrency(prestamo.saldoPendiente),
                                             Icons.account_balance_wallet,
                                             color: prestamo.saldoPendiente > 0 ? Colors.orange : Colors.green,
@@ -540,6 +653,9 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                       );
                     },
                   ),
+                ),
+                      ],
+                    ),
                 ),
               ],
             ),

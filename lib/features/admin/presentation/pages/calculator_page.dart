@@ -26,6 +26,18 @@ class _CalculatorPageState extends State<CalculatorPage> {
           _display = '0';
         }
         _expression = _display;
+      } else if (value == '%') {
+        // Operación directa de porcentaje: divide el número actual entre 100
+        try {
+          final current = double.tryParse(_display);
+          if (current != null) {
+            final result = current / 100;
+            _display = result.toString();
+            _expression = '$current%';
+          }
+        } catch (e) {
+          _display = 'Error';
+        }
       } else if (value == '=') {
         try {
           _expression = _display;
@@ -289,8 +301,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
         return Expanded(
           child: Row(
             children: row.map((button) {
+              final flex = button == '0' ? 2 : (button == '=' ? 2 : 1);
               return Expanded(
-                flex: button == '0' ? 2 : 1,
+                flex: flex,
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: _buildButton(button),

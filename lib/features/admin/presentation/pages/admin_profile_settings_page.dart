@@ -15,7 +15,6 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
   final _supabase = SupabaseService().client;
   
   bool _isLoading = true;
-  bool _notificacionesActivas = true;
   String? _nombre;
   String? _apellidoPaterno;
   String? _apellidoMaterno;
@@ -107,19 +106,9 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Información Personal',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              TextButton.icon(
-                                onPressed: _editarPerfil,
-                                icon: const Icon(Icons.edit),
-                                label: const Text('Editar'),
-                              ),
-                            ],
+                          const Text(
+                            'Información Personal',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const Divider(),
                           _buildInfoRow('Nombre', _nombre ?? 'No disponible'),
@@ -152,42 +141,6 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                             title: const Text('Cambiar Contraseña'),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: _cambiarContrasena,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Notificaciones
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Notificaciones',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const Divider(),
-                          SwitchListTile(
-                            value: _notificacionesActivas,
-                            onChanged: (value) {
-                              setState(() => _notificacionesActivas = value);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    value
-                                        ? 'Notificaciones activadas'
-                                        : 'Notificaciones desactivadas',
-                                  ),
-                                ),
-                              );
-                            },
-                            title: const Text('Notificaciones Push'),
-                            subtitle: const Text('Recibir alertas de pagos y vencimientos'),
-                            secondary: const Icon(Icons.notifications, color: Color(0xFF00BCD4)),
                           ),
                         ],
                       ),
@@ -235,132 +188,6 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
       default:
         return 'Cliente';
     }
-  }
-
-  void _editarPerfil() {
-    final nombreController = TextEditingController(text: _nombre);
-    final apellidoPaternoController = TextEditingController(text: _apellidoPaterno);
-    final apellidoMaternoController = TextEditingController(text: _apellidoMaterno);
-    final telefonoController = TextEditingController(text: _telefono);
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Editar Perfil'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre *',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'El nombre es obligatorio';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: apellidoPaternoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Apellido Paterno *',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'El apellido paterno es obligatorio';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: apellidoMaternoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Apellido Materno',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: telefonoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Teléfono',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(context);
-                
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
-                );
-
-                try {
-                  final userId = _supabase.auth.currentUser?.id;
-                  if (userId == null) throw Exception('Usuario no autenticado');
-
-                  await _supabase.from('perfiles').update({
-                    'nombre': nombreController.text.trim(),
-                    'apellido_paterno': apellidoPaternoController.text.trim(),
-                    'apellido_materno': apellidoMaternoController.text.trim().isEmpty
-                        ? null
-                        : apellidoMaternoController.text.trim(),
-                    'telefono': telefonoController.text.trim().isEmpty
-                        ? null
-                        : telefonoController.text.trim(),
-                  }).eq('id', userId);
-
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Perfil actualizado correctamente'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    _cargarDatos();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _cambiarContrasena() {

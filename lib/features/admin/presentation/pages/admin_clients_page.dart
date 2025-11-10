@@ -89,17 +89,6 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Clientes'),
-        backgroundColor: const Color(0xFF00BCD4),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _cargarClientes,
-            tooltip: 'Recargar',
-          ),
-        ],
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
