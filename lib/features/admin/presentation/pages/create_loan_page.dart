@@ -231,6 +231,10 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
       appBar: AppBar(
         title: const Text('Registrar Préstamo'),
         backgroundColor: const Color(0xFF00BCD4),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading && _clientes.isEmpty
           ? const Center(child: CircularProgressIndicator())

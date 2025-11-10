@@ -659,14 +659,6 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // Navegar a crear préstamo
-          Navigator.pushNamed(context, '/admin/loans/create');
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo Préstamo'),
-      ),
     );
   }
 

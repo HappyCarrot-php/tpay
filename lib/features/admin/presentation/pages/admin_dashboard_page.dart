@@ -18,6 +18,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _capitalTrabajando = 0;
   int _capitalLiberado = 0;
   int _gananciasNetas = 0;
+  double _tipoCambioUSD = 17.0; // Tipo de cambio por defecto
   List<MovimientoModel> _prestamosActivos = [];
   List<MovimientoModel> _prestamosPagados = [];
 
@@ -25,6 +26,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void initState() {
     super.initState();
     _cargarEstadisticas();
+    _obtenerTipoCambio();
+  }
+
+  Future<void> _obtenerTipoCambio() async {
+    try {
+      // Aquí podrías hacer una petición a una API de tipo de cambio
+      // Por ahora usaremos un valor fijo de 17 MXN por USD
+      // Puedes integrar una API como: https://api.exchangerate-api.com/v4/latest/USD
+      setState(() {
+        _tipoCambioUSD = 17.0;
+      });
+    } catch (e) {
+      // Si falla, usar valor por defecto
+      setState(() {
+        _tipoCambioUSD = 17.0;
+      });
+    }
   }
 
   Future<void> _cargarEstadisticas() async {
@@ -130,6 +148,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   _buildGraficaCapitalLiberado(),
                   const SizedBox(height: 24),
                   _buildGraficaGananciasNetas(),
+                  const SizedBox(height: 32),
+                  const Divider(thickness: 2),
+                  const SizedBox(height: 16),
+                  _buildResumenTexto(),
                 ],
               ),
             ),
@@ -476,5 +498,90 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildResumenTexto() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Resumen Financiero',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // MXN
+            const Text(
+              'Montos en MXN',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF00BCD4),
+              ),
+            ),
+            const Divider(),
+            _buildResumenRow('Capital Total', _formatCurrency(_capitalTotal.toDouble()), Colors.teal),
+            _buildResumenRow('Capital Trabajando', _formatCurrency(_capitalTrabajando.toDouble()), Colors.green),
+            _buildResumenRow('Capital Liberado', _formatCurrency(_capitalLiberado.toDouble()), Colors.orange),
+            _buildResumenRow('Ganancias Netas', _formatCurrency(_gananciasNetas.toDouble()), Colors.purple),
+            
+            const SizedBox(height: 20),
+            
+            // USD
+            Text(
+              'Equivalente en USD (1 USD = \$${_tipoCambioUSD.toStringAsFixed(2)} MXN)',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+            const Divider(),
+            _buildResumenRow('Capital Total', _formatUSD(_capitalTotal / _tipoCambioUSD), Colors.teal),
+            _buildResumenRow('Capital Trabajando', _formatUSD(_capitalTrabajando / _tipoCambioUSD), Colors.green),
+            _buildResumenRow('Capital Liberado', _formatUSD(_capitalLiberado / _tipoCambioUSD), Colors.orange),
+            _buildResumenRow('Ganancias Netas', _formatUSD(_gananciasNetas / _tipoCambioUSD), Colors.purple),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumenRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatUSD(double amount) {
+    return '\$${amount.toStringAsFixed(2)} USD';
   }
 }

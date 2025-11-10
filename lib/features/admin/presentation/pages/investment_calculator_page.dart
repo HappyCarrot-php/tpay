@@ -105,6 +105,10 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calcular Inversión'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
