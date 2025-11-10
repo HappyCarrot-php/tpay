@@ -10,14 +10,21 @@ import '../../data/repositories/cliente_repository.dart';
 import '../../data/repositories/movimiento_repository.dart';
 
 class AdminHomePage extends StatefulWidget {
-  const AdminHomePage({super.key});
+  final int initialIndex;
+  const AdminHomePage({super.key, this.initialIndex = 0});
 
   @override
   State<AdminHomePage> createState() => _AdminHomePageState();
 }
 
 class _AdminHomePageState extends State<AdminHomePage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+  
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   final List<Widget> _pages = [
     const AdminDashboardPage(),

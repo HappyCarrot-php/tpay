@@ -10,8 +10,6 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/admin/presentation/pages/admin_home_page.dart';
 import '../../features/admin/presentation/pages/loan_simulator_page.dart';
 import '../../features/admin/presentation/pages/create_loan_page.dart';
-import '../../features/admin/presentation/pages/admin_loans_list_page.dart';
-import '../../features/admin/presentation/pages/admin_clients_page.dart';
 import '../../features/admin/presentation/pages/investment_calculator_page.dart';
 import '../../features/admin/presentation/pages/calculator_page.dart';
 import '../../features/admin/presentation/pages/admin_movements_page.dart';
@@ -45,12 +43,12 @@ class AppRouter {
       // Admin routes
       GoRoute(
         path: '/admin',
-        builder: (context, state) => const AdminHomePage(),
+        builder: (context, state) => const AdminHomePage(initialIndex: 0),
         name: 'admin-home',
         routes: [
           GoRoute(
             path: 'loans',
-            builder: (context, state) => const AdminLoansListPage(),
+            builder: (context, state) => const AdminHomePage(initialIndex: 1),
             name: 'admin-loans',
             routes: [
               GoRoute(
@@ -62,7 +60,7 @@ class AppRouter {
           ),
           GoRoute(
             path: 'clients',
-            builder: (context, state) => const AdminClientsPage(),
+            builder: (context, state) => const AdminHomePage(initialIndex: 2),
             name: 'admin-clients',
           ),
           GoRoute(

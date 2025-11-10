@@ -53,13 +53,24 @@ class AdminDrawer extends StatelessWidget {
             ),
           ),
           
+          // Dashboard
+          ListTile(
+            leading: const Icon(Icons.dashboard),
+            title: const Text('Dashboard'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/admin');
+            },
+          ),
+          
           // Préstamos
           ListTile(
             leading: const Icon(Icons.receipt_long),
             title: const Text('Préstamos'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/loans');
+              // Navegar a AdminHomePage con índice 1
+              Navigator.pushReplacementNamed(context, '/admin/loans');
             },
           ),
           
@@ -69,18 +80,8 @@ class AdminDrawer extends StatelessWidget {
             title: const Text('Clientes'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/clients');
-            },
-          ),
-          
-          // Movimientos
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.purple),
-            title: const Text('Movimientos'),
-            subtitle: const Text('Historial de operaciones'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/movements');
+              // Navegar a AdminHomePage con índice 2
+              Navigator.pushReplacementNamed(context, '/admin/clients');
             },
           ),
           
