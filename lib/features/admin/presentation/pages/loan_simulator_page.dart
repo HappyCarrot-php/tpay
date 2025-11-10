@@ -25,36 +25,34 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     super.dispose();
   }
 
-  /// Calcula el interés mensual con la regla: 20 días = 1 mes
+  /// Calcula el interés mensual con la regla: 30 días = 1 mes
   /// Días adicionales se calculan proporcionalmente
   /// 
-  /// Ejemplo: $100 al 10% del 1 de enero al 22 de febrero (52 días)
-  /// - Días totales: 52
-  /// - Meses completos: 52 ÷ 20 = 2 meses
-  /// - Días restantes: 52 % 20 = 12 días
-  /// - Interés meses: $100 × 10% × 2 = $20
-  /// - Interés días: $100 × 10% × (12/20) = $6
-  /// - Total: $26
+  /// Ejemplo: $100 al 10% durante 60 días (2 meses)
+  /// - Días totales: 60
+  /// - Meses completos: 60 ÷ 30 = 2 meses
+  /// - Días restantes: 60 % 30 = 0 días
+  /// - Interés: $100 × 10% × 2 = $20
   double _calcularInteresMensual(double monto, double tasaMensual, DateTime fechaInicio, DateTime fechaPago) {
     final diasTotales = fechaPago.difference(fechaInicio).inDays;
     
-    // Cada 20 días cuenta como 1 mes completo
-    final mesesCompletos = diasTotales ~/ 20;
-    final diasRestantes = diasTotales % 20;
+    // Cada 30 días cuenta como 1 mes completo
+    final mesesCompletos = diasTotales ~/ 30;
+    final diasRestantes = diasTotales % 30;
     
     // Interés por meses completos
     final interesMeses = monto * tasaMensual * mesesCompletos;
     
     // Interés por días restantes (proporcional)
-    final interesDias = monto * tasaMensual * (diasRestantes / 20);
+    final interesDias = monto * tasaMensual * (diasRestantes / 30);
     
     return interesMeses + interesDias;
   }
 
   String _obtenerPlazoDias() {
     final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
-    final mesesCompletos = diasTotales ~/ 20;
-    final diasRestantes = diasTotales % 20;
+    final mesesCompletos = diasTotales ~/ 30;
+    final diasRestantes = diasTotales % 30;
     
     if (mesesCompletos == 0) {
       return '$diasTotales días';
@@ -283,7 +281,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Regla de cálculo: 20 días = 1 mes de interés. Días adicionales se calculan proporcionalmente.',
+                        'Regla de cálculo: 30 días = 1 mes de interés. Días adicionales se calculan proporcionalmente.',
                         style: TextStyle(fontSize: 12, color: Colors.green[900]),
                       ),
                     ),
@@ -394,8 +392,8 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
 
   Widget _buildDesglosInteresItem() {
     final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
-    final mesesCompletos = diasTotales ~/ 20;
-    final diasRestantes = diasTotales % 20;
+    final mesesCompletos = diasTotales ~/ 30;
+    final diasRestantes = diasTotales % 30;
     
     return Container(
       padding: const EdgeInsets.all(12),
@@ -423,7 +421,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
             ),
           if (diasRestantes > 0)
             Text(
-              '• $diasRestantes días adicionales: \$${((double.tryParse(_montoController.text) ?? 0) * (_interes / 100) * (diasRestantes / 20)).toStringAsFixed(2)}',
+              '• $diasRestantes días adicionales: \$${((double.tryParse(_montoController.text) ?? 0) * (_interes / 100) * (diasRestantes / 30)).toStringAsFixed(2)}',
               style: TextStyle(fontSize: 13, color: Colors.orange[900]),
             ),
           if (mesesCompletos == 0 && diasRestantes == 0)

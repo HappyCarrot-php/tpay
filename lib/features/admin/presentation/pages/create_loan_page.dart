@@ -208,7 +208,7 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
         interes = double.parse(_interesManualController.text);
       } else {
         final tasaMensual = double.parse(_tipoInteres) / 100;
-        // Usar la nueva regla: 20 días = 1 mes
+        // Usar la nueva regla: 30 días = 1 mes
         interes = _calcularInteresMensual(monto, tasaMensual, _fechaInicio, _fechaPago);
       }
       
@@ -239,28 +239,26 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
     }
   }
 
-  /// Calcula el interés mensual con la regla: 20 días = 1 mes
+  /// Calcula el interés mensual con la regla: 30 días = 1 mes
   /// Días adicionales se calculan proporcionalmente
   /// 
-  /// Ejemplo: $100 al 10% del 1 de enero al 22 de febrero (52 días)
-  /// - Días totales: 52
-  /// - Meses completos: 52 ÷ 20 = 2 meses
-  /// - Días restantes: 52 % 20 = 12 días
-  /// - Interés meses: $100 × 10% × 2 = $20
-  /// - Interés días: $100 × 10% × (12/20) = $6
-  /// - Total: $26
+  /// Ejemplo: $100 al 10% durante 60 días (2 meses)
+  /// - Días totales: 60
+  /// - Meses completos: 60 ÷ 30 = 2 meses
+  /// - Días restantes: 60 % 30 = 0 días
+  /// - Interés: $100 × 10% × 2 = $20
   double _calcularInteresMensual(double monto, double tasaMensual, DateTime fechaInicio, DateTime fechaPago) {
     final diasTotales = fechaPago.difference(fechaInicio).inDays;
     
-    // Cada 20 días cuenta como 1 mes completo
-    final mesesCompletos = diasTotales ~/ 20;
-    final diasRestantes = diasTotales % 20;
+    // Cada 30 días cuenta como 1 mes completo
+    final mesesCompletos = diasTotales ~/ 30;
+    final diasRestantes = diasTotales % 30;
     
     // Interés por meses completos
     final interesMeses = monto * tasaMensual * mesesCompletos;
     
     // Interés por días restantes (proporcional)
-    final interesDias = monto * tasaMensual * (diasRestantes / 20);
+    final interesDias = monto * tasaMensual * (diasRestantes / 30);
     
     return interesMeses + interesDias;
   }
@@ -281,8 +279,8 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
 
   String _obtenerPlazoDias() {
     final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
-    final mesesCompletos = diasTotales ~/ 20;
-    final diasRestantes = diasTotales % 20;
+    final mesesCompletos = diasTotales ~/ 30;
+    final diasRestantes = diasTotales % 30;
     
     if (mesesCompletos == 0) {
       return '$diasTotales días';
@@ -701,7 +699,7 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Regla: 20 días = 1 mes de interés',
+                  'Regla: 30 días = 1 mes de interés',
                   style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
                   textAlign: TextAlign.right,
                 ),

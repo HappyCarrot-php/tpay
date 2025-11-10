@@ -59,7 +59,7 @@ class LoanActionButtons extends StatelessWidget {
             color: Colors.purple,
             onPressed: () => _editarPrestamo(context),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 2),
           ElevatedButton(
             onPressed: () => _eliminarPrestamo(context),
             style: ElevatedButton.styleFrom(

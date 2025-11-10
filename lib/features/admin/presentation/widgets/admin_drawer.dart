@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/repositories/perfil_repository.dart';
-import '../../../auth/data/repositories/auth_repository.dart';
 
 class AdminDrawer extends StatefulWidget {
   const AdminDrawer({super.key});
@@ -180,18 +179,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
               },
             ),
           
-          // Cerrar sesión
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: Colors.red),
-            ),
-            onTap: () {
-              _confirmarCerrarSesion(context);
-            },
-          ),
-          
           const Divider(),
           
           // Perfil (al final)
@@ -202,62 +189,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
               Navigator.pop(context);
               context.go('/admin/profile');
             },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmarCerrarSesion(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Está seguro de cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext); // Cerrar diálogo de confirmación
-              
-              // Mostrar loading
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (loadingContext) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-              
-              try {
-                await AuthRepository().logout();
-                if (context.mounted) {
-                  Navigator.of(context).pop(); // Cerrar loading
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (route) => false,
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  Navigator.of(context).pop(); // Cerrar loading
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('❌ Error al cerrar sesión: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Cerrar Sesión'),
           ),
         ],
       ),
