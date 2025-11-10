@@ -5,6 +5,9 @@ import 'admin_dashboard_page.dart';
 import 'admin_loans_list_page.dart';
 import 'admin_clients_page.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
+import '../../data/repositories/perfil_repository.dart';
+import '../../data/repositories/cliente_repository.dart';
+import '../../data/repositories/movimiento_repository.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -71,22 +74,95 @@ class _AdminHomePageState extends State<AdminHomePage> {
   }
 }
 
-// Página de perfil del administrador (placeholder)
-class AdminProfilePage extends StatelessWidget {
+// Página de perfil del administrador con datos reales
+class AdminProfilePage extends StatefulWidget {
   const AdminProfilePage({super.key});
 
   @override
+  State<AdminProfilePage> createState() => _AdminProfilePageState();
+}
+
+class _AdminProfilePageState extends State<AdminProfilePage> {
+  final _perfilRepo = PerfilRepository();
+  final _clienteRepo = ClienteRepository();
+  final _movimientoRepo = MovimientoRepository();
+
+  bool _isLoading = true;
+  String? _nombre;
+  String? _email;
+  String? _rol;
+  int _prestamosActivos = 0;
+  int _clientesRegistrados = 0;
+  double _totalPrestado = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatos();
+  }
+
+  Future<void> _cargarDatos() async {
+    try {
+      // Obtener perfil
+      final perfil = await _perfilRepo.obtenerPerfilActual();
+      final email = _perfilRepo.obtenerEmailActual();
+
+      // Obtener estadísticas
+      final clientes = await _clienteRepo.obtenerClientes();
+      final prestamosActivos = await _movimientoRepo.obtenerMovimientos(
+        filtro: FiltroEstadoPrestamo.activos,
+        limite: 1000,
+      );
+
+      double totalPrestado = 0;
+      for (var prestamo in prestamosActivos) {
+        totalPrestado += prestamo.monto + prestamo.interes;
+      }
+
+      if (mounted) {
+        setState(() {
+          _nombre = perfil?.nombreCompleto ?? 'Usuario';
+          _email = email ?? 'No disponible';
+          _rol = perfil?.rol ?? 'cliente';
+          _clientesRegistrados = clientes.length;
+          _prestamosActivos = prestamosActivos.length;
+          _totalPrestado = totalPrestado;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar datos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           // Avatar
-          const CircleAvatar(
+          CircleAvatar(
             radius: 60,
-            backgroundColor: Color(0xFF00BCD4),
+            backgroundColor: const Color(0xFF00BCD4),
             child: Icon(
-              Icons.admin_panel_settings,
+              _rol == 'administrador' 
+                  ? Icons.admin_panel_settings
+                  : _rol == 'moderador'
+                      ? Icons.manage_accounts
+                      : Icons.person,
               size: 60,
               color: Colors.white,
             ),
@@ -94,9 +170,9 @@ class AdminProfilePage extends StatelessWidget {
           const SizedBox(height: 16),
           
           // Nombre
-          const Text(
-            'Administrador',
-            style: TextStyle(
+          Text(
+            _nombre ?? 'Usuario',
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -105,7 +181,7 @@ class AdminProfilePage extends StatelessWidget {
           
           // Email
           Text(
-            'admin@tpay.com',
+            _email ?? '',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -127,11 +203,23 @@ class AdminProfilePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildStatItem('Préstamos Activos', '15', Icons.receipt_long),
+                  _buildStatItem(
+                    'Préstamos Activos', 
+                    _prestamosActivos.toString(), 
+                    Icons.receipt_long,
+                  ),
                   const Divider(),
-                  _buildStatItem('Clientes Registrados', '48', Icons.people),
+                  _buildStatItem(
+                    'Clientes Registrados', 
+                    _clientesRegistrados.toString(), 
+                    Icons.people,
+                  ),
                   const Divider(),
-                  _buildStatItem('Total Prestado', '\$250,000', Icons.attach_money),
+                  _buildStatItem(
+                    'Total Prestado', 
+                    '\$${_totalPrestado.toStringAsFixed(2)}', 
+                    Icons.attach_money,
+                  ),
                 ],
               ),
             ),

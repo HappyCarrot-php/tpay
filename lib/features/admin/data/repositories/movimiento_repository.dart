@@ -26,7 +26,7 @@ class MovimientoRepository {
           .from(SupabaseConstants.movimientosTable)
           .select('''
             *,
-            nombre_cliente:clientes!inner(nombre_completo)
+            clientes!inner(nombre_completo)
           ''')
           .eq('eliminado', false);
 
@@ -57,8 +57,8 @@ class MovimientoRepository {
 
       return (response as List).map((json) {
         // Extraer nombre del cliente del JOIN
-        final nombreCliente = json['nombre_cliente'] is Map
-            ? json['nombre_cliente']['nombre_completo']
+        final nombreCliente = json['clientes'] is Map
+            ? json['clientes']['nombre_completo']
             : null;
         
         return MovimientoModel.fromJson({
@@ -81,7 +81,7 @@ class MovimientoRepository {
           .from(SupabaseConstants.movimientosTable)
           .select('''
             *,
-            nombre_cliente:clientes!inner(nombre_completo)
+            clientes!inner(nombre_completo)
           ''')
           .eq('eliminado', false);
 
@@ -90,15 +90,15 @@ class MovimientoRepository {
       } else if (idCliente != null) {
         supabaseQuery = supabaseQuery.eq('id_cliente', idCliente);
       } else {
-        // Búsqueda por nombre (filtro del lado del cliente)
-        supabaseQuery = supabaseQuery.ilike('clientes.nombre_completo', '%$query%');
+        // Búsqueda por nombre - hacerlo del lado del cliente
+        // No se puede filtrar directamente en JOIN, así que traemos todo
       }
 
       final response = await supabaseQuery.order('fecha_inicio', ascending: false);
 
-      return (response as List).map((json) {
-        final nombreCliente = json['nombre_cliente'] is Map
-            ? json['nombre_cliente']['nombre_completo']
+      List<MovimientoModel> movimientos = (response as List).map((json) {
+        final nombreCliente = json['clientes'] is Map
+            ? json['clientes']['nombre_completo']
             : null;
         
         return MovimientoModel.fromJson({
@@ -106,6 +106,15 @@ class MovimientoRepository {
           'nombre_cliente': nombreCliente,
         });
       }).toList();
+
+      // Filtrar por nombre del lado del cliente si es necesario
+      if (idPrestamo == null && idCliente == null) {
+        movimientos = movimientos.where((m) => 
+          m.nombreCliente?.toLowerCase().contains(query.toLowerCase()) ?? false
+        ).toList();
+      }
+
+      return movimientos;
     } catch (e) {
       throw Exception('Error al buscar movimientos: $e');
     }
@@ -118,7 +127,7 @@ class MovimientoRepository {
           .from(SupabaseConstants.movimientosTable)
           .select('''
             *,
-            nombre_cliente:clientes!inner(nombre_completo)
+            clientes!inner(nombre_completo)
           ''')
           .eq('id', id)
           .single();
@@ -167,12 +176,12 @@ class MovimientoRepository {
           .insert(data)
           .select('''
             *,
-            nombre_cliente:clientes!inner(nombre_completo)
+            clientes!inner(nombre_completo)
           ''')
           .single();
 
-      final nombreCliente = response['nombre_cliente'] is Map
-          ? response['nombre_cliente']['nombre_completo']
+      final nombreCliente = response['clientes'] is Map
+          ? response['clientes']['nombre_completo']
           : null;
 
       return MovimientoModel.fromJson({
@@ -205,12 +214,12 @@ class MovimientoRepository {
           .eq('id', id)
           .select('''
             *,
-            nombre_cliente:clientes!inner(nombre_completo)
+            clientes!inner(nombre_completo)
           ''')
           .single();
 
-      final nombreCliente = response['nombre_cliente'] is Map
-          ? response['nombre_cliente']['nombre_completo']
+      final nombreCliente = response['clientes'] is Map
+          ? response['clientes']['nombre_completo']
           : null;
 
       return MovimientoModel.fromJson({

@@ -54,9 +54,24 @@ class ClienteModel extends ClienteEntity {
           : null,
       notas: json['notas'] as String?,
       activo: json['activo'] as bool? ?? true,
-      creado: DateTime.parse(json['creado'] as String),
-      actualizado: DateTime.parse(json['actualizado'] as String),
+      // Manejo flexible de timestamps (created_at, creado, fecha_creacion)
+      creado: _parseTimestamp(json, ['creado', 'created_at', 'fecha_creacion']) ?? DateTime.now(),
+      actualizado: _parseTimestamp(json, ['actualizado', 'updated_at', 'fecha_actualizacion']) ?? DateTime.now(),
     );
+  }
+
+  // Helper para parsear timestamps con múltiples nombres posibles
+  static DateTime? _parseTimestamp(Map<String, dynamic> json, List<String> keys) {
+    for (var key in keys) {
+      if (json[key] != null) {
+        try {
+          return DateTime.parse(json[key] as String);
+        } catch (e) {
+          continue;
+        }
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() {
