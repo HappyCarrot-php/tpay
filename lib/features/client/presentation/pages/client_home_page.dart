@@ -21,6 +21,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
   FiltroEstadoPrestamo _filtroActual = FiltroEstadoPrestamo.todos;
   bool _isLoading = false;
   double _deudaTotal = 0;
+  
+  // Paginación
+  int _paginaActual = 0;
+  final int _prestamosPorPagina = 5;
 
   @override
   void initState() {
@@ -74,8 +78,31 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   void _cambiarFiltro(FiltroEstadoPrestamo nuevoFiltro) {
-    setState(() => _filtroActual = nuevoFiltro);
+    setState(() {
+      _filtroActual = nuevoFiltro;
+      _paginaActual = 0; // Resetear página al cambiar filtro
+    });
     _cargarDatos();
+  }
+
+  List<MovimientoModel> get _prestamosPaginados {
+    final inicio = _paginaActual * _prestamosPorPagina;
+    final fin = (inicio + _prestamosPorPagina).clamp(0, _prestamos.length);
+    return _prestamos.sublist(inicio.clamp(0, _prestamos.length), fin);
+  }
+
+  int get _totalPaginas => (_prestamos.length / _prestamosPorPagina).ceil();
+
+  void _irPaginaAnterior() {
+    if (_paginaActual > 0) {
+      setState(() => _paginaActual--);
+    }
+  }
+
+  void _irPaginaSiguiente() {
+    if (_paginaActual < _totalPaginas - 1) {
+      setState(() => _paginaActual++);
+    }
   }
 
   String _formatCurrency(double amount) {
@@ -182,12 +209,75 @@ class _ClientHomePageState extends State<ClientHomePage> {
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.all(8),
-                            itemCount: _prestamos.length,
+                            itemCount: _prestamosPaginados.length,
                             itemBuilder: (context, index) {
-                              return _buildPrestamoCard(_prestamos[index]);
+                              return _buildPrestamoCard(_prestamosPaginados[index]);
                             },
                           ),
                   ),
+
+                  // Controles de paginación
+                  if (_prestamos.length > _prestamosPorPagina)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        border: Border(
+                          top: BorderSide(color: Colors.grey[300]!),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Botón anterior
+                          ElevatedButton.icon(
+                            onPressed: _paginaActual > 0 ? _irPaginaAnterior : null,
+                            icon: const Icon(Icons.arrow_back, size: 16),
+                            label: const Text('Anterior'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00BCD4),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey[300],
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                          ),
+
+                          // Indicador de página
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00BCD4).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFF00BCD4).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(
+                              'Página ${_paginaActual + 1} de $_totalPaginas',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00BCD4),
+                              ),
+                            ),
+                          ),
+
+                          // Botón siguiente
+                          ElevatedButton.icon(
+                            onPressed: _paginaActual < _totalPaginas - 1
+                                ? _irPaginaSiguiente
+                                : null,
+                            icon: const Icon(Icons.arrow_forward, size: 16),
+                            label: const Text('Siguiente'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00BCD4),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey[300],
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

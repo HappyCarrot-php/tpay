@@ -25,11 +25,51 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     super.dispose();
   }
 
+  /// Calcula el interés mensual con la regla: 20 días = 1 mes
+  /// Días adicionales se calculan proporcionalmente
+  /// 
+  /// Ejemplo: $100 al 10% del 1 de enero al 22 de febrero (52 días)
+  /// - Días totales: 52
+  /// - Meses completos: 52 ÷ 20 = 2 meses
+  /// - Días restantes: 52 % 20 = 12 días
+  /// - Interés meses: $100 × 10% × 2 = $20
+  /// - Interés días: $100 × 10% × (12/20) = $6
+  /// - Total: $26
+  double _calcularInteresMensual(double monto, double tasaMensual, DateTime fechaInicio, DateTime fechaPago) {
+    final diasTotales = fechaPago.difference(fechaInicio).inDays;
+    
+    // Cada 20 días cuenta como 1 mes completo
+    final mesesCompletos = diasTotales ~/ 20;
+    final diasRestantes = diasTotales % 20;
+    
+    // Interés por meses completos
+    final interesMeses = monto * tasaMensual * mesesCompletos;
+    
+    // Interés por días restantes (proporcional)
+    final interesDias = monto * tasaMensual * (diasRestantes / 20);
+    
+    return interesMeses + interesDias;
+  }
+
+  String _obtenerPlazoDias() {
+    final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
+    final mesesCompletos = diasTotales ~/ 20;
+    final diasRestantes = diasTotales % 20;
+    
+    if (mesesCompletos == 0) {
+      return '$diasTotales días';
+    } else if (diasRestantes == 0) {
+      return '$mesesCompletos ${mesesCompletos == 1 ? "mes" : "meses"} ($diasTotales días)';
+    } else {
+      return '$mesesCompletos ${mesesCompletos == 1 ? "mes" : "meses"} + $diasRestantes días ($diasTotales días totales)';
+    }
+  }
+
   void _simular() {
     if (_formKey.currentState!.validate()) {
       final monto = double.tryParse(_montoController.text) ?? 0.0;
-      final interesDecimal = _interes / 100;
-      final interesCalculado = monto * interesDecimal;
+      final tasaMensual = _interes / 100;
+      final interesCalculado = _calcularInteresMensual(monto, tasaMensual, _fechaInicio, _fechaPago);
       final totalConInteres = monto + interesCalculado;
 
       setState(() {
@@ -229,6 +269,30 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
               
               const SizedBox(height: 32),
               
+              // Información sobre cálculo
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: Colors.green[700], size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Regla de cálculo: 20 días = 1 mes de interés. Días adicionales se calculan proporcionalmente.',
+                        style: TextStyle(fontSize: 12, color: Colors.green[900]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
               // Botón Simular
               ElevatedButton.icon(
                 onPressed: _simular,
@@ -277,11 +341,14 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                 
                 // Detalles del recibo
                 _buildReciboItem('Monto Prestado', '\$${_montoController.text}'),
-                _buildReciboItem('Tasa de Interés', '${_interes.toStringAsFixed(1)}%'),
-                _buildReciboItem('Interés Calculado', '\$${_interesCalculado.toStringAsFixed(2)}'),
+                _buildReciboItem('Tasa de Interés', '${_interes.toStringAsFixed(1)}% mensual'),
                 _buildReciboItem('Fecha de Inicio', '${_fechaInicio.day}/${_fechaInicio.month}/${_fechaInicio.year}'),
                 _buildReciboItem('Fecha de Pago', '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}'),
-                _buildReciboItem('Plazo', '${_fechaPago.difference(_fechaInicio).inDays} días'),
+                _buildReciboItem('Plazo', _obtenerPlazoDias()),
+                const SizedBox(height: 8),
+                _buildDesglosInteresItem(),
+                const SizedBox(height: 8),
+                _buildReciboItem('Interés Total', '\$${_interesCalculado.toStringAsFixed(2)}', destacado: true, color: Colors.orange),
                 
                 const Divider(thickness: 2, height: 32),
                 
@@ -325,7 +392,51 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     );
   }
 
-  Widget _buildReciboItem(String label, String valor, {bool destacado = false}) {
+  Widget _buildDesglosInteresItem() {
+    final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
+    final mesesCompletos = diasTotales ~/ 20;
+    final diasRestantes = diasTotales % 20;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Desglose del Interés:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange[900],
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (mesesCompletos > 0)
+            Text(
+              '• $mesesCompletos ${mesesCompletos == 1 ? "mes" : "meses"} completo${mesesCompletos == 1 ? "" : "s"}: \$${((double.tryParse(_montoController.text) ?? 0) * (_interes / 100) * mesesCompletos).toStringAsFixed(2)}',
+              style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+            ),
+          if (diasRestantes > 0)
+            Text(
+              '• $diasRestantes días adicionales: \$${((double.tryParse(_montoController.text) ?? 0) * (_interes / 100) * (diasRestantes / 20)).toStringAsFixed(2)}',
+              style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+            ),
+          if (mesesCompletos == 0 && diasRestantes == 0)
+            Text(
+              '• Sin días transcurridos',
+              style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReciboItem(String label, String valor, {bool destacado = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -336,7 +447,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
             style: TextStyle(
               fontSize: destacado ? 18 : 16,
               fontWeight: destacado ? FontWeight.bold : FontWeight.w500,
-              color: destacado ? const Color(0xFF00BCD4) : Colors.black87,
+              color: color ?? (destacado ? const Color(0xFF00BCD4) : Colors.black87),
             ),
           ),
           Text(
@@ -344,7 +455,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
             style: TextStyle(
               fontSize: destacado ? 20 : 16,
               fontWeight: destacado ? FontWeight.bold : FontWeight.w600,
-              color: destacado ? const Color(0xFF00BCD4) : Colors.black,
+              color: color ?? (destacado ? const Color(0xFF00BCD4) : Colors.black),
             ),
           ),
         ],

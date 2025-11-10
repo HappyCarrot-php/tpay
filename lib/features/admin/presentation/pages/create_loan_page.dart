@@ -208,7 +208,8 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
         interes = double.parse(_interesManualController.text);
       } else {
         final tasaMensual = double.parse(_tipoInteres) / 100;
-        interes = monto * tasaMensual;
+        // Usar la nueva regla: 20 días = 1 mes
+        interes = _calcularInteresMensual(monto, tasaMensual, _fechaInicio, _fechaPago);
       }
       
       final notas = _notasController.text.trim();
@@ -235,6 +236,60 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
           SnackBar(content: Text('Error al registrar préstamo: $e'), backgroundColor: Colors.red),
         );
       }
+    }
+  }
+
+  /// Calcula el interés mensual con la regla: 20 días = 1 mes
+  /// Días adicionales se calculan proporcionalmente
+  /// 
+  /// Ejemplo: $100 al 10% del 1 de enero al 22 de febrero (52 días)
+  /// - Días totales: 52
+  /// - Meses completos: 52 ÷ 20 = 2 meses
+  /// - Días restantes: 52 % 20 = 12 días
+  /// - Interés meses: $100 × 10% × 2 = $20
+  /// - Interés días: $100 × 10% × (12/20) = $6
+  /// - Total: $26
+  double _calcularInteresMensual(double monto, double tasaMensual, DateTime fechaInicio, DateTime fechaPago) {
+    final diasTotales = fechaPago.difference(fechaInicio).inDays;
+    
+    // Cada 20 días cuenta como 1 mes completo
+    final mesesCompletos = diasTotales ~/ 20;
+    final diasRestantes = diasTotales % 20;
+    
+    // Interés por meses completos
+    final interesMeses = monto * tasaMensual * mesesCompletos;
+    
+    // Interés por días restantes (proporcional)
+    final interesDias = monto * tasaMensual * (diasRestantes / 20);
+    
+    return interesMeses + interesDias;
+  }
+
+  String _obtenerInteresPreview() {
+    if (_montoController.text.isEmpty || _tipoInteres == 'manual') {
+      return '';
+    }
+    
+    final monto = double.tryParse(_montoController.text) ?? 0;
+    if (monto <= 0) return '';
+    
+    final tasaMensual = double.parse(_tipoInteres) / 100;
+    final interes = _calcularInteresMensual(monto, tasaMensual, _fechaInicio, _fechaPago);
+    
+    return '\$${interes.toStringAsFixed(2)}';
+  }
+
+  String _obtenerPlazoDias() {
+    final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
+    final mesesCompletos = diasTotales ~/ 20;
+    final diasRestantes = diasTotales % 20;
+    
+    if (mesesCompletos == 0) {
+      return '$diasTotales días';
+    } else if (diasRestantes == 0) {
+      return '$mesesCompletos ${mesesCompletos == 1 ? "mes" : "meses"} ($diasTotales días)';
+    } else {
+      return '$mesesCompletos ${mesesCompletos == 1 ? "mes" : "meses"} + $diasRestantes días ($diasTotales días totales)';
     }
   }
 
@@ -620,13 +675,35 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.blue[200]!),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Interés calculado:', style: TextStyle(fontWeight: FontWeight.w500)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Plazo:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    Text(
+                      _obtenerPlazoDias(),
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Interés calculado:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    Text(
+                      _obtenerInteresPreview(),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  '\$${((double.tryParse(_montoController.text) ?? 0) * (double.parse(_tipoInteres) / 100)).toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                  'Regla: 20 días = 1 mes de interés',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.right,
                 ),
               ],
             ),
