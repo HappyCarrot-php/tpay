@@ -44,7 +44,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
         throw Exception('No se encontró perfil de cliente');
       }
 
-      final clienteId = clientes.first.idCliente;
+      final clienteId = clientes.first.id;
 
       // Cargar préstamos del cliente
       final prestamos = await _movimientoRepo.obtenerMovimientos(

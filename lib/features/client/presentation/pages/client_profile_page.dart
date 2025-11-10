@@ -50,15 +50,15 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
       if (clientes.isEmpty) throw Exception('No se encontró perfil de cliente');
 
       final cliente = clientes.first;
-      final deuda = await _clienteRepo.obtenerDeudaTotal(cliente.idCliente);
+      final deuda = await _clienteRepo.obtenerDeudaTotal(cliente.id);
       
       final activos = await _movimientoRepo.obtenerMovimientos(
-        clienteId: cliente.idCliente,
+        clienteId: cliente.id,
         filtro: FiltroEstadoPrestamo.activos,
       );
       
       final pagados = await _movimientoRepo.obtenerMovimientos(
-        clienteId: cliente.idCliente,
+        clienteId: cliente.id,
         filtro: FiltroEstadoPrestamo.pagados,
       );
 
@@ -159,7 +159,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
                     ),
                   ),
                   const Divider(height: 24),
-                  _buildInfoRow(Icons.badge, 'ID Cliente', '#${_cliente!.idCliente}'),
+                  _buildInfoRow(Icons.badge, 'ID Cliente', '#${_cliente!.id}'),
                   if (_cliente!.email != null)
                     _buildInfoRow(Icons.email, 'Email', _cliente!.email!),
                   if (_cliente!.telefono != null)

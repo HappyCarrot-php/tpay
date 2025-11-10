@@ -1,17 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:dropdown_search/dropdown_search.dart';
-
-class ClientSearchOption {
-  final String? id;
-  final String displayName;
-  final bool isExisting;
-  
-  ClientSearchOption({
-    this.id,
-    required this.displayName,
-    this.isExisting = true,
-  });
-}
+﻿import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../data/repositories/cliente_repository.dart';
+import '../../data/repositories/movimiento_repository.dart';
+import '../../data/models/cliente_model.dart';
 
 class CreateLoanPage extends StatefulWidget {
   const CreateLoanPage({super.key});
@@ -22,197 +13,205 @@ class CreateLoanPage extends StatefulWidget {
 
 class _CreateLoanPageState extends State<CreateLoanPage> {
   final _formKey = GlobalKey<FormState>();
+  final _clienteRepo = ClienteRepository();
+  final _movimientoRepo = MovimientoRepository();
+
+  final _searchController = TextEditingController();
   final _montoController = TextEditingController();
   final _interesController = TextEditingController();
-  
-  // Controladores para datos del cliente
+  final _notasController = TextEditingController();
+
   final _nombreController = TextEditingController();
   final _apellidoPaternoController = TextEditingController();
   final _apellidoMaternoController = TextEditingController();
-  final _emailController = TextEditingController();
   final _telefonoController = TextEditingController();
-  
-  String _buscarPor = 'id'; // 'id' o 'nombre'
-  ClientSearchOption? _clienteSeleccionado;
-  bool _mostrarFormularioCliente = false;
-  bool _clienteExiste = false;
-  
-  DateTime? _fechaVencimiento;
+  final _emailController = TextEditingController();
 
-  // Simulación de lista de clientes existentes (esto vendrá de Supabase)
-  final List<Map<String, dynamic>> _clientesExistentes = [
-    {
-      'id': '1',
-      'nombre': 'Juan',
-      'apellido_paterno': 'Pérez',
-      'apellido_materno': 'García',
-      'email': 'juan@example.com',
-      'telefono': '5512345678',
-    },
-    {
-      'id': '2',
-      'nombre': 'María',
-      'apellido_paterno': 'López',
-      'apellido_materno': 'Martínez',
-      'email': 'maria@example.com',
-      'telefono': '5598765432',
-    },
-    {
-      'id': '3',
-      'nombre': 'Carlos',
-      'apellido_paterno': 'Rodríguez',
-      'apellido_materno': null,
-      'email': 'carlos@example.com',
-      'telefono': '5523456789',
-    },
-  ];
+  List<ClienteModel> _clientes = [];
+  List<ClienteModel> _clientesFiltrados = [];
+  ClienteModel? _clienteSeleccionado;
+  bool _mostrarDropdown = false;
+  bool _mostrarFormularioNuevo = false;
+  bool _isLoading = false;
+  bool _creandoPrestamo = false;
+
+  DateTime _fechaInicio = DateTime.now();
+  DateTime _fechaPago = DateTime.now().add(const Duration(days: 30));
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarClientes();
+    _searchController.addListener(_filtrarClientes);
+  }
 
   @override
   void dispose() {
+    _searchController.dispose();
     _montoController.dispose();
     _interesController.dispose();
+    _notasController.dispose();
     _nombreController.dispose();
     _apellidoPaternoController.dispose();
     _apellidoMaternoController.dispose();
-    _emailController.dispose();
     _telefonoController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  void _buscarClientePorId(String? clienteId) {
-    if (clienteId == null || clienteId.isEmpty) {
+  Future<void> _cargarClientes() async {
+    setState(() => _isLoading = true);
+    try {
+      final clientes = await _clienteRepo.obtenerClientes();
       setState(() {
-        _clienteExiste = false;
-        _mostrarFormularioCliente = false;
-        _limpiarFormularioCliente();
+        _clientes = clientes;
+        _clientesFiltrados = clientes;
+        _isLoading = false;
       });
-      return;
-    }
-
-    // Buscar en la lista de clientes existentes
-    final cliente = _clientesExistentes.firstWhere(
-      (c) => c['id'] == clienteId,
-      orElse: () => {},
-    );
-
-    if (cliente.isNotEmpty) {
-      setState(() {
-        _clienteExiste = true;
-        _mostrarFormularioCliente = false;
-        _nombreController.text = cliente['nombre'] ?? '';
-        _apellidoPaternoController.text = cliente['apellido_paterno'] ?? '';
-        _apellidoMaternoController.text = cliente['apellido_materno'] ?? '';
-        _emailController.text = cliente['email'] ?? '';
-        _telefonoController.text = cliente['telefono'] ?? '';
-      });
-    } else {
-      setState(() {
-        _clienteExiste = false;
-        _mostrarFormularioCliente = true;
-        _limpiarFormularioCliente();
-      });
-      _mostrarDialogoClienteNoExiste();
-    }
-  }
-
-  void _buscarClientePorNombre(String? nombre) {
-    if (nombre == null || nombre.isEmpty) {
-      setState(() {
-        _clienteExiste = false;
-        _mostrarFormularioCliente = false;
-        _limpiarFormularioCliente();
-      });
-      return;
-    }
-
-    // Buscar en la lista de clientes existentes
-    final cliente = _clientesExistentes.firstWhere(
-      (c) => '${c['nombre']} ${c['apellido_paterno'] ?? ''}'.toLowerCase().trim() 
-          == nombre.toLowerCase().trim(),
-      orElse: () => {},
-    );
-
-    if (cliente.isNotEmpty) {
-      setState(() {
-        _clienteExiste = true;
-        _mostrarFormularioCliente = false;
-        _clienteSeleccionado = ClientSearchOption(
-          id: cliente['id'],
-          displayName: nombre,
-          isExisting: true,
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar clientes: $e'), backgroundColor: Colors.red),
         );
-        _nombreController.text = cliente['nombre'] ?? '';
-        _apellidoPaternoController.text = cliente['apellido_paterno'] ?? '';
-        _apellidoMaternoController.text = cliente['apellido_materno'] ?? '';
-        _emailController.text = cliente['email'] ?? '';
-        _telefonoController.text = cliente['telefono'] ?? '';
-      });
-    } else {
-      setState(() {
-        _clienteExiste = false;
-        _mostrarFormularioCliente = true;
-        _nombreController.text = nombre;
-        _apellidoPaternoController.clear();
-        _apellidoMaternoController.clear();
-        _emailController.clear();
-        _telefonoController.clear();
-      });
+      }
     }
   }
 
-  void _limpiarFormularioCliente() {
-    _nombreController.clear();
-    _apellidoPaternoController.clear();
-    _apellidoMaternoController.clear();
-    _emailController.clear();
-    _telefonoController.clear();
-  }
-
-  void _mostrarDialogoClienteNoExiste() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cliente no encontrado'),
-        content: const Text(
-          'El cliente con este ID no existe. Por favor, complete el formulario para registrarlo.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _seleccionarFecha(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaVencimiento ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      locale: const Locale('es', 'MX'),
-    );
-
-    if (picked != null) {
+  void _filtrarClientes() {
+    final query = _searchController.text.toLowerCase();
+    if (query.isEmpty) {
       setState(() {
-        _fechaVencimiento = picked;
+        _clientesFiltrados = _clientes;
+        _mostrarDropdown = false;
+        _mostrarFormularioNuevo = false;
       });
+      return;
     }
+
+    setState(() {
+      _clientesFiltrados = _clientes.where((cliente) {
+        final nombreCompleto = cliente.nombreCompleto.toLowerCase();
+        final id = cliente.id.toString();
+        return nombreCompleto.contains(query) || id.contains(query);
+      }).toList();
+      _mostrarDropdown = _clientesFiltrados.isNotEmpty;
+
+      if (_clientesFiltrados.isEmpty && query.length > 2) {
+        _mostrarFormularioNuevo = true;
+        if (!RegExp(r'^\d+$').hasMatch(query)) {
+          final partes = query.trim().split(' ');
+          if (partes.isNotEmpty) {
+            _nombreController.text = partes[0];
+            if (partes.length > 1) {
+              _apellidoPaternoController.text = partes[1];
+            }
+            if (partes.length > 2) {
+              _apellidoMaternoController.text = partes.sublist(2).join(' ');
+            }
+          }
+        }
+      } else {
+        _mostrarFormularioNuevo = false;
+      }
+    });
   }
 
-  void _guardarPrestamo() {
-    if (_formKey.currentState!.validate()) {
-      // Aquí iría la lógica para guardar en Supabase
+  void _seleccionarCliente(ClienteModel cliente) {
+    setState(() {
+      _clienteSeleccionado = cliente;
+      _searchController.text = cliente.displayText;
+      _mostrarDropdown = false;
+      _mostrarFormularioNuevo = false;
+    });
+  }
+
+  Future<void> _crearNuevoCliente() async {
+    if (_nombreController.text.trim().isEmpty || _apellidoPaternoController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Préstamo registrado exitosamente'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Nombre y apellido paterno son obligatorios'), backgroundColor: Colors.red),
       );
-      Navigator.pop(context);
+      return;
     }
+
+    setState(() => _isLoading = true);
+    try {
+      final nuevoCliente = await _clienteRepo.crearClienteSimple(
+        nombre: _nombreController.text.trim(),
+        apellidoPaterno: _apellidoPaternoController.text.trim(),
+        apellidoMaterno: _apellidoMaternoController.text.trim().isNotEmpty ? _apellidoMaternoController.text.trim() : null,
+        telefono: _telefonoController.text.trim().isNotEmpty ? _telefonoController.text.trim() : null,
+        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+      );
+
+      setState(() {
+        _clienteSeleccionado = nuevoCliente;
+        _clientes.add(nuevoCliente);
+        _searchController.text = nuevoCliente.displayText;
+        _mostrarFormularioNuevo = false;
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cliente creado exitosamente'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al crear cliente: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _guardarPrestamo() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_clienteSeleccionado == null && !_mostrarFormularioNuevo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona o crea un cliente'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (_mostrarFormularioNuevo && _clienteSeleccionado == null) {
+      await _crearNuevoCliente();
+      if (_clienteSeleccionado == null) return;
+    }
+
+    setState(() => _creandoPrestamo = true);
+
+    try {
+      final monto = double.parse(_montoController.text);
+      final interes = double.parse(_interesController.text);
+      final notas = _notasController.text.trim();
+
+      await _movimientoRepo.crearPrestamo(
+        clienteId: _clienteSeleccionado!.id,
+        monto: monto,
+        interes: interes,
+        fechaInicio: _fechaInicio,
+        fechaPago: _fechaPago,
+        notas: notas.isNotEmpty ? notas : null,
+      );
+
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Préstamo registrado exitosamente'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      setState(() => _creandoPrestamo = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al registrar préstamo: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy', 'es_MX').format(date);
   }
 
   @override
@@ -220,376 +219,351 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registrar Préstamo'),
+        backgroundColor: const Color(0xFF00BCD4),
       ),
-      body: SingleChildScrollView(
+      body: _isLoading && _clientes.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildClienteSection(),
+                    const SizedBox(height: 20),
+                    _buildPrestamoSection(),
+                    const SizedBox(height: 32),
+                    _buildGuardarButton(),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildClienteSection() {
+    return Card(
+      child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Selector de tipo de búsqueda
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Buscar cliente por:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text('ID'),
-                              value: 'id',
-                              groupValue: _buscarPor,
-                              onChanged: (value) {
-                                setState(() {
-                                  _buscarPor = value!;
-                                  _clienteSeleccionado = null;
-                                  _clienteExiste = false;
-                                  _mostrarFormularioCliente = false;
-                                  _limpiarFormularioCliente();
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text('Nombre'),
-                              value: 'nombre',
-                              groupValue: _buscarPor,
-                              onChanged: (value) {
-                                setState(() {
-                                  _buscarPor = value!;
-                                  _clienteSeleccionado = null;
-                                  _clienteExiste = false;
-                                  _mostrarFormularioCliente = false;
-                                  _limpiarFormularioCliente();
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Campo de búsqueda
-              if (_buscarPor == 'id')
-                DropdownSearch<String>(
-                  popupProps: const PopupProps.menu(
-                    showSearchBox: true,
-                    searchFieldProps: TextFieldProps(
-                      decoration: InputDecoration(
-                        hintText: 'Buscar ID...',
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                    ),
-                  ),
-                  items: _clientesExistentes.map((c) => c['id'] as String).toList(),
-                  dropdownDecoratorProps: const DropDownDecoratorProps(
-                    dropdownSearchDecoration: InputDecoration(
-                      labelText: 'ID del Cliente',
-                      prefixIcon: Icon(Icons.badge),
-                    ),
-                  ),
-                  onChanged: _buscarClientePorId,
-                )
-              else
-                DropdownSearch<String>(
-                  popupProps: const PopupProps.menu(
-                    showSearchBox: true,
-                    searchFieldProps: TextFieldProps(
-                      decoration: InputDecoration(
-                        hintText: 'Buscar nombre...',
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                    ),
-                  ),
-                  items: _clientesExistentes
-                      .map((c) => '${c['nombre']} ${c['apellido_paterno'] ?? ''}'.trim())
-                      .toList(),
-                  dropdownDecoratorProps: const DropDownDecoratorProps(
-                    dropdownSearchDecoration: InputDecoration(
-                      labelText: 'Nombre del Cliente',
-                      prefixIcon: Icon(Icons.person_search),
-                      hintText: 'Escriba el nombre o seleccione de la lista',
-                    ),
-                  ),
-                  onChanged: _buscarClientePorNombre,
-                ),
-              
-              // Indicador si el cliente existe
-              if (_clienteExiste)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Card(
-                    color: Colors.green[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.green[700]),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Cliente encontrado en el sistema',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Formulario del cliente (solo si no existe o si se quiere ver/editar)
-              if (_mostrarFormularioCliente || _clienteExiste) ...[
-                const SizedBox(height: 20),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Datos del Cliente',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (_clienteExiste)
-                              Chip(
-                                label: const Text(
-                                  'Cliente existente',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                                backgroundColor: Colors.green[100],
-                              )
-                            else
-                              Chip(
-                                label: const Text(
-                                  'Cliente nuevo',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                                backgroundColor: Colors.orange[100],
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Nombre (requerido)
-                        TextFormField(
-                          controller: _nombreController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre *',
-                            prefixIcon: Icon(Icons.person),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'El nombre es requerido';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Apellido Paterno (opcional)
-                        TextFormField(
-                          controller: _apellidoPaternoController,
-                          decoration: const InputDecoration(
-                            labelText: 'Apellido Paterno (opcional)',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Apellido Materno (opcional)
-                        TextFormField(
-                          controller: _apellidoMaternoController,
-                          decoration: const InputDecoration(
-                            labelText: 'Apellido Materno (opcional)',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Email (opcional)
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email (opcional)',
-                            prefixIcon: Icon(Icons.email),
-                          ),
-                          validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                              if (!emailRegex.hasMatch(value)) {
-                                return 'Ingrese un email válido';
-                              }
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Teléfono (opcional)
-                        TextFormField(
-                          controller: _telefonoController,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: 'Teléfono (opcional)',
-                            prefixIcon: Icon(Icons.phone),
-                          ),
-                          validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              if (value.length < 10) {
-                                return 'Ingrese un número válido (10 dígitos)';
-                              }
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.person_search, color: Color(0xFF00BCD4)),
+                SizedBox(width: 8),
+                Text('Cliente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
+            ),
+            const SizedBox(height: 16),
+            _buildSearchField(),
+            if (_mostrarDropdown) _buildDropdown(),
+            if (_clienteSeleccionado != null) _buildSelectedClienteCard(),
+            if (_mostrarFormularioNuevo) _buildNuevoClienteForm(),
+          ],
+        ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 20),
-              const Divider(thickness: 2),
-              const SizedBox(height: 20),
-
-              // Datos del préstamo
-              const Text(
-                'Datos del Préstamo',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Monto
-              TextFormField(
-                controller: _montoController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Monto',
-                  prefixIcon: Icon(Icons.attach_money),
-                  suffixText: 'MXN',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El monto es requerido';
-                  }
-                  final monto = double.tryParse(value);
-                  if (monto == null || monto <= 0) {
-                    return 'Ingrese un monto válido';
-                  }
-                  return null;
+  Widget _buildSearchField() {
+    return TextFormField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        labelText: 'Buscar por ID o Nombre',
+        hintText: 'Escribe para buscar o crear nuevo cliente',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _clienteSeleccionado = null;
+                    _mostrarFormularioNuevo = false;
+                  });
                 },
-              ),
-              const SizedBox(height: 16),
+              )
+            : null,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
 
-              // Interés
-              TextFormField(
-                controller: _interesController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Interés',
-                  prefixIcon: Icon(Icons.percent),
-                  suffixText: '%',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El interés es requerido';
-                  }
-                  final interes = double.tryParse(value);
-                  if (interes == null || interes < 0) {
-                    return 'Ingrese un interés válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+  Widget _buildDropdown() {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          constraints: const BoxConstraints(maxHeight: 200),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _clientesFiltrados.length,
+            itemBuilder: (context, index) {
+              final cliente = _clientesFiltrados[index];
+              return ListTile(
+                dense: true,
+                leading: CircleAvatar(child: Text(cliente.iniciales)),
+                title: Text(cliente.nombreCompleto),
+                subtitle: Text('ID: ${cliente.id}'),
+                onTap: () => _seleccionarCliente(cliente),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
-              // Fecha de vencimiento
-              Card(
-                child: InkWell(
-                  onTap: () => _seleccionarFecha(context),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Fecha de vencimiento (opcional)',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _fechaVencimiento != null
-                                    ? '${_fechaVencimiento!.day}/${_fechaVencimiento!.month}/${_fechaVencimiento!.year}'
-                                    : 'Seleccionar fecha',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios, size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Botón guardar
-              ElevatedButton.icon(
-                onPressed: _guardarPrestamo,
-                icon: const Icon(Icons.save),
-                label: const Text('Guardar Préstamo'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+  Widget _buildSelectedClienteCard() {
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green[300]!),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_clienteSeleccionado!.nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text('ID: ${_clienteSeleccionado!.id}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
                 ),
               ),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildNuevoClienteForm() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange[300]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.person_add, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('Crear Nuevo Cliente', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _nombreController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                validator: (value) => value == null || value.trim().isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _apellidoPaternoController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Apellido Paterno *',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                validator: (value) => value == null || value.trim().isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _apellidoMaternoController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Apellido Materno (opcional)',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _telefonoController,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                decoration: const InputDecoration(
+                  labelText: 'Teléfono (opcional)',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email (opcional)',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrestamoSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.attach_money, color: Color(0xFF00BCD4)),
+                SizedBox(width: 8),
+                Text('Datos del Préstamo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _montoController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Monto *',
+                prefixText: '\$',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'Requerido';
+                final monto = double.tryParse(value);
+                if (monto == null || monto <= 0) return 'Monto inválido';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _interesController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Interés *',
+                prefixText: '\$',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'Requerido';
+                final interes = double.tryParse(value);
+                if (interes == null || interes < 0) return 'Interés inválido';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildDatePicker('Fecha de Inicio', _fechaInicio, (date) => setState(() => _fechaInicio = date), DateTime(2020), DateTime.now().add(const Duration(days: 365))),
+            const SizedBox(height: 12),
+            _buildDatePicker('Fecha de Pago', _fechaPago, (date) => setState(() => _fechaPago = date), _fechaInicio, DateTime.now().add(const Duration(days: 365 * 5))),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Días del préstamo:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  Text('${_fechaPago.difference(_fechaInicio).inDays} días', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notasController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notas (opcional)',
+                hintText: 'Información adicional sobre el préstamo',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker(String label, DateTime selectedDate, Function(DateTime) onDateSelected, DateTime firstDate, DateTime lastDate) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: selectedDate,
+          firstDate: firstDate,
+          lastDate: lastDate,
+        );
+        if (picked != null) {
+          onDateSelected(picked);
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(_formatDate(selectedDate)),
+            const Icon(Icons.calendar_today, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuardarButton() {
+    return ElevatedButton.icon(
+      onPressed: _creandoPrestamo ? null : _guardarPrestamo,
+      icon: _creandoPrestamo
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          : const Icon(Icons.save),
+      label: Text(_creandoPrestamo ? 'Guardando...' : 'Guardar Préstamo'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF00BCD4),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
