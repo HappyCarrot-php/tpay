@@ -4,6 +4,7 @@ import '../../data/repositories/perfil_repository.dart';
 import '../../../../core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 class AdminProfileSettingsPage extends StatefulWidget {
   const AdminProfileSettingsPage({super.key});
@@ -260,12 +261,13 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
             ElevatedButton(
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
-                  Navigator.pop(context);
+                  final dialogContext = context;
+                  Navigator.pop(context); // Cerrar el diálogo del formulario
                   
                   showDialog(
-                    context: context,
+                    context: dialogContext,
                     barrierDismissible: false,
-                    builder: (context) => const AlertDialog(
+                    builder: (loadingContext) => const AlertDialog(
                       content: Row(
                         children: [
                           CircularProgressIndicator(),
@@ -301,9 +303,9 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
 
                     if (updateResponse.user != null) {
                       // Éxito
-                      if (mounted) {
-                        Navigator.pop(context); // Cerrar loading
-                        ScaffoldMessenger.of(context).showSnackBar(
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop(); // Cerrar loading
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(
                             content: Text('✅ Contraseña actualizada correctamente'),
                             backgroundColor: Colors.green,
@@ -315,8 +317,8 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                       throw Exception('No se pudo actualizar la contraseña');
                     }
                   } catch (e) {
-                    if (mounted) {
-                      Navigator.pop(context); // Cerrar loading
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop(); // Cerrar loading
                       
                       String errorMessage = 'Error al cambiar contraseña';
                       
@@ -328,7 +330,7 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                         errorMessage = '❌ Error de conexión';
                       }
                       
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
                         SnackBar(
                           content: Text(errorMessage),
                           backgroundColor: Colors.red,
@@ -413,14 +415,39 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
       if (source == null) return;
 
       // Seleccionar imagen
-      final XFile? image = await _imagePicker.pickImage(
+      final XFile? pickedImage = await _imagePicker.pickImage(
         source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+        imageQuality: 100, // Máxima calidad para el crop
       );
 
-      if (image == null) return;
+      if (pickedImage == null) return;
+
+      // Recortar imagen (ajustar marco como apps modernas)
+      final ImageCropper cropper = ImageCropper();
+      final CroppedFile? croppedFile = await cropper.cropImage(
+        sourcePath: pickedImage.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Cuadrado para avatar
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Ajustar Foto',
+            toolbarColor: const Color(0xFF00BCD4),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+            hideBottomControls: false,
+          ),
+          IOSUiSettings(
+            title: 'Ajustar Foto',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) return;
+
+      // Usar la imagen recortada
+      final image = XFile(croppedFile.path);
 
       // Mostrar loading
       if (!mounted) return;
@@ -436,46 +463,22 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
 
       // Leer el archivo
       final bytes = await File(image.path).readAsBytes();
-      final fileExt = image.path.split('.').last.toLowerCase();
-      final fileName = 'avatar_$userId.$fileExt';
-      final filePath = fileName; // Sin carpetas, directamente en el bucket
+      final fileExt = 'jpg'; // Siempre usar jpg para compatibilidad
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'avatar_${userId}_$timestamp.$fileExt';
 
-      try {
-        // Intentar eliminar la foto anterior si existe
-        try {
-          final existingFiles = await _supabase.storage.from('profiles').list();
-          for (var file in existingFiles) {
-            if (file.name.startsWith('avatar_$userId')) {
-              await _supabase.storage.from('profiles').remove([file.name]);
-            }
-          }
-        } catch (e) {
-          // Ignorar errores al eliminar archivos antiguos
-          print('No se pudieron eliminar archivos antiguos: $e');
-        }
-
-        // Subir nuevo archivo a Supabase Storage
-        await _supabase.storage.from('profiles').uploadBinary(
-          filePath,
-          bytes,
-          fileOptions: FileOptions(
-            contentType: 'image/$fileExt',
-            upsert: true,
-          ),
-        );
-      } catch (e) {
-        // Si falla el upload, intentar con update
-        await _supabase.storage.from('profiles').updateBinary(
-          filePath,
-          bytes,
-          fileOptions: FileOptions(
-            contentType: 'image/$fileExt',
-          ),
-        );
-      }
+      // Subir nuevo archivo a Supabase Storage con upsert
+      await _supabase.storage.from('profiles').uploadBinary(
+        fileName,
+        bytes,
+        fileOptions: const FileOptions(
+          contentType: 'image/jpeg',
+          upsert: true,
+        ),
+      );
 
       // Obtener URL pública
-      final publicUrl = _supabase.storage.from('profiles').getPublicUrl(filePath);
+      final publicUrl = _supabase.storage.from('profiles').getPublicUrl(fileName);
 
       // Actualizar en la tabla de perfiles
       await _supabase.from('perfiles').update({

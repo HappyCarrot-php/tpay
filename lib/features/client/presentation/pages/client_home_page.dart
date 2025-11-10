@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../admin/data/repositories/movimiento_repository.dart';
 import '../../../admin/data/repositories/cliente_repository.dart';
 import '../../../admin/data/models/movimiento_model.dart';
-import '../../../../core/services/supabase_service.dart';
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -15,7 +15,6 @@ class ClientHomePage extends StatefulWidget {
 class _ClientHomePageState extends State<ClientHomePage> {
   final _movimientoRepo = MovimientoRepository();
   final _clienteRepo = ClienteRepository();
-  final _supabaseService = SupabaseService();
 
   List<MovimientoModel> _prestamos = [];
   FiltroEstadoPrestamo _filtroActual = FiltroEstadoPrestamo.todos;
@@ -32,19 +31,19 @@ class _ClientHomePageState extends State<ClientHomePage> {
     setState(() => _isLoading = true);
 
     try {
-      // Obtener el usuario actual
-      final usuarioId = _supabaseService.currentUserId;
-      if (usuarioId == null) {
-        throw Exception('No hay usuario autenticado');
+      // Obtener email del usuario autenticado
+      final email = Supabase.instance.client.auth.currentUser?.email;
+      if (email == null) {
+        throw Exception('No se pudo obtener el email del usuario');
       }
 
-      // Buscar el cliente asociado al usuario
-      final clientes = await _clienteRepo.buscarClientes(usuarioId);
-      if (clientes.isEmpty) {
-        throw Exception('No se encontró perfil de cliente');
+      // Buscar cliente por email
+      final cliente = await _clienteRepo.buscarClientePorEmail(email);
+      if (cliente == null) {
+        throw Exception('No hay préstamos asociados a tu cuenta. Contacta al moderador.');
       }
 
-      final clienteId = clientes.first.id;
+      final clienteId = cliente.id;
 
       // Cargar préstamos del cliente
       final prestamos = await _movimientoRepo.obtenerMovimientos(
@@ -65,7 +64,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al cargar datos: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );

@@ -9,7 +9,6 @@ class ClienteRepository {
   // Obtener todos los clientes
   Future<List<ClienteModel>> obtenerClientes({
     bool soloActivos = true,
-    bool ascending = false, // Default: descendente (último primero)
   }) async {
     try {
       var query = _supabase.from(SupabaseConstants.clientesTable).select();
@@ -18,7 +17,7 @@ class ClienteRepository {
         query = query.eq('activo', true);
       }
 
-      final response = await query.order('id_cliente', ascending: ascending);
+      final response = await query.order('id_cliente', ascending: true);
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
@@ -29,7 +28,7 @@ class ClienteRepository {
   }
 
   // Buscar clientes por nombre completo o ID
-  Future<List<ClienteModel>> buscarClientes(String query, {bool ascending = false}) async {
+  Future<List<ClienteModel>> buscarClientes(String query) async {
     try {
       final idCliente = int.tryParse(query);
       
@@ -38,7 +37,7 @@ class ClienteRepository {
           .select()
           .or('nombre_completo.ilike.%$query%,id_cliente.eq.${idCliente ?? 0}')
           .eq('activo', true)
-          .order('id_cliente', ascending: ascending);
+          .order('id_cliente', ascending: true);
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
@@ -77,6 +76,23 @@ class ClienteRepository {
       return ClienteModel.fromJson(response);
     } catch (e) {
       throw Exception('Error al buscar cliente por nombre: $e');
+    }
+  }
+
+  // Buscar cliente por email
+  Future<ClienteModel?> buscarClientePorEmail(String email) async {
+    try {
+      final response = await _supabase
+          .from(SupabaseConstants.clientesTable)
+          .select()
+          .eq('email', email.trim().toLowerCase())
+          .eq('activo', true)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return ClienteModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Error al buscar cliente por email: $e');
     }
   }
 
