@@ -1,6 +1,5 @@
 ﻿import 'package:flutter/material.dart';
 import '../../data/repositories/movimiento_repository.dart';
-import '../../data/repositories/cliente_repository.dart';
 import '../../data/models/movimiento_model.dart';
 
 class AdminDashboardPage extends StatefulWidget {
@@ -12,10 +11,8 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final _movimientoRepo = MovimientoRepository();
-  final _clienteRepo = ClienteRepository();
 
   bool _isLoading = true;
-  int _totalClientes = 0;
   int _totalPrestamos = 0;
   int _capitalTotal = 0;
   int _capitalTrabajando = 0;
@@ -33,7 +30,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     setState(() => _isLoading = true);
 
     try {
-      final clientes = await _clienteRepo.obtenerClientes();
       final todos = await _movimientoRepo.obtenerMovimientos(
         filtro: FiltroEstadoPrestamo.todos,
         limite: 1000,
@@ -51,20 +47,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       int capitalTrabajando = 0;
       int capitalLiberado = 0;
 
+      // Capital Total = suma de todos los montos + intereses (de TODOS los préstamos)
       for (var prestamo in todos) {
         capitalTotal += (prestamo.monto + prestamo.interes).toInt();
       }
 
+      // Capital Trabajando = suma de (monto + interes - abonos) solo de préstamos ACTIVOS
       for (var prestamo in activos) {
         capitalTrabajando += (prestamo.monto + prestamo.interes - prestamo.abonos).toInt();
       }
 
+      // Capital Liberado = total de préstamos pagados (monto + interés) + abonos de activos
       for (var prestamo in pagados) {
+        capitalLiberado += (prestamo.monto + prestamo.interes).toInt();
+      }
+      for (var prestamo in activos) {
         capitalLiberado += prestamo.abonos.toInt();
       }
 
       setState(() {
-        _totalClientes = clientes.length;
         _totalPrestamos = todos.length;
         _prestamosActivos = activos;
         _prestamosPagados = pagados;
@@ -95,47 +96,34 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: const Color(0xFF00BCD4),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _cargarEstadisticas,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _cargarEstadisticas,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildKPICards(),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Resumen Financiero',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _cargarEstadisticas,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildKPICards(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Resumen Financiero',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 16),
-                    _buildGraficaCapitalTotal(),
-                    const SizedBox(height: 16),
-                    _buildGraficaCapitalTrabajando(),
-                    const SizedBox(height: 16),
-                    _buildGraficaCapitalLiberado(),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildGraficaCapitalTotal(),
+                  const SizedBox(height: 24),
+                  _buildGraficaCapitalTrabajando(),
+                  const SizedBox(height: 24),
+                  _buildGraficaCapitalLiberado(),
+                ],
               ),
             ),
-    );
+          );
   }
 
   Widget _buildKPICards() {
@@ -206,219 +194,207 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildGraficaCapitalTotal() {
     final porcentaje = _capitalTotal > 0 ? 100.0 : 0.0;
     
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text(
-              'Capital + Intereses',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: 1.0,
-                      strokeWidth: 20,
-                      backgroundColor: Colors.teal.withOpacity(0.2),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${porcentaje.toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal,
-                        ),
-                      ),
-                      Text(
-                        _formatCurrency(_capitalTotal.toDouble()),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Suma de todos los montos más intereses.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        const Text(
+          'Capital + Intereses',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.teal,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: CircularProgressIndicator(
+                    value: 1.0,
+                    strokeWidth: 20,
+                    backgroundColor: Colors.teal.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${porcentaje.toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
+                    ),
+                    Text(
+                      _formatCurrency(_capitalTotal.toDouble()),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Suma de todos los montos más intereses.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildGraficaCapitalTrabajando() {
     final porcentaje = _capitalTotal > 0 ? (_capitalTrabajando / _capitalTotal) * 100 : 0.0;
     
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text(
-              'Capital Trabajando',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: porcentaje / 100,
-                      strokeWidth: 20,
-                      backgroundColor: Colors.green.withOpacity(0.2),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${porcentaje.toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                      Text(
-                        _formatCurrency(_capitalTrabajando.toDouble()),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Préstamos activos (restando abonos).',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        const Text(
+          'Capital Trabajando',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.green,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: CircularProgressIndicator(
+                    value: porcentaje / 100,
+                    strokeWidth: 20,
+                    backgroundColor: Colors.green.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${porcentaje.toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    Text(
+                      _formatCurrency(_capitalTrabajando.toDouble()),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Préstamos activos (restando abonos).',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildGraficaCapitalLiberado() {
     final porcentaje = _capitalTotal > 0 ? (_capitalLiberado / _capitalTotal) * 100 : 0.0;
     
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text(
-              'Capital Liberado',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: porcentaje / 100,
-                      strokeWidth: 20,
-                      backgroundColor: Colors.orange.withOpacity(0.2),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${porcentaje.toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      Text(
-                        _formatCurrency(_capitalLiberado.toDouble()),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Abonos de préstamos pagados.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        const Text(
+          'Capital Liberado',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.orange,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: CircularProgressIndicator(
+                    value: porcentaje / 100,
+                    strokeWidth: 20,
+                    backgroundColor: Colors.orange.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${porcentaje.toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    Text(
+                      _formatCurrency(_capitalLiberado.toDouble()),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Abonos de préstamos pagados.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 }

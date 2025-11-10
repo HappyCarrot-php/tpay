@@ -10,12 +10,16 @@ class SupabaseService {
   bool _initialized = false;
 
   /// Inicializar Supabase (llamar desde main.dart)
+  /// La sesión se mantiene persistente por defecto hasta hacer logout
   Future<void> initialize() async {
     if (_initialized) return;
 
     await Supabase.initialize(
       url: SupabaseConstants.supabaseUrl,
       anonKey: SupabaseConstants.supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
     );
 
     _client = Supabase.instance.client;

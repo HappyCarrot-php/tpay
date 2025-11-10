@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AdminDrawer extends StatelessWidget {
   const AdminDrawer({super.key});
@@ -59,7 +60,7 @@ class AdminDrawer extends StatelessWidget {
             title: const Text('Dashboard'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/admin');
+              context.go('/admin');
             },
           ),
           
@@ -69,7 +70,7 @@ class AdminDrawer extends StatelessWidget {
             title: const Text('Préstamos'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/loans');
+              context.go('/admin/loans');
             },
           ),
           
@@ -79,7 +80,7 @@ class AdminDrawer extends StatelessWidget {
             title: const Text('Clientes'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/clients');
+              context.go('/admin/clients');
             },
           ),
           
