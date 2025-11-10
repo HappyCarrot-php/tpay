@@ -52,14 +52,6 @@ class ClientDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.receipt_long, color: Color(0xFF00BCD4)),
-            title: const Text('Mis Préstamos'),
-            onTap: () {
-              Navigator.pop(context);
-              context.go('/client-home');
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.contact_phone, color: Color(0xFF00BCD4)),
             title: const Text('Contacto Moderador'),
             onTap: () {
@@ -68,8 +60,8 @@ class ClientDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.person, color: Color(0xFF00BCD4)),
-            title: const Text('Mi Perfil'),
+            leading: const Icon(Icons.phone, color: Color(0xFF00BCD4)),
+            title: const Text('Editar Teléfono'),
             onTap: () {
               Navigator.pop(context);
               context.push('/client-profile');
