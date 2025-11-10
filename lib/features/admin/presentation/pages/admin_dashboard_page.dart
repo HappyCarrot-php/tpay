@@ -465,7 +465,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _formatCurrency(_gananciasNetas.toDouble()),
+                      '${porcentaje.toStringAsFixed(1)}%',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -474,7 +474,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${porcentaje.toStringAsFixed(1)}%',
+                      _formatCurrency(_gananciasNetas.toDouble()),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,

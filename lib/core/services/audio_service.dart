@@ -8,23 +8,28 @@ class AudioService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  /// Reproduce sonido de login exitoso
+  /// Reproduce sonido de login exitoso (feedback háptico como botón flotante)
   Future<void> playLoginSound() async {
     try {
-      // Usar sonido del sistema (puedes cambiar por asset personalizado)
-      await _audioPlayer.play(AssetSource('sounds/login.mp3'));
-    } catch (e) {
-      // Fallback a vibración si no hay sonido
+      // Feedback háptico satisfactorio como el botón flotante de Flutter
       await HapticFeedback.mediumImpact();
+      // Pequeña pausa para efecto
+      await Future.delayed(const Duration(milliseconds: 50));
+      await HapticFeedback.lightImpact();
+    } catch (e) {
+      print('Error en sonido de login: $e');
     }
   }
 
-  /// Reproduce sonido de logout
+  /// Reproduce sonido de logout (feedback háptico suave)
   Future<void> playLogoutSound() async {
     try {
-      await _audioPlayer.play(AssetSource('sounds/logout.mp3'));
-    } catch (e) {
+      // Feedback háptico suave para logout
       await HapticFeedback.lightImpact();
+      await Future.delayed(const Duration(milliseconds: 50));
+      await HapticFeedback.selectionClick();
+    } catch (e) {
+      print('Error en sonido de logout: $e');
     }
   }
 

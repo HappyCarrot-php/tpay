@@ -265,44 +265,74 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                   showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator()),
+                    builder: (context) => const AlertDialog(
+                      content: Row(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(width: 20),
+                          Text('Cambiando contraseña...'),
+                        ],
+                      ),
+                    ),
                   );
 
                   try {
-                    // Verificar contraseña actual
+                    // Obtener email del usuario actual
                     final email = _supabase.auth.currentUser?.email;
-                    if (email == null) throw Exception('No se pudo obtener el email');
+                    if (email == null) {
+                      throw Exception('No se pudo obtener el email del usuario');
+                    }
 
-                    await _supabase.auth.signInWithPassword(
+                    // Verificar contraseña actual haciendo login temporal
+                    final response = await _supabase.auth.signInWithPassword(
                       email: email,
                       password: currentPasswordController.text,
                     );
 
-                    // Cambiar contraseña
-                    await _supabase.auth.updateUser(
+                    if (response.user == null) {
+                      throw Exception('Contraseña actual incorrecta');
+                    }
+
+                    // Si llegamos aquí, la contraseña actual es correcta
+                    // Ahora cambiamos la contraseña
+                    final updateResponse = await _supabase.auth.updateUser(
                       UserAttributes(password: newPasswordController.text),
                     );
 
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Contraseña actualizada correctamente'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                    if (updateResponse.user != null) {
+                      // Éxito
+                      if (mounted) {
+                        Navigator.pop(context); // Cerrar loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('✅ Contraseña actualizada correctamente'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    } else {
+                      throw Exception('No se pudo actualizar la contraseña');
                     }
                   } catch (e) {
                     if (mounted) {
-                      Navigator.pop(context);
+                      Navigator.pop(context); // Cerrar loading
+                      
+                      String errorMessage = 'Error al cambiar contraseña';
+                      
+                      if (e.toString().contains('Invalid login') || 
+                          e.toString().contains('Invalid') ||
+                          e.toString().contains('incorrecta')) {
+                        errorMessage = '❌ Contraseña actual incorrecta';
+                      } else if (e.toString().contains('Network')) {
+                        errorMessage = '❌ Error de conexión';
+                      }
+                      
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            e.toString().contains('Invalid')
-                                ? 'Contraseña actual incorrecta'
-                                : 'Error: $e',
-                          ),
+                          content: Text(errorMessage),
                           backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 3),
                         ),
                       );
                     }
@@ -406,19 +436,43 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
 
       // Leer el archivo
       final bytes = await File(image.path).readAsBytes();
-      final fileExt = image.path.split('.').last;
-      final fileName = '$userId.$fileExt';
-      final filePath = 'avatars/$fileName';
+      final fileExt = image.path.split('.').last.toLowerCase();
+      final fileName = 'avatar_$userId.$fileExt';
+      final filePath = fileName; // Sin carpetas, directamente en el bucket
 
-      // Subir a Supabase Storage
-      await _supabase.storage.from('profiles').uploadBinary(
-            filePath,
-            bytes,
-            fileOptions: FileOptions(
-              upsert: true,
-              contentType: 'image/$fileExt',
-            ),
-          );
+      try {
+        // Intentar eliminar la foto anterior si existe
+        try {
+          final existingFiles = await _supabase.storage.from('profiles').list();
+          for (var file in existingFiles) {
+            if (file.name.startsWith('avatar_$userId')) {
+              await _supabase.storage.from('profiles').remove([file.name]);
+            }
+          }
+        } catch (e) {
+          // Ignorar errores al eliminar archivos antiguos
+          print('No se pudieron eliminar archivos antiguos: $e');
+        }
+
+        // Subir nuevo archivo a Supabase Storage
+        await _supabase.storage.from('profiles').uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: 'image/$fileExt',
+            upsert: true,
+          ),
+        );
+      } catch (e) {
+        // Si falla el upload, intentar con update
+        await _supabase.storage.from('profiles').updateBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: 'image/$fileExt',
+          ),
+        );
+      }
 
       // Obtener URL pública
       final publicUrl = _supabase.storage.from('profiles').getPublicUrl(filePath);
@@ -426,7 +480,7 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
       // Actualizar en la tabla de perfiles
       await _supabase.from('perfiles').update({
         'foto_url': publicUrl,
-      }).eq('usuario_id', userId);
+      }).eq('user_id', userId);
 
       if (!mounted) return;
       Navigator.pop(context); // Cerrar loading

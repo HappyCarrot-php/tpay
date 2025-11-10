@@ -8,6 +8,7 @@ import '../../../auth/data/repositories/auth_repository.dart';
 import '../../data/repositories/perfil_repository.dart';
 import '../../data/repositories/cliente_repository.dart';
 import '../../data/repositories/movimiento_repository.dart';
+import '../../../../core/services/audio_service.dart';
 
 class AdminHomePage extends StatefulWidget {
   final int initialIndex;
@@ -263,6 +264,9 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
 
                 if (confirmar == true && context.mounted) {
                   try {
+                    // Reproducir sonido de logout
+                    await AudioService().playLogoutSound();
+                    
                     // Cerrar sesión
                     final authRepo = AuthRepository();
                     await authRepo.logout();

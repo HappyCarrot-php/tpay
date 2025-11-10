@@ -199,49 +199,32 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
               
               const SizedBox(height: 24),
               
-              // Selector de Interés (Scroll)
-              Text(
-                'Interés: ${_interes.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 60,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey.shade50,
-                ),
-                child: ListWheelScrollView.useDelegate(
-                  itemExtent: 40,
-                  diameterRatio: 1.5,
-                  physics: const FixedExtentScrollPhysics(),
-                  onSelectedItemChanged: (index) {
-                    setState(() {
-                      _interes = (index + 1) * 0.5; // Incrementos de 0.5%
-                    });
-                  },
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    builder: (context, index) {
-                      final valor = (index + 1) * 0.5;
-                      final esSeleccionado = valor == _interes;
-                      return Center(
-                        child: Text(
-                          '${valor.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            fontSize: esSeleccionado ? 20 : 16,
-                            fontWeight: esSeleccionado ? FontWeight.bold : FontWeight.normal,
-                            color: esSeleccionado ? const Color(0xFF00BCD4) : Colors.grey.shade600,
-                          ),
-                        ),
-                      );
-                    },
-                    childCount: 200, // Hasta 100% (200 * 0.5)
+              // Selector de Interés (Dropdown moderno)
+              DropdownButtonFormField<double>(
+                value: _interes,
+                decoration: InputDecoration(
+                  labelText: 'Tipo de Interés',
+                  prefixIcon: const Icon(Icons.percent, color: Color(0xFF00BCD4)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
+                items: const [
+                  DropdownMenuItem(value: 3.0, child: Text('3% mensual')),
+                  DropdownMenuItem(value: 5.0, child: Text('5% mensual')),
+                  DropdownMenuItem(value: 10.0, child: Text('10% mensual')),
+                  DropdownMenuItem(value: 15.0, child: Text('15% mensual')),
+                  DropdownMenuItem(value: 20.0, child: Text('20% mensual')),
+                  DropdownMenuItem(value: 25.0, child: Text('25% mensual')),
+                  DropdownMenuItem(value: 30.0, child: Text('30% mensual')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _interes = value);
+                  }
+                },
               ),
               
               const SizedBox(height: 32),

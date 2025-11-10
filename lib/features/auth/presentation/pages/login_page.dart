@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../../../core/services/audio_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -37,6 +38,9 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (!mounted) return;
+
+      // Reproducir sonido de éxito en login
+      await AudioService().playLoginSound();
 
       // Navegar según el rol
       if (perfil.tienePermisosAdmin) {

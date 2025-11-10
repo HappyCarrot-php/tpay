@@ -12,6 +12,7 @@ class AdminDrawer extends StatefulWidget {
 class _AdminDrawerState extends State<AdminDrawer> {
   final _perfilRepo = PerfilRepository();
   String _nombreCompleto = 'Cargando...';
+  String _rol = 'cliente';
 
   @override
   void initState() {
@@ -25,12 +26,14 @@ class _AdminDrawerState extends State<AdminDrawer> {
       if (mounted) {
         setState(() {
           _nombreCompleto = perfil?.nombreCompleto ?? 'Usuario';
+          _rol = perfil?.rol ?? 'cliente';
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _nombreCompleto = 'Usuario';
+          _rol = 'cliente';
         });
       }
     }
@@ -163,6 +166,18 @@ class _AdminDrawerState extends State<AdminDrawer> {
           ),
           
           const Divider(),
+          
+          // Actualizar BD (Solo para moderadores)
+          if (_rol == 'moderador')
+            ListTile(
+              leading: const Icon(Icons.backup, color: Colors.purple),
+              title: const Text('Actualizar BD'),
+              subtitle: const Text('Backup de base de datos'),
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/admin/database-backup');
+              },
+            ),
           
           // Cerrar sesión
           ListTile(
