@@ -69,8 +69,7 @@ class AdminDrawer extends StatelessWidget {
             title: const Text('Préstamos'),
             onTap: () {
               Navigator.pop(context);
-              // Navegar a AdminHomePage con índice 1
-              Navigator.pushReplacementNamed(context, '/admin/loans');
+              Navigator.pushNamed(context, '/admin/loans');
             },
           ),
           
@@ -80,8 +79,18 @@ class AdminDrawer extends StatelessWidget {
             title: const Text('Clientes'),
             onTap: () {
               Navigator.pop(context);
-              // Navegar a AdminHomePage con índice 2
-              Navigator.pushReplacementNamed(context, '/admin/clients');
+              Navigator.pushNamed(context, '/admin/clients');
+            },
+          ),
+          
+          // Movimientos
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.purple),
+            title: const Text('Movimientos'),
+            subtitle: const Text('Historial de operaciones'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/admin/movements');
             },
           ),
           

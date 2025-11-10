@@ -79,12 +79,135 @@ class _CalculatorPageState extends State<CalculatorPage> {
     return exp;
   }
 
+  void _mostrarCalculadoraPorcentaje() {
+    final montoController = TextEditingController();
+    final porcentajeController = TextEditingController();
+    String resultado = '';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.percent, color: Color(0xFF00BCD4)),
+              SizedBox(width: 8),
+              Text('Calcular Porcentaje'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: montoController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Cantidad',
+                    prefixIcon: Icon(Icons.attach_money),
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    if (value.isNotEmpty && porcentajeController.text.isNotEmpty) {
+                      final monto = double.tryParse(value);
+                      final porcentaje = double.tryParse(porcentajeController.text);
+                      if (monto != null && porcentaje != null) {
+                        setStateDialog(() {
+                          resultado = (monto * porcentaje / 100).toStringAsFixed(2);
+                        });
+                      }
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: porcentajeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Porcentaje',
+                    prefixIcon: Icon(Icons.percent),
+                    suffixText: '%',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    if (value.isNotEmpty && montoController.text.isNotEmpty) {
+                      final monto = double.tryParse(montoController.text);
+                      final porcentaje = double.tryParse(value);
+                      if (monto != null && porcentaje != null) {
+                        setStateDialog(() {
+                          resultado = (monto * porcentaje / 100).toStringAsFixed(2);
+                        });
+                      }
+                    }
+                  },
+                ),
+                if (resultado.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00BCD4).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF00BCD4)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Resultado',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '\$$resultado',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00BCD4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+            if (resultado.isNotEmpty)
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _display = resultado;
+                    _expression = resultado;
+                  });
+                  Navigator.pop(context);
+                },
+                child: const Text('Usar Resultado'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calculadora'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.percent),
+            onPressed: _mostrarCalculadoraPorcentaje,
+            tooltip: 'Calcular Porcentaje',
+          ),
           IconButton(
             icon: Icon(_isAdvancedMode ? Icons.calculate : Icons.functions),
             onPressed: () {

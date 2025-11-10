@@ -13,6 +13,7 @@ import '../../features/admin/presentation/pages/create_loan_page.dart';
 import '../../features/admin/presentation/pages/investment_calculator_page.dart';
 import '../../features/admin/presentation/pages/calculator_page.dart';
 import '../../features/admin/presentation/pages/admin_movements_page.dart';
+import '../../features/admin/presentation/pages/admin_profile_settings_page.dart';
 
 // Client
 import '../../features/client/presentation/pages/client_home_page.dart';
@@ -90,12 +91,12 @@ class AppRouter {
           ),
           GoRoute(
             path: 'profile',
-            builder: (context, state) => const Placeholder(),
+            builder: (context, state) => const AdminProfileSettingsPage(),
             name: 'admin-profile',
           ),
           GoRoute(
             path: 'settings',
-            builder: (context, state) => const Placeholder(),
+            builder: (context, state) => const AdminProfileSettingsPage(),
             name: 'admin-settings',
           ),
         ],

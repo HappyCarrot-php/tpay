@@ -11,6 +11,7 @@ import '../../data/repositories/movimiento_repository.dart';
 
 class AdminHomePage extends StatefulWidget {
   final int initialIndex;
+  
   const AdminHomePage({super.key, this.initialIndex = 0});
 
   @override

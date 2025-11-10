@@ -1,5 +1,4 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../../data/repositories/movimiento_repository.dart';
 import '../../data/repositories/cliente_repository.dart';
 import '../../data/models/movimiento_model.dart';
