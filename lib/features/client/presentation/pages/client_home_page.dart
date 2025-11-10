@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../admin/data/repositories/movimiento_repository.dart';
 import '../../../admin/data/repositories/cliente_repository.dart';
 import '../../../admin/data/models/movimiento_model.dart';
+import '../widgets/client_loan_action_buttons.dart';
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -637,6 +638,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   Icons.warning,
                   valueColor: Colors.red,
                 ),
+              const Divider(height: 32),
+              const SizedBox(height: 8),
+              ClientLoanActionButtons(prestamo: prestamo),
+              const SizedBox(height: 20),
             ],
           ),
         ),

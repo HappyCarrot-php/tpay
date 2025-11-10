@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/movimiento_model.dart';
 import '../../data/repositories/movimiento_repository.dart';
+import '../widgets/loan_action_buttons.dart';
 
 class AdminLoansListPage extends StatefulWidget {
   const AdminLoansListPage({super.key});
@@ -221,68 +222,7 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
     }
   }
 
-  void _confirmarEliminarPrestamo(MovimientoModel prestamo) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text(
-          '¿Está seguro de eliminar el préstamo de ${prestamo.nombreCliente ?? 'cliente'}?\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _eliminarPrestamo(prestamo.id);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Future<void> _eliminarPrestamo(int prestamoId) async {
-    try {
-      await _movimientoRepository.eliminarPrestamo(prestamoId, 'Eliminado desde lista de préstamos');
-      await _cargarPrestamos();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Préstamo eliminado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al eliminar préstamo: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _verDetallesPrestamo(MovimientoModel prestamo) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LoanDetailPage(prestamo: prestamo),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -622,27 +562,11 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                                     const SizedBox(height: 16),
 
                                     // Botones de acción
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        OutlinedButton.icon(
-                                          onPressed: () => _verDetallesPrestamo(prestamo),
-                                          icon: const Icon(Icons.edit, size: 18),
-                                          label: const Text('Editar'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.blue,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton.icon(
-                                          onPressed: () => _confirmarEliminarPrestamo(prestamo),
-                                          icon: const Icon(Icons.delete, size: 18),
-                                          label: const Text('Eliminar'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.red,
-                                          ),
-                                        ),
-                                      ],
+                                    LoanActionButtons(
+                                      prestamo: prestamo,
+                                      onActionComplete: () {
+                                        _cargarPrestamos();
+                                      },
                                     ),
                                   ],
                                 ),
@@ -694,25 +618,6 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
           ),
         ),
       ],
-    );
-  }
-}
-
-// Página de detalles del préstamo (placeholder)
-class LoanDetailPage extends StatelessWidget {
-  final MovimientoModel prestamo;
-
-  const LoanDetailPage({super.key, required this.prestamo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalles del Préstamo'),
-      ),
-      body: Center(
-        child: Text('Detalles del préstamo ID: ${prestamo.id}'),
-      ),
     );
   }
 }

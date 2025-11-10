@@ -19,49 +19,62 @@ class LoanActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: [
-        _buildActionButton(
-          context: context,
-          icon: Icons.receipt_long,
-          label: 'Recibo',
-          color: Colors.blue,
-          onPressed: () => _mostrarRecibo(context),
-        ),
-        if (!prestamo.estadoPagado)
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
           _buildActionButton(
             context: context,
-            icon: Icons.check_circle,
-            label: 'Marcar Pagado',
-            color: Colors.green,
-            onPressed: () => _marcarComoPagado(context),
+            icon: Icons.receipt_long,
+            label: 'Recibo',
+            color: Colors.blue,
+            onPressed: () => _mostrarRecibo(context),
           ),
-        if (!prestamo.estadoPagado)
+          const SizedBox(width: 6),
+          if (!prestamo.estadoPagado)
+            _buildActionButton(
+              context: context,
+              icon: Icons.check_circle,
+              label: 'Pagar',
+              color: Colors.green,
+              onPressed: () => _marcarComoPagado(context),
+            ),
+          if (!prestamo.estadoPagado)
+            const SizedBox(width: 6),
+          if (!prestamo.estadoPagado)
+            _buildActionButton(
+              context: context,
+              icon: Icons.payment,
+              label: 'Abonar',
+              color: Colors.orange,
+              onPressed: () => _agregarAbono(context),
+            ),
+          if (!prestamo.estadoPagado)
+            const SizedBox(width: 6),
           _buildActionButton(
             context: context,
-            icon: Icons.payment,
-            label: 'Abonar',
-            color: Colors.orange,
-            onPressed: () => _agregarAbono(context),
+            icon: Icons.edit,
+            label: 'Editar',
+            color: Colors.purple,
+            onPressed: () => _editarPrestamo(context),
           ),
-        _buildActionButton(
-          context: context,
-          icon: Icons.edit,
-          label: 'Editar',
-          color: Colors.purple,
-          onPressed: () => _editarPrestamo(context),
-        ),
-        _buildActionButton(
-          context: context,
-          icon: Icons.delete,
-          label: 'Eliminar',
-          color: Colors.red,
-          onPressed: () => _eliminarPrestamo(context),
-        ),
-      ],
+          const SizedBox(width: 6),
+          ElevatedButton(
+            onPressed: () => _eliminarPrestamo(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              minimumSize: const Size(0, 32),
+            ),
+            child: const Icon(Icons.delete, size: 14),
+          ),
+        ],
+      ),
     );
   }
 
@@ -74,15 +87,19 @@ class LoanActionButtons extends StatelessWidget {
   }) {
     return ElevatedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
+      icon: Icon(icon, size: 14),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 10),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
         ),
+        minimumSize: const Size(0, 32),
       ),
     );
   }
@@ -666,14 +683,23 @@ class LoanActionButtons extends StatelessWidget {
               if (formKey.currentState!.validate()) {
                 final password = passwordController.text;
                 final motivo = motivoController.text.trim();
+                final dialogContext = context;
                 
-                Navigator.pop(context);
+                Navigator.of(dialogContext).pop(); // Cerrar diálogo del formulario
                 
                 // Mostrar indicador de carga
                 showDialog(
-                  context: context,
+                  context: dialogContext,
                   barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                  builder: (loadingContext) => const AlertDialog(
+                    content: Row(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 20),
+                        Text('Eliminando préstamo...'),
+                      ],
+                    ),
+                  ),
                 );
                 
                 try {
@@ -697,25 +723,27 @@ class LoanActionButtons extends StatelessWidget {
                   // Cancelar notificaciones del préstamo
                   await NotificationService().cancelLoanNotifications(prestamo.id);
                   
-                  if (context.mounted) {
-                    Navigator.pop(context); // Cerrar loading
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
-                        content: Text('Préstamo eliminado correctamente'),
+                        content: Text('✅ Préstamo eliminado correctamente'),
                         backgroundColor: Colors.green,
+                        duration: Duration(seconds: 3),
                       ),
                     );
                     onActionComplete();
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context); // Cerrar loading
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(
                         content: Text(e.toString().contains('Invalid')
-                            ? 'Contraseña incorrecta'
-                            : 'Error: $e'),
+                            ? '❌ Contraseña incorrecta'
+                            : '❌ Error: $e'),
                         backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
                       ),
                     );
                   }

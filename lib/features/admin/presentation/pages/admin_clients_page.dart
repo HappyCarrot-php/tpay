@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/cliente_repository.dart';
 import '../../data/repositories/movimiento_repository.dart';
 import '../../data/models/cliente_model.dart';
@@ -18,6 +19,9 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
   Map<int, int> _prestamosActivosPorCliente = {};
   bool _isLoading = true;
   String _busqueda = '';
+  bool _ordenAscendente = false; // Default: descendente (último primero)
+  int _paginaActual = 0;
+  final int _clientesPorPagina = 5;
 
   @override
   void initState() {
@@ -60,17 +64,34 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
   }
 
   List<ClienteModel> get _clientesFiltrados {
-    if (_busqueda.isEmpty) {
-      return _clientes;
-    }
-    return _clientes.where((cliente) {
-      final nombreCompleto = cliente.nombreCompleto.toLowerCase();
-      final id = cliente.id.toString();
-      return nombreCompleto.contains(_busqueda.toLowerCase()) ||
-          (cliente.email ?? '').toLowerCase().contains(_busqueda.toLowerCase()) ||
-          (cliente.telefono ?? '').contains(_busqueda) ||
-          id.contains(_busqueda);
-    }).toList();
+    var filtrados = _busqueda.isEmpty 
+      ? _clientes 
+      : _clientes.where((cliente) {
+          final nombreCompleto = cliente.nombreCompleto.toLowerCase();
+          final id = cliente.id.toString();
+          return nombreCompleto.contains(_busqueda.toLowerCase()) ||
+              (cliente.email ?? '').toLowerCase().contains(_busqueda.toLowerCase()) ||
+              (cliente.telefono ?? '').contains(_busqueda) ||
+              id.contains(_busqueda);
+        }).toList();
+    
+    // Ordenar según preferencia (default: descendente)
+    filtrados.sort((a, b) => _ordenAscendente 
+      ? a.id.compareTo(b.id) 
+      : b.id.compareTo(a.id));
+    
+    return filtrados;
+  }
+
+  List<ClienteModel> get _clientesPaginados {
+    final filtrados = _clientesFiltrados;
+    final inicio = _paginaActual * _clientesPorPagina;
+    final fin = (inicio + _clientesPorPagina).clamp(0, filtrados.length);
+    return filtrados.sublist(inicio.clamp(0, filtrados.length), fin);
+  }
+
+  int get _totalPaginas {
+    return (_clientesFiltrados.length / _clientesPorPagina).ceil();
   }
 
   void _editarCliente(ClienteModel cliente) {
@@ -106,6 +127,7 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
                               onPressed: () {
                                 setState(() {
                                   _busqueda = '';
+                                  _paginaActual = 0;
                                 });
                               },
                             )
@@ -117,21 +139,70 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
                     onChanged: (value) {
                       setState(() {
                         _busqueda = value;
+                        _paginaActual = 0; // Resetear paginación al buscar
                       });
                     },
                   ),
                 ),
 
-                // Contador de resultados
-                if (_busqueda.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${_clientesFiltrados.length} resultado(s) encontrado(s)',
+                // Contador de resultados y ordenamiento
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _busqueda.isNotEmpty
+                            ? '${_clientesFiltrados.length} resultado(s)'
+                            : '${_clientesFiltrados.length} cliente(s)',
                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _ordenAscendente = !_ordenAscendente;
+                            _paginaActual = 0;
+                          });
+                        },
+                        icon: Icon(_ordenAscendente 
+                          ? Icons.arrow_upward 
+                          : Icons.arrow_downward),
+                        label: Text(_ordenAscendente 
+                          ? 'ID Ascendente' 
+                          : 'ID Descendente'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Controles de paginación
+                if (_clientesFiltrados.length > _clientesPorPagina)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Página ${_paginaActual + 1} de $_totalPaginas',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: _paginaActual > 0
+                                  ? () => setState(() => _paginaActual--)
+                                  : null,
+                              icon: const Icon(Icons.chevron_left),
+                            ),
+                            IconButton(
+                              onPressed: _paginaActual < _totalPaginas - 1
+                                  ? () => setState(() => _paginaActual++)
+                                  : null,
+                              icon: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
 
@@ -158,9 +229,9 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
                           onRefresh: _cargarClientes,
                           child: ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _clientesFiltrados.length,
+                            itemCount: _clientesPaginados.length,
                             itemBuilder: (context, index) {
-                              final cliente = _clientesFiltrados[index];
+                              final cliente = _clientesPaginados[index];
                               final prestamosActivos = _prestamosActivosPorCliente[cliente.id] ?? 0;
 
                               return Card(
@@ -373,13 +444,58 @@ class _EditClientPageState extends State<EditClientPage> {
   }
 
   void _confirmarEliminarCliente() {
+    final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar desactivación'),
-        content: const Text(
-          '¿Está seguro de desactivar este cliente?\n\n'
-          'El cliente no será eliminado permanentemente, solo se marcará como inactivo.',
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Confirmar Desactivación'),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '¿Está seguro de desactivar este cliente?',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text('Cliente: ${widget.cliente.nombreCompleto}'),
+              const SizedBox(height: 16),
+              const Text(
+                'El cliente no será eliminado permanentemente, solo se marcará como inactivo.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña de moderador *',
+                  hintText: 'Confirma tu identidad',
+                  prefixIcon: Icon(Icons.lock),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'La contraseña es obligatoria';
+                  }
+                  if (value.length < 6) {
+                    return 'Contraseña debe tener al menos 6 caracteres';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -388,26 +504,69 @@ class _EditClientPageState extends State<EditClientPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // Cerrar diálogo
-              try {
-                await _clienteRepo.desactivarCliente(widget.cliente.id);
-                if (mounted) {
-                  Navigator.pop(context, true); // Cerrar página de edición
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cliente desactivado exitosamente'),
-                      backgroundColor: Colors.green,
+              if (formKey.currentState!.validate()) {
+                final password = passwordController.text;
+                final dialogContext = context;
+                
+                Navigator.of(dialogContext).pop(); // Cerrar diálogo del formulario
+                
+                // Mostrar indicador de carga
+                showDialog(
+                  context: dialogContext,
+                  barrierDismissible: false,
+                  builder: (loadingContext) => const AlertDialog(
+                    content: Row(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 20),
+                        Text('Desactivando cliente...'),
+                      ],
                     ),
+                  ),
+                );
+                
+                try {
+                  // Verificar contraseña
+                  final supabase = Supabase.instance.client;
+                  final email = supabase.auth.currentUser?.email;
+                  
+                  if (email == null) {
+                    throw Exception('No se pudo obtener el email del usuario');
+                  }
+                  
+                  // Re-autenticar
+                  await supabase.auth.signInWithPassword(
+                    email: email,
+                    password: password,
                   );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error al desactivar cliente: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  
+                  // Desactivar cliente
+                  await _clienteRepo.desactivarCliente(widget.cliente.id);
+                  
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                    Navigator.of(dialogContext).pop(true); // Cerrar página de edición
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Cliente desactivado exitosamente'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().contains('Invalid')
+                            ? '❌ Contraseña incorrecta'
+                            : '❌ Error: $e'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
                 }
               }
             },

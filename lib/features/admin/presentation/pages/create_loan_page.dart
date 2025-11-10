@@ -97,6 +97,23 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
         final id = cliente.id.toString();
         return nombreCompleto.contains(query) || id.contains(query);
       }).toList();
+      
+      // Si hay coincidencia exacta, seleccionar automáticamente
+      if (_clientesFiltrados.length == 1) {
+        final clienteEncontrado = _clientesFiltrados.first;
+        final nombreCompletoExacto = clienteEncontrado.nombreCompleto.toLowerCase() == query;
+        final idExacto = clienteEncontrado.id.toString() == query;
+        
+        if (nombreCompletoExacto || idExacto) {
+          // Selección automática
+          _clienteSeleccionado = clienteEncontrado;
+          _searchController.text = clienteEncontrado.displayText;
+          _mostrarDropdown = false;
+          _mostrarFormularioNuevo = false;
+          return;
+        }
+      }
+      
       _mostrarDropdown = _clientesFiltrados.isNotEmpty;
 
       if (_clientesFiltrados.isEmpty && query.length > 2) {

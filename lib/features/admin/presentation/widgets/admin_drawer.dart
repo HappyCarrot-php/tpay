@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/repositories/perfil_repository.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 
 class AdminDrawer extends StatefulWidget {
   const AdminDrawer({super.key});
@@ -210,22 +211,48 @@ class _AdminDrawerState extends State<AdminDrawer> {
   void _confirmarCerrarSesion(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Cerrar Sesión'),
         content: const Text('¿Está seguro de cerrar sesión?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Aquí iría la lógica para cerrar sesión
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/login',
-                (route) => false,
+            onPressed: () async {
+              Navigator.pop(dialogContext); // Cerrar diálogo de confirmación
+              
+              // Mostrar loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (loadingContext) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
               );
+              
+              try {
+                await AuthRepository().logout();
+                if (context.mounted) {
+                  Navigator.of(context).pop(); // Cerrar loading
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.of(context).pop(); // Cerrar loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('❌ Error al cerrar sesión: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

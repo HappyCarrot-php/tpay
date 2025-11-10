@@ -14,10 +14,31 @@ class AuthRepository {
     required String password,
   }) async {
     try {
+      // Sanitizar y validar inputs
+      final sanitizedEmail = email.trim().toLowerCase();
+      final sanitizedPassword = password.trim();
+      
+      // Validar formato de email
+      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+      if (!emailRegex.hasMatch(sanitizedEmail)) {
+        throw Exception('Formato de email inválido');
+      }
+      
+      // Validar longitud de contraseña
+      if (sanitizedPassword.length < 6) {
+        throw Exception('La contraseña debe tener al menos 6 caracteres');
+      }
+      
+      // Detectar caracteres sospechosos (intentos de inyección)
+      final suspiciousChars = RegExp(r'[<>{}()\[\]\\|;$`]');
+      if (suspiciousChars.hasMatch(sanitizedEmail)) {
+        throw Exception('El email contiene caracteres no permitidos');
+      }
+      
       // Autenticar con Supabase Auth
       final response = await _client.auth.signInWithPassword(
-        email: email,
-        password: password,
+        email: sanitizedEmail,
+        password: sanitizedPassword,
       );
 
       if (response.user == null) {
