@@ -18,9 +18,12 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
   final _clienteRepo = ClienteRepository();
   final _movimientoRepo = MovimientoRepository();
   final _supabaseService = SupabaseService();
+  final _telefonoController = TextEditingController();
   
   late TabController _tabController;
   bool _isLoading = true;
+  bool _isEditingTelefono = false;
+  bool _isSavingTelefono = false;
   ClienteModel? _cliente;
   double _deudaTotal = 0;
   int _prestamosActivos = 0;
@@ -36,6 +39,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
   @override
   void dispose() {
     _tabController.dispose();
+    _telefonoController.dispose();
     super.dispose();
   }
 
@@ -64,6 +68,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
 
       setState(() {
         _cliente = cliente;
+        _telefonoController.text = cliente.telefono ?? '';
         _deudaTotal = deuda;
         _prestamosActivos = activos.length;
         _prestamosPagados = pagados.length;
@@ -162,8 +167,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
                   _buildInfoRow(Icons.badge, 'ID Cliente', '#${_cliente!.id}'),
                   if (_cliente!.email != null)
                     _buildInfoRow(Icons.email, 'Email', _cliente!.email!),
-                  if (_cliente!.telefono != null)
-                    _buildInfoRow(Icons.phone, 'Teléfono', _cliente!.telefono!),
+                  _buildTelefonoEditableRow(),
                   if (_cliente!.direccion != null)
                     _buildInfoRow(Icons.location_on, 'Dirección', _cliente!.direccion!),
                 ],
@@ -366,6 +370,162 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
         ],
       ),
     );
+  }
+
+  Widget _buildTelefonoEditableRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.phone, color: Color(0xFF00BCD4), size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Teléfono',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (_isEditingTelefono)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _telefonoController,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (_isSavingTelefono)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else ...[
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Colors.green),
+                          onPressed: _guardarTelefono,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              _isEditingTelefono = false;
+                              _telefonoController.text = _cliente?.telefono ?? '';
+                            });
+                          },
+                        ),
+                      ],
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _cliente?.telefono ?? 'No especificado',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Color(0xFF00BCD4), size: 20),
+                        onPressed: () {
+                          setState(() => _isEditingTelefono = true);
+                        },
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _guardarTelefono() async {
+    if (_telefonoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El teléfono no puede estar vacío'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSavingTelefono = true);
+
+    try {
+      if (_cliente == null) throw Exception('No hay datos del cliente');
+
+      final clienteActualizado = ClienteModel(
+        id: _cliente!.id,
+        usuarioId: _cliente!.usuarioId,
+        nombre: _cliente!.nombre,
+        apellidoPaterno: _cliente!.apellidoPaterno,
+        apellidoMaterno: _cliente!.apellidoMaterno,
+        nombreCompleto: _cliente!.nombreCompleto,
+        telefono: _telefonoController.text.trim(),
+        email: _cliente!.email,
+        rfc: _cliente!.rfc,
+        curp: _cliente!.curp,
+        fechaNacimiento: _cliente!.fechaNacimiento,
+        direccion: _cliente!.direccion,
+        ciudad: _cliente!.ciudad,
+        estado: _cliente!.estado,
+        codigoPostal: _cliente!.codigoPostal,
+        identificacionTipo: _cliente!.identificacionTipo,
+        identificacionNumero: _cliente!.identificacionNumero,
+        fotoUrl: _cliente!.fotoUrl,
+        calificacionCliente: _cliente!.calificacionCliente,
+        notas: _cliente!.notas,
+        activo: _cliente!.activo,
+        creado: _cliente!.creado,
+        actualizado: DateTime.now(),
+      );
+
+      await _clienteRepo.actualizarCliente(clienteActualizado);
+
+      setState(() {
+        _cliente = clienteActualizado;
+        _isSavingTelefono = false;
+        _isEditingTelefono = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Teléfono actualizado correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSavingTelefono = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {

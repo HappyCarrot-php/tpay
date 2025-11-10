@@ -132,23 +132,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: Column(
                 children: [
                   _buildKPICards(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   const Text(
                     'Resumen Financiero',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildGraficaCapitalTotal(),
+                  const SizedBox(height: 12),
+                  // Grid de 2 columnas para las primeras 3 gráficas
+                  _buildGraficasGrid(),
                   const SizedBox(height: 24),
-                  _buildGraficaCapitalTrabajando(),
-                  const SizedBox(height: 24),
-                  _buildGraficaCapitalLiberado(),
-                  const SizedBox(height: 24),
-                  _buildGraficaGananciasNetas(),
-                  const SizedBox(height: 32),
                   const Divider(thickness: 2),
                   const SizedBox(height: 16),
                   _buildResumenTexto(),
@@ -156,6 +151,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
             ),
           );
+  }
+
+  Widget _buildGraficasGrid() {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildGraficaCapitalTotal()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildGraficaCapitalTrabajando()),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildGraficaCapitalLiberado()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildGraficaGananciasNetas()),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildKPICards() {
@@ -193,20 +212,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildKPICard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -214,7 +233,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 10,
               color: Colors.grey[600],
             ),
           ),
@@ -231,25 +250,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         const Text(
           'Capital + Intereses',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
             color: Colors.teal,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Center(
           child: SizedBox(
-            width: 200,
-            height: 200,
+            width: 120,
+            height: 120,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 200,
-                  height: 200,
+                  width: 120,
+                  height: 120,
                   child: CircularProgressIndicator(
                     value: 1.0,
-                    strokeWidth: 20,
+                    strokeWidth: 12,
                     backgroundColor: Colors.teal.withOpacity(0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
                   ),
@@ -260,7 +279,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       '${porcentaje.toStringAsFixed(0)}%',
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.teal,
                       ),
@@ -268,7 +287,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       _formatCurrency(_capitalTotal.toDouble()),
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: Colors.teal,
                       ),
@@ -279,12 +298,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Text(
-          'Suma de todos los montos más intereses.',
+          'Todos los montos + intereses',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 9,
             color: Colors.grey[600],
           ),
         ),
@@ -300,25 +319,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         const Text(
           'Capital Trabajando',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
             color: Colors.green,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Center(
           child: SizedBox(
-            width: 200,
-            height: 200,
+            width: 120,
+            height: 120,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 200,
-                  height: 200,
+                  width: 120,
+                  height: 120,
                   child: CircularProgressIndicator(
                     value: porcentaje / 100,
-                    strokeWidth: 20,
+                    strokeWidth: 12,
                     backgroundColor: Colors.green.withOpacity(0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
                   ),
@@ -329,7 +348,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       '${porcentaje.toStringAsFixed(0)}%',
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.green,
                       ),
@@ -337,7 +356,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       _formatCurrency(_capitalTrabajando.toDouble()),
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: Colors.green,
                       ),
@@ -348,12 +367,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Text(
-          'Préstamos activos (restando abonos).',
+          'Activos (sin abonos)',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 9,
             color: Colors.grey[600],
           ),
         ),
@@ -369,25 +388,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         const Text(
           'Capital Liberado',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
             color: Colors.orange,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Center(
           child: SizedBox(
-            width: 200,
-            height: 200,
+            width: 120,
+            height: 120,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 200,
-                  height: 200,
+                  width: 120,
+                  height: 120,
                   child: CircularProgressIndicator(
                     value: porcentaje / 100,
-                    strokeWidth: 20,
+                    strokeWidth: 12,
                     backgroundColor: Colors.orange.withOpacity(0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
                   ),
@@ -398,7 +417,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       '${porcentaje.toStringAsFixed(0)}%',
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.orange,
                       ),
@@ -406,7 +425,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       _formatCurrency(_capitalLiberado.toDouble()),
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: Colors.orange,
                       ),
@@ -417,12 +436,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Text(
-          'Préstamos pagados completos + abonos de activos.',
+          'Pagados + abonos',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 9,
             color: Colors.grey[600],
           ),
         ),
@@ -438,25 +457,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         const Text(
           'Ganancias Netas',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
             color: Colors.purple,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Center(
           child: SizedBox(
-            width: 200,
-            height: 200,
+            width: 120,
+            height: 120,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 200,
-                  height: 200,
+                  width: 120,
+                  height: 120,
                   child: CircularProgressIndicator(
                     value: 1.0,
-                    strokeWidth: 20,
+                    strokeWidth: 12,
                     backgroundColor: Colors.purple.withOpacity(0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(Colors.purple),
                   ),
@@ -467,16 +486,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       '${porcentaje.toStringAsFixed(1)}%',
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.purple,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       _formatCurrency(_gananciasNetas.toDouble()),
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: Colors.purple,
                       ),
@@ -487,12 +506,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Text(
-          'Solo intereses generados de todos los préstamos.',
+          'Solo intereses',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 9,
             color: Colors.grey[600],
           ),
         ),

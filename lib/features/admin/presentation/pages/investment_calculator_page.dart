@@ -535,6 +535,12 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                   ),
                   const DataColumn(
                     label: Text(
+                      'Total Acumulado',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const DataColumn(
+                    label: Text(
                       'Rendimiento',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
@@ -546,17 +552,20 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                  const DataColumn(
-                    label: Text(
-                      'Total Acumulado',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
                 ],
                 rows: _resultadosPorAnio.map((resultado) {
                   return DataRow(
                     cells: [
                       DataCell(Text('${resultado['anio']}')),
+                      DataCell(
+                        Text(
+                          _formatCurrency(resultado['total']),
+                          style: const TextStyle(
+                            color: Color(0xFF00BCD4),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                       DataCell(
                         Text(
                           _formatCurrency(resultado['rendimiento']),

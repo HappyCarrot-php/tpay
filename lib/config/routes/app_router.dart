@@ -18,6 +18,8 @@ import '../../features/admin/presentation/pages/database_backup_page.dart';
 
 // Client
 import '../../features/client/presentation/pages/client_home_page.dart';
+import '../../features/client/presentation/pages/client_contact_page.dart';
+import '../../features/client/presentation/pages/client_profile_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -113,6 +115,16 @@ class AppRouter {
         path: '/client',
         builder: (context, state) => const ClientHomePage(),
         name: 'client-home',
+      ),
+      GoRoute(
+        path: '/client-contact',
+        builder: (context, state) => const ClientContactPage(),
+        name: 'client-contact',
+      ),
+      GoRoute(
+        path: '/client-profile',
+        builder: (context, state) => const ClientProfilePage(),
+        name: 'client-profile',
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

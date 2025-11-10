@@ -5,6 +5,7 @@ import '../../../admin/data/repositories/movimiento_repository.dart';
 import '../../../admin/data/repositories/cliente_repository.dart';
 import '../../../admin/data/models/movimiento_model.dart';
 import '../widgets/client_loan_action_buttons.dart';
+import '../widgets/client_drawer.dart';
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -123,6 +124,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
         title: const Text('Mis Préstamos'),
         backgroundColor: const Color(0xFF00BCD4),
       ),
+      drawer: const ClientDrawer(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
