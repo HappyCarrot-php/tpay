@@ -17,6 +17,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _capitalTotal = 0;
   int _capitalTrabajando = 0;
   int _capitalLiberado = 0;
+  int _gananciasNetas = 0;
   List<MovimientoModel> _prestamosActivos = [];
   List<MovimientoModel> _prestamosPagados = [];
 
@@ -46,6 +47,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       int capitalTotal = 0;
       int capitalTrabajando = 0;
       int capitalLiberado = 0;
+      int gananciasNetas = 0;
 
       // Capital Total = suma de todos los montos + intereses (de TODOS los préstamos)
       for (var prestamo in todos) {
@@ -65,6 +67,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         capitalLiberado += prestamo.abonos.toInt();
       }
 
+      // Ganancias Netas = suma de TODOS los intereses
+      for (var prestamo in todos) {
+        gananciasNetas += prestamo.interes.toInt();
+      }
+
       setState(() {
         _totalPrestamos = todos.length;
         _prestamosActivos = activos;
@@ -72,6 +79,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _capitalTotal = capitalTotal;
         _capitalTrabajando = capitalTrabajando;
         _capitalLiberado = capitalLiberado;
+        _gananciasNetas = gananciasNetas;
         _isLoading = false;
       });
     } catch (e) {
@@ -120,6 +128,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   _buildGraficaCapitalTrabajando(),
                   const SizedBox(height: 24),
                   _buildGraficaCapitalLiberado(),
+                  const SizedBox(height: 24),
+                  _buildGraficaGananciasNetas(),
                 ],
               ),
             ),
@@ -387,7 +397,77 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Abonos de préstamos pagados.',
+          'Préstamos pagados completos + abonos de activos.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGraficaGananciasNetas() {
+    final porcentaje = _capitalTotal > 0 ? (_gananciasNetas / _capitalTotal) * 100 : 0.0;
+    
+    return Column(
+      children: [
+        const Text(
+          'Ganancias Netas',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.purple,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: CircularProgressIndicator(
+                    value: 1.0,
+                    strokeWidth: 20,
+                    backgroundColor: Colors.purple.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.purple),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatCurrency(_gananciasNetas.toDouble()),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${porcentaje.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.purple,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Solo intereses generados de todos los préstamos.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 12,

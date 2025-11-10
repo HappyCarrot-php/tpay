@@ -18,8 +18,10 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
 
   final _searchController = TextEditingController();
   final _montoController = TextEditingController();
-  final _interesController = TextEditingController();
+  final _interesManualController = TextEditingController();
   final _notasController = TextEditingController();
+  
+  String _tipoInteres = '3'; // 3%, 5%, 10% o 'manual'
 
   final _nombreController = TextEditingController();
   final _apellidoPaternoController = TextEditingController();
@@ -49,7 +51,7 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   void dispose() {
     _searchController.dispose();
     _montoController.dispose();
-    _interesController.dispose();
+    _interesManualController.dispose();
     _notasController.dispose();
     _nombreController.dispose();
     _apellidoPaternoController.dispose();
@@ -182,7 +184,16 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
 
     try {
       final monto = double.parse(_montoController.text);
-      final interes = double.parse(_interesController.text);
+      
+      // Calcular interés según selección
+      double interes;
+      if (_tipoInteres == 'manual') {
+        interes = double.parse(_interesManualController.text);
+      } else {
+        final tasaMensual = double.parse(_tipoInteres) / 100;
+        interes = monto * tasaMensual;
+      }
+      
       final notas = _notasController.text.trim();
 
       await _movimientoRepo.crearPrestamo(
@@ -469,21 +480,7 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _interesController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Interés *',
-                prefixText: '\$',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Requerido';
-                final interes = double.tryParse(value);
-                if (interes == null || interes < 0) return 'Interés inválido';
-                return null;
-              },
-            ),
+            _buildSelectorInteres(),
             const SizedBox(height: 12),
             _buildDatePicker('Fecha de Inicio', _fechaInicio, (date) => setState(() => _fechaInicio = date), DateTime(2020), DateTime.now().add(const Duration(days: 365))),
             const SizedBox(height: 12),
@@ -517,6 +514,122 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSelectorInteres() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Interés *',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('3% mensual'),
+                      value: '3',
+                      groupValue: _tipoInteres,
+                      onChanged: (value) => setState(() => _tipoInteres = value!),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('5% mensual'),
+                      value: '5',
+                      groupValue: _tipoInteres,
+                      onChanged: (value) => setState(() => _tipoInteres = value!),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('10% mensual'),
+                      value: '10',
+                      groupValue: _tipoInteres,
+                      onChanged: (value) => setState(() => _tipoInteres = value!),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('Manual'),
+                      value: 'manual',
+                      groupValue: _tipoInteres,
+                      onChanged: (value) => setState(() => _tipoInteres = value!),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+              if (_tipoInteres == 'manual') ...[
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _interesManualController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Interés en \$',
+                    prefixText: '\$',
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (_tipoInteres == 'manual' && (value == null || value.isEmpty)) {
+                      return 'Ingrese el monto del interés';
+                    }
+                    if (value != null && value.isNotEmpty) {
+                      final interes = double.tryParse(value);
+                      if (interes == null || interes < 0) return 'Interés inválido';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+              if (_tipoInteres != 'manual' && _montoController.text.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Interés calculado:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      Text(
+                        '\$${((double.tryParse(_montoController.text) ?? 0) * (double.parse(_tipoInteres) / 100)).toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 

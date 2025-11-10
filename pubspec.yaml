@@ -89,6 +89,9 @@ dependencies:
   
   # Splash screen
   flutter_native_splash: ^2.4.1
+  
+  # Image picker
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

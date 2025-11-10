@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+import '../../../../core/services/supabase_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,10 +43,43 @@ class _SplashScreenState extends State<SplashScreen>
     // Iniciar animación
     _controller.forward();
 
-    // Navegar a login después de 3 segundos
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/login');
+    // Verificar sesión y navegar después de 3 segundos
+    Timer(const Duration(seconds: 3), () async {
+      if (!mounted) return;
+      
+      try {
+        final supabase = SupabaseService();
+        final session = supabase.client.auth.currentSession;
+        
+        if (session != null) {
+          // Hay sesión activa, verificar rol
+          final userId = session.user.id;
+          final response = await supabase.client
+              .from('perfiles')
+              .select('rol')
+              .eq('usuario_id', userId)
+              .single();
+          
+          final rol = response['rol'] as String?;
+          
+          if (mounted) {
+            if (rol == 'administrador' || rol == 'moderador') {
+              context.go('/admin');
+            } else {
+              context.go('/client');
+            }
+          }
+        } else {
+          // No hay sesión, ir a login
+          if (mounted) {
+            context.go('/login');
+          }
+        }
+      } catch (e) {
+        // Error al verificar sesión, ir a login
+        if (mounted) {
+          context.go('/login');
+        }
       }
     });
   }
