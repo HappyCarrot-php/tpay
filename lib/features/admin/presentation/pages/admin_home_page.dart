@@ -234,41 +234,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           ),
           const SizedBox(height: 16),
 
-          // Opciones
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.edit),
-                  title: const Text('Editar Perfil'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    // Navegar a editar perfil
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.lock),
-                  title: const Text('Cambiar Contraseña'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    // Navegar a cambiar contraseña
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.notifications),
-                  title: const Text('Notificaciones'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    // Navegar a notificaciones
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
           // Botón cerrar sesión
           SizedBox(
             width: double.infinity,

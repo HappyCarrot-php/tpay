@@ -12,6 +12,8 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
   double _interes = 10.0; // Porcentaje de interés por defecto
+  DateTime _fechaInicio = DateTime.now();
+  DateTime _fechaPago = DateTime.now().add(const Duration(days: 30));
   
   bool _recalcular = false;
   double _totalConInteres = 0.0;
@@ -42,6 +44,8 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     _montoController.clear();
     setState(() {
       _interes = 10.0;
+      _fechaInicio = DateTime.now();
+      _fechaPago = DateTime.now().add(const Duration(days: 30));
       _recalcular = false;
       _totalConInteres = 0.0;
       _interesCalculado = 0.0;
@@ -125,6 +129,72 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                   }
                   return null;
                 },
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Fecha de Inicio
+              InkWell(
+                onTap: () async {
+                  final fecha = await showDatePicker(
+                    context: context,
+                    initialDate: _fechaInicio,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                    locale: const Locale('es', 'MX'),
+                  );
+                  if (fecha != null) {
+                    setState(() => _fechaInicio = fecha);
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Fecha de Inicio',
+                    prefixIcon: const Icon(Icons.calendar_today),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  child: Text(
+                    '${_fechaInicio.day}/${_fechaInicio.month}/${_fechaInicio.year}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Fecha de Pago
+              InkWell(
+                onTap: () async {
+                  final fecha = await showDatePicker(
+                    context: context,
+                    initialDate: _fechaPago,
+                    firstDate: _fechaInicio,
+                    lastDate: DateTime(2030),
+                    locale: const Locale('es', 'MX'),
+                  );
+                  if (fecha != null) {
+                    setState(() => _fechaPago = fecha);
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Fecha de Pago',
+                    prefixIcon: const Icon(Icons.event),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  child: Text(
+                    '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
               ),
               
               const SizedBox(height: 24),
@@ -226,6 +296,9 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                 _buildReciboItem('Monto Prestado', '\$${_montoController.text}'),
                 _buildReciboItem('Tasa de Interés', '${_interes.toStringAsFixed(1)}%'),
                 _buildReciboItem('Interés Calculado', '\$${_interesCalculado.toStringAsFixed(2)}'),
+                _buildReciboItem('Fecha de Inicio', '${_fechaInicio.day}/${_fechaInicio.month}/${_fechaInicio.year}'),
+                _buildReciboItem('Fecha de Pago', '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}'),
+                _buildReciboItem('Plazo', '${_fechaPago.difference(_fechaInicio).inDays} días'),
                 
                 const Divider(thickness: 2, height: 32),
                 
