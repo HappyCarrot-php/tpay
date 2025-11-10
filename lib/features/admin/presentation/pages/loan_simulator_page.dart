@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../widgets/interest_rate_selector.dart';
+import 'package:flutter/services.dart';
 
 class LoanSimulatorPage extends StatefulWidget {
   const LoanSimulatorPage({super.key});
@@ -12,139 +11,80 @@ class LoanSimulatorPage extends StatefulWidget {
 class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
-  final _manualInterestController = TextEditingController();
+  double _interes = 10.0; // Porcentaje de interés por defecto
   
-  String _selectedInterestRate = '3';
-  DateTime _fechaInicio = DateTime.now();
-  DateTime _fechaVencimiento = DateTime.now().add(const Duration(days: 30));
-  
-  double? _montoTotal;
-  double? _interesCalculado;
-  bool _mostrarResultado = false;
+  bool _recalcular = false;
+  double _totalConInteres = 0.0;
+  double _interesCalculado = 0.0;
 
   @override
   void dispose() {
     _montoController.dispose();
-    _manualInterestController.dispose();
     super.dispose();
   }
 
-  void _calcularSimulacion() {
+  void _simular() {
     if (_formKey.currentState!.validate()) {
-      final monto = double.parse(_montoController.text);
-      double tasaInteres;
-
-      if (_selectedInterestRate == 'manual') {
-        if (_manualInterestController.text.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ingrese la tasa de interés manual'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-        tasaInteres = double.parse(_manualInterestController.text);
-      } else {
-        tasaInteres = double.parse(_selectedInterestRate);
-      }
-
-      final interes = monto * (tasaInteres / 100);
-      final total = monto + interes;
+      final monto = double.tryParse(_montoController.text) ?? 0.0;
+      final interesDecimal = _interes / 100;
+      final interesCalculado = monto * interesDecimal;
+      final totalConInteres = monto + interesCalculado;
 
       setState(() {
-        _interesCalculado = interes;
-        _montoTotal = total;
-        _mostrarResultado = true;
+        _interesCalculado = interesCalculado;
+        _totalConInteres = totalConInteres;
+        _recalcular = true;
       });
     }
   }
 
-  void _limpiarSimulacion() {
+  void _limpiar() {
+    _montoController.clear();
     setState(() {
-      _montoController.clear();
-      _manualInterestController.clear();
-      _selectedInterestRate = '3';
-      _fechaInicio = DateTime.now();
-      _fechaVencimiento = DateTime.now().add(const Duration(days: 30));
-      _mostrarResultado = false;
-      _montoTotal = null;
-      _interesCalculado = null;
+      _interes = 10.0;
+      _recalcular = false;
+      _totalConInteres = 0.0;
+      _interesCalculado = 0.0;
     });
-  }
-
-  Future<void> _seleccionarFecha(BuildContext context, bool esFechaInicio) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: esFechaInicio ? _fechaInicio : _fechaVencimiento,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      locale: const Locale('es', 'MX'),
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (esFechaInicio) {
-          _fechaInicio = picked;
-          // Si la fecha de inicio es posterior a la de vencimiento, ajustar
-          if (_fechaInicio.isAfter(_fechaVencimiento)) {
-            _fechaVencimiento = _fechaInicio.add(const Duration(days: 30));
-          }
-        } else {
-          _fechaVencimiento = picked;
-        }
-      });
-    }
-  }
-
-  String _formatCurrency(double amount) {
-    final formatter = NumberFormat.currency(
-      locale: 'es_MX',
-      symbol: '\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(amount);
-  }
-
-  String _formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Simulador de Préstamo'),
+        title: const Text('Simular Préstamo'),
+        backgroundColor: const Color(0xFF00BCD4),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _limpiarSimulacion,
-            tooltip: 'Limpiar',
-          ),
+          if (_recalcular)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _limpiar,
+              tooltip: 'Limpiar',
+            ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Card de información
+              // Información
               Card(
-                color: Colors.blue[50],
+                color: Colors.blue.shade50,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12.0),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700]),
-                      const SizedBox(width: 12),
+                      Icon(Icons.info_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Simula un préstamo sin guardarlo en la base de datos',
+                          'Este simulador NO guarda datos. Solo calcula un recibo de ejemplo.',
                           style: TextStyle(
-                            color: Colors.blue[900],
-                            fontWeight: FontWeight.w500,
+                            color: Colors.blue.shade900,
+                            fontSize: 13,
                           ),
                         ),
                       ),
@@ -152,20 +92,28 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                   ),
                 ),
               ),
+              
               const SizedBox(height: 24),
-
-              // Monto
+              
+              // Campo Monto
               TextFormField(
                 controller: _montoController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Monto del préstamo',
-                  prefixIcon: Icon(Icons.attach_money),
-                  suffixText: 'MXN',
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                decoration: InputDecoration(
+                  labelText: 'Monto del Préstamo',
+                  prefixText: '\$',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Ingrese el monto del préstamo';
+                    return 'Ingrese el monto';
                   }
                   final monto = double.tryParse(value);
                   if (monto == null || monto <= 0) {
@@ -174,174 +122,139 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 20),
-
-              // Selector de interés modular
-              InterestRateSelector(
-                selectedRate: _selectedInterestRate,
-                manualController: _manualInterestController,
-                onRateChanged: (rate) {
-                  setState(() {
-                    _selectedInterestRate = rate;
-                    _mostrarResultado = false;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Fechas
-              Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      child: InkWell(
-                        onTap: () => _seleccionarFecha(context, true),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.calendar_today, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Fecha de inicio',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _formatDate(_fechaInicio),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Card(
-                      child: InkWell(
-                        onTap: () => _seleccionarFecha(context, false),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.event, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Fecha de vencimiento',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _formatDate(_fechaVencimiento),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              
               const SizedBox(height: 24),
-
-              // Botón calcular
-              ElevatedButton.icon(
-                onPressed: _calcularSimulacion,
-                icon: const Icon(Icons.calculate),
-                label: const Text('Calcular Simulación'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              
+              // Selector de Interés (Scroll)
+              Text(
+                'Interés: ${_interes.toStringAsFixed(1)}%',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-
-              // Resultados
-              if (_mostrarResultado) ...[
+              const SizedBox(height: 8),
+              Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey.shade50,
+                ),
+                child: ListWheelScrollView.useDelegate(
+                  itemExtent: 40,
+                  diameterRatio: 1.5,
+                  physics: const FixedExtentScrollPhysics(),
+                  onSelectedItemChanged: (index) {
+                    setState(() {
+                      _interes = (index + 1) * 0.5; // Incrementos de 0.5%
+                    });
+                  },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    builder: (context, index) {
+                      final valor = (index + 1) * 0.5;
+                      final esSeleccionado = valor == _interes;
+                      return Center(
+                        child: Text(
+                          '${valor.toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            fontSize: esSeleccionado ? 20 : 16,
+                            fontWeight: esSeleccionado ? FontWeight.bold : FontWeight.normal,
+                            color: esSeleccionado ? const Color(0xFF00BCD4) : Colors.grey.shade600,
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: 200, // Hasta 100% (200 * 0.5)
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Botón Simular
+              ElevatedButton.icon(
+                onPressed: _simular,
+                icon: const Icon(Icons.calculate),
+                label: const Text(
+                  'Simular Préstamo',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00BCD4),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              
+              // Resultado (Recibo falso)
+              if (_recalcular) ...[
                 const SizedBox(height: 32),
                 const Divider(thickness: 2),
                 const SizedBox(height: 16),
                 
-                // Título de resultados
+                // Título del recibo
                 const Text(
-                  'Resultado de la Simulación',
+                  'RECIBO DE SIMULACIÓN',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: Color(0xFF00BCD4),
                   ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '(No válido para transacciones reales)',
                   textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
-                const SizedBox(height: 20),
-
-                // Tarjeta de monto original
-                _buildResultCard(
-                  'Monto del Préstamo',
-                  _formatCurrency(double.parse(_montoController.text)),
-                  Colors.blue,
-                  Icons.money,
-                ),
-                const SizedBox(height: 12),
-
-                // Tarjeta de interés
-                _buildResultCard(
-                  'Interés (${_selectedInterestRate == 'manual' ? '${_manualInterestController.text}%' : '$_selectedInterestRate%'})',
-                  _formatCurrency(_interesCalculado!),
-                  Colors.orange,
-                  Icons.percent,
-                ),
-                const SizedBox(height: 12),
-
-                // Tarjeta de total a pagar
-                _buildResultCard(
-                  'Total a Pagar',
-                  _formatCurrency(_montoTotal!),
-                  Colors.green,
-                  Icons.attach_money,
-                  isHighlighted: true,
-                ),
+                
                 const SizedBox(height: 24),
-
-                // Información de fechas
-                Card(
-                  color: Colors.grey[100],
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        _buildDateInfo('Inicio', _fechaInicio),
-                        const Divider(),
-                        _buildDateInfo('Vencimiento', _fechaVencimiento),
-                        const Divider(),
-                        _buildDateInfo(
-                          'Plazo',
-                          null,
-                          customText: '${_fechaVencimiento.difference(_fechaInicio).inDays} días',
+                
+                // Detalles del recibo
+                _buildReciboItem('Monto Prestado', '\$${_montoController.text}'),
+                _buildReciboItem('Tasa de Interés', '${_interes.toStringAsFixed(1)}%'),
+                _buildReciboItem('Interés Calculado', '\$${_interesCalculado.toStringAsFixed(2)}'),
+                
+                const Divider(thickness: 2, height: 32),
+                
+                _buildReciboItem(
+                  'Total a Pagar',
+                  '\$${_totalConInteres.toStringAsFixed(2)}',
+                  destacado: true,
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Nota final
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    border: Border.all(color: Colors.amber.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.amber.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Este es un cálculo estimado. No se ha guardado ningún dato en la base de datos.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.amber.shade900,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -352,76 +265,26 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     );
   }
 
-  Widget _buildResultCard(
-    String label,
-    String value,
-    Color color,
-    IconData icon, {
-    bool isHighlighted = false,
-  }) {
-    return Card(
-      elevation: isHighlighted ? 8 : 2,
-      color: isHighlighted ? color.withOpacity(0.1) : null,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: isHighlighted ? 24 : 20,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateInfo(String label, DateTime? date, {String? customText}) {
+  Widget _buildReciboItem(String label, String valor, {bool destacado = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+            style: TextStyle(
+              fontSize: destacado ? 18 : 16,
+              fontWeight: destacado ? FontWeight.bold : FontWeight.w500,
+              color: destacado ? const Color(0xFF00BCD4) : Colors.black87,
             ),
           ),
           Text(
-            customText ?? (date != null ? _formatDate(date) : ''),
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+            valor,
+            style: TextStyle(
+              fontSize: destacado ? 20 : 16,
+              fontWeight: destacado ? FontWeight.bold : FontWeight.w600,
+              color: destacado ? const Color(0xFF00BCD4) : Colors.black,
             ),
           ),
         ],

@@ -125,7 +125,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
             subtitle: const Text('Crear nuevo préstamo'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/create-loan');
+              context.go('/admin/create-loan');
             },
           ),
           
@@ -136,7 +136,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
             subtitle: const Text('Simular sin guardar'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/loan-simulator');
+              context.go('/admin/loan-simulator');
             },
           ),
           
@@ -147,7 +147,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
             subtitle: const Text('Simulador de inversiones'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/investment-calculator');
+              context.go('/admin/investment-calculator');
             },
           ),
           
@@ -158,7 +158,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
             subtitle: const Text('Cálculos express'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/calculator');
+              context.go('/admin/calculator');
             },
           ),
           
@@ -184,7 +184,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
             title: const Text('Mi Perfil'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/admin/profile');
+              context.go('/admin/profile');
             },
           ),
         ],
