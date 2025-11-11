@@ -351,8 +351,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
     String idUsuario = 'No disponible';
     String estadoEmail = 'No confirmado';
     String fechaCreacion = 'No disponible';
-    int totalPrestamos = 0;
-    double totalPrestado = 0.0;
     
     try {
       final userResponse = await _supabase.auth.admin.getUserById(perfil['id']);
@@ -368,37 +366,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
     } catch (e) {
       // Si no se puede obtener, continuamos con valores por defecto
       emailActual = 'Error al obtener';
-    }
-
-    // Obtener total de préstamos y total prestado del cliente (solo si es rol 'cliente')
-    if (perfil['rol'] == 'cliente') {
-      try {
-        // Buscar el cliente en la tabla clientes usando el email
-        final clienteData = await _supabase
-            .from('clientes')
-            .select('id')
-            .eq('correo', emailActual)
-            .maybeSingle();
-        
-        if (clienteData != null) {
-          // Obtener los préstamos del cliente con sus montos
-          final prestamosResponse = await _supabase
-              .from('movimientos')
-              .select('monto')
-              .eq('cliente_id', clienteData['id']);
-          
-          totalPrestamos = prestamosResponse.length;
-          
-          // Calcular total prestado (suma de todos los montos)
-          for (var prestamo in prestamosResponse) {
-            totalPrestado += (prestamo['monto'] as num).toDouble();
-          }
-        }
-      } catch (e) {
-        // Si hay error, dejar en 0
-        totalPrestamos = 0;
-        totalPrestado = 0.0;
-      }
     }
 
     await showDialog(
@@ -454,32 +421,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
                   ],
                 ),
                 const Divider(height: 32),
-                
-                // Préstamos (solo para clientes)
-                if (perfil['rol'] == 'cliente')
-                  _buildSeccionInfo(
-                    titulo: 'Préstamos',
-                    icono: Icons.account_balance_wallet,
-                    items: [
-                      _InfoItem(
-                        'Total de Préstamos',
-                        totalPrestamos.toString().replaceAllMapped(
-                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                          (Match m) => '${m[1]},',
-                        ),
-                      ),
-                      _InfoItem(
-                        'Total Prestado',
-                        '\$${totalPrestado.toInt().toString().replaceAllMapped(
-                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                          (Match m) => '${m[1]},',
-                        )}',
-                      ),
-                    ],
-                  ),
-                
-                if (perfil['rol'] == 'cliente')
-                  const Divider(height: 32),
                 
                 // Fechas
                 _buildSeccionInfo(

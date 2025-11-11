@@ -226,7 +226,10 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                   const Divider(),
                   _buildStatItem(
                     'Total Prestado', 
-                    '\$${_totalPrestado.toStringAsFixed(2)}', 
+                    '\$${_totalPrestado.toInt().toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    )}', 
                     Icons.attach_money,
                   ),
                 ],
