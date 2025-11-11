@@ -15,6 +15,7 @@ import '../../features/admin/presentation/pages/calculator_page.dart';
 import '../../features/admin/presentation/pages/admin_movements_page.dart';
 import '../../features/admin/presentation/pages/admin_profile_settings_page.dart';
 import '../../features/admin/presentation/pages/database_backup_page.dart';
+import '../../features/admin/presentation/pages/admin_profiles_page.dart';
 
 // Client
 import '../../features/client/presentation/pages/client_home_page.dart';
@@ -106,6 +107,11 @@ class AppRouter {
             path: 'database-backup',
             builder: (context, state) => const DatabaseBackupPage(),
             name: 'database-backup',
+          ),
+          GoRoute(
+            path: 'profiles',
+            builder: (context, state) => const AdminProfilesPage(),
+            name: 'admin-profiles',
           ),
         ],
       ),

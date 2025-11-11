@@ -67,6 +67,8 @@ class _ClientContactPageState extends State<ClientContactPage> {
       appBar: AppBar(
         title: const Text('Contacto de Emergencia'),
         backgroundColor: const Color(0xFF00BCD4),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

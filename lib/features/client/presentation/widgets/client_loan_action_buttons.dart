@@ -74,7 +74,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                 _buildReciboRow('Interés', '\$${prestamo.interes.toStringAsFixed(2)}'),
                 _buildReciboRow('Total', '\$${prestamo.totalAPagar.toStringAsFixed(2)}'),
                 _buildReciboRow('Abonos', '\$${prestamo.abonos.toStringAsFixed(2)}'),
-                _buildReciboRow('Saldo', '\$${prestamo.saldoPendiente.toStringAsFixed(2)}'),
+                _buildReciboRow('Pendiente', '\$${prestamo.saldoPendiente.toStringAsFixed(2)}'),
                 _buildReciboRow('Estado', prestamo.estadoTexto),
                 const Divider(height: 32),
                 Row(

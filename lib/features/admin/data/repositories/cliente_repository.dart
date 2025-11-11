@@ -17,7 +17,7 @@ class ClienteRepository {
         query = query.eq('activo', true);
       }
 
-      final response = await query.order('id_cliente', ascending: true);
+      final response = await query.order('id_cliente', ascending: false);
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
@@ -37,7 +37,7 @@ class ClienteRepository {
           .select()
           .or('nombre_completo.ilike.%$query%,id_cliente.eq.${idCliente ?? 0}')
           .eq('activo', true)
-          .order('id_cliente', ascending: true);
+          .order('id_cliente', ascending: false);
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))

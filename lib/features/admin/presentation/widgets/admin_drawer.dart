@@ -119,6 +119,17 @@ class _AdminDrawerState extends State<AdminDrawer> {
             },
           ),
           
+          // Perfiles (Gestión de usuarios)
+          ListTile(
+            leading: const Icon(Icons.badge, color: Colors.purple),
+            title: const Text('Perfiles'),
+            subtitle: const Text('Gestionar usuarios'),
+            onTap: () {
+              Navigator.pop(context);
+              context.go('/admin/profiles');
+            },
+          ),
+          
           const Divider(),
           
           // Registrar Préstamo

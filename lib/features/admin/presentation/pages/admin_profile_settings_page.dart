@@ -264,6 +264,9 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                   final dialogContext = context;
                   Navigator.pop(context); // Cerrar el diálogo del formulario
                   
+                  bool operacionExitosa = false;
+                  String? mensajeError;
+                  
                   showDialog(
                     context: dialogContext,
                     barrierDismissible: false,
@@ -302,37 +305,50 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                     );
 
                     if (updateResponse.user != null) {
-                      // Éxito
-                      if (dialogContext.mounted) {
-                        Navigator.of(dialogContext).pop(); // Cerrar loading
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
-                            content: Text('✅ Contraseña actualizada correctamente'),
-                            backgroundColor: Colors.green,
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                      }
+                      operacionExitosa = true;
                     } else {
                       throw Exception('No se pudo actualizar la contraseña');
                     }
                   } catch (e) {
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop(); // Cerrar loading
-                      
-                      String errorMessage = 'Error al cambiar contraseña';
-                      
-                      if (e.toString().contains('Invalid login') || 
-                          e.toString().contains('Invalid') ||
-                          e.toString().contains('incorrecta')) {
-                        errorMessage = '❌ Contraseña actual incorrecta';
-                      } else if (e.toString().contains('Network')) {
-                        errorMessage = '❌ Error de conexión';
-                      }
-                      
+                    operacionExitosa = false;
+                    
+                    if (e.toString().contains('Invalid login') || 
+                        e.toString().contains('Invalid') ||
+                        e.toString().contains('incorrecta')) {
+                      mensajeError = '❌ Contraseña actual incorrecta';
+                    } else if (e.toString().contains('Network')) {
+                      mensajeError = '❌ Error de conexión';
+                    } else {
+                      mensajeError = '❌ Error al cambiar contraseña';
+                    }
+                  }
+                  
+                  // Esperar hasta 10 segundos (5 intentos de 2 segundos) para mostrar resultado
+                  for (int i = 0; i < 5; i++) {
+                    await Future.delayed(const Duration(seconds: 2));
+                    if (!dialogContext.mounted) break;
+                    
+                    if (operacionExitosa || mensajeError != null) {
+                      break;
+                    }
+                  }
+                  
+                  // Cerrar loading y mostrar resultado
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                    
+                    if (operacionExitosa) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Contraseña actualizada correctamente'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    } else {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
                         SnackBar(
-                          content: Text(errorMessage),
+                          content: Text(mensajeError ?? '❌ Error al cambiar contraseña'),
                           backgroundColor: Colors.red,
                           duration: const Duration(seconds: 3),
                         ),
@@ -422,32 +438,38 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
 
       if (pickedImage == null) return;
 
-      // Recortar imagen (ajustar marco como apps modernas)
-      final ImageCropper cropper = ImageCropper();
-      final CroppedFile? croppedFile = await cropper.cropImage(
-        sourcePath: pickedImage.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Cuadrado para avatar
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Ajustar Foto',
-            toolbarColor: const Color(0xFF00BCD4),
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-            hideBottomControls: false,
-          ),
-          IOSUiSettings(
-            title: 'Ajustar Foto',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-          ),
-        ],
-      );
+      // Intentar recortar imagen (puede fallar en algunos dispositivos)
+      XFile image = pickedImage;
+      try {
+        final ImageCropper cropper = ImageCropper();
+        final CroppedFile? croppedFile = await cropper.cropImage(
+          sourcePath: pickedImage.path,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Ajustar Foto',
+              toolbarColor: const Color(0xFF00BCD4),
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+              hideBottomControls: false,
+            ),
+            IOSUiSettings(
+              title: 'Ajustar Foto',
+              aspectRatioLockEnabled: true,
+              resetAspectRatioEnabled: false,
+            ),
+          ],
+        );
 
-      if (croppedFile == null) return;
-
-      // Usar la imagen recortada
-      final image = XFile(croppedFile.path);
+        if (croppedFile != null) {
+          image = XFile(croppedFile.path);
+        }
+        // Si croppedFile es null, usar la imagen original
+      } catch (cropError) {
+        // Si el crop falla, continuar con la imagen original
+        debugPrint('Error al recortar: $cropError');
+      }
 
       // Mostrar loading
       if (!mounted) return;

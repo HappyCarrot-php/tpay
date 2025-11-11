@@ -96,8 +96,9 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
       appBar: AppBar(
         title: const Text('Simular Préstamo'),
         backgroundColor: const Color(0xFF00BCD4),
+        foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [

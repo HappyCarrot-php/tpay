@@ -159,14 +159,19 @@ class _AdminMovementsPageState extends State<AdminMovementsPage> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Row(
-                  children: [
-                    _buildFiltroChip('Todos', FiltroEstadoPrestamo.todos, Icons.list),
-                    const SizedBox(width: 8),
-                    _buildFiltroChip('Activos', FiltroEstadoPrestamo.activos, Icons.pending_actions),
-                    const SizedBox(width: 8),
-                    _buildFiltroChip('Pagados', FiltroEstadoPrestamo.pagados, Icons.check_circle),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFiltroChip('Todos', FiltroEstadoPrestamo.todos, Icons.list),
+                      const SizedBox(width: 8),
+                      _buildFiltroChip('Activos', FiltroEstadoPrestamo.activos, Icons.pending_actions),
+                      const SizedBox(width: 8),
+                      _buildFiltroChip('Pagados', FiltroEstadoPrestamo.pagados, Icons.check_circle),
+                      const SizedBox(width: 8),
+                      _buildFiltroChip('Mora', FiltroEstadoPrestamo.vencidos, Icons.warning, color: Colors.red),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -204,8 +209,9 @@ class _AdminMovementsPageState extends State<AdminMovementsPage> {
     );
   }
 
-  Widget _buildFiltroChip(String label, FiltroEstadoPrestamo filtro, IconData icon) {
+  Widget _buildFiltroChip(String label, FiltroEstadoPrestamo filtro, IconData icon, {Color? color}) {
     final isSelected = _filtroActual == filtro;
+    final chipColor = color ?? const Color(0xFF00BCD4);
     return FilterChip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
@@ -217,7 +223,7 @@ class _AdminMovementsPageState extends State<AdminMovementsPage> {
       ),
       selected: isSelected,
       onSelected: (selected) => _cambiarFiltro(filtro),
-      selectedColor: const Color(0xFF00BCD4),
+      selectedColor: chipColor,
       checkmarkColor: Colors.white,
       labelStyle: TextStyle(
         color: isSelected ? Colors.white : Colors.black87,
@@ -229,10 +235,19 @@ class _AdminMovementsPageState extends State<AdminMovementsPage> {
   Widget _buildMovimientoCard(MovimientoModel mov) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: Color(mov.estadoColor).withOpacity(0.08), // Fondo más visible con mejor contraste
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Color(mov.estadoColor).withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Color(mov.estadoColor).withOpacity(0.2),
-          child: Text('#${mov.id}', style: TextStyle(color: Color(mov.estadoColor), fontWeight: FontWeight.bold, fontSize: 12)),
+          backgroundColor: Color(mov.estadoColor),
+          child: Text('#${mov.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
         ),
         title: Row(
           children: [
@@ -240,11 +255,10 @@ class _AdminMovementsPageState extends State<AdminMovementsPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Color(mov.estadoColor).withOpacity(0.1),
+                color: Color(mov.estadoColor),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Color(mov.estadoColor).withOpacity(0.3)),
               ),
-              child: Text(mov.estadoTexto, style: TextStyle(color: Color(mov.estadoColor), fontWeight: FontWeight.bold, fontSize: 11)),
+              child: Text(mov.estadoTexto, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
             ),
           ],
         ),
@@ -329,8 +343,54 @@ class _AdminMovementsPageState extends State<AdminMovementsPage> {
               _buildDetalleRow('Inicio', _formatDate(mov.fechaInicio)),
               _buildDetalleRow('Vence', _formatDate(mov.fechaPago)),
               _buildDetalleRow('Días', '${mov.diasPrestamo}'),
-              _buildDetalleRow('Estado', mov.estadoTexto),
-              if (mov.estaVencido) _buildDetalleRow('Vencido', '${mov.diasVencido} días', valueColor: Colors.red),
+              if (mov.estaVencido) _buildDetalleRow('MORA', '${mov.diasVencido} días', valueColor: Colors.red),
+              const Divider(height: 24),
+              // Estado al lado derecho
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Color(mov.estadoColor),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(mov.estadoColor).withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            mov.estadoPagado
+                                ? Icons.check_circle
+                                : mov.estaVencido
+                                    ? Icons.warning
+                                    : Icons.pending,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            mov.estadoTexto,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 8),

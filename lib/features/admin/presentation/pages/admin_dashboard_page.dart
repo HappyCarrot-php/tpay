@@ -18,7 +18,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _capitalTrabajando = 0;
   int _capitalLiberado = 0;
   int _gananciasNetas = 0;
-  double _tipoCambioUSD = 17.0; // Tipo de cambio por defecto
   List<MovimientoModel> _prestamosActivos = [];
   List<MovimientoModel> _prestamosPagados = [];
 
@@ -26,23 +25,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void initState() {
     super.initState();
     _cargarEstadisticas();
-    _obtenerTipoCambio();
-  }
-
-  Future<void> _obtenerTipoCambio() async {
-    try {
-      // Aquí podrías hacer una petición a una API de tipo de cambio
-      // Por ahora usaremos un valor fijo de 17 MXN por USD
-      // Puedes integrar una API como: https://api.exchangerate-api.com/v4/latest/USD
-      setState(() {
-        _tipoCambioUSD = 17.0;
-      });
-    } catch (e) {
-      // Si falla, usar valor por defecto
-      setState(() {
-        _tipoCambioUSD = 17.0;
-      });
-    }
   }
 
   Future<void> _cargarEstadisticas() async {
@@ -147,6 +129,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   const Divider(thickness: 2),
                   const SizedBox(height: 16),
                   _buildResumenTexto(),
+                  const SizedBox(height: 24),
+                  _buildGraficaBarrasComparativa(),
+                  const SizedBox(height: 24),
+                  _buildEstadisticasAdicionales(),
                 ],
               ),
             ),
@@ -522,6 +508,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildResumenTexto() {
     return Card(
       elevation: 4,
+      color: Colors.white, // Fondo blanco
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -532,41 +519,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: Color(0xFF1A237E), // Título azul oscuro formal
               ),
             ),
-            const SizedBox(height: 20),
-            
-            // MXN
-            const Text(
-              'Montos en MXN',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF00BCD4),
-              ),
-            ),
-            const Divider(),
-            _buildResumenRow('Capital Total', _formatCurrency(_capitalTotal.toDouble()), Colors.teal),
-            _buildResumenRow('Capital Trabajando', _formatCurrency(_capitalTrabajando.toDouble()), Colors.green),
-            _buildResumenRow('Capital Liberado', _formatCurrency(_capitalLiberado.toDouble()), Colors.orange),
-            _buildResumenRow('Ganancias Netas', _formatCurrency(_gananciasNetas.toDouble()), Colors.purple),
-            
-            const SizedBox(height: 20),
-            
-            // USD
-            Text(
-              'Equivalente en USD (1 USD = \$${_tipoCambioUSD.toStringAsFixed(2)} MXN)',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-            const Divider(),
-            _buildResumenRow('Capital Total', _formatUSD(_capitalTotal / _tipoCambioUSD), Colors.teal),
-            _buildResumenRow('Capital Trabajando', _formatUSD(_capitalTrabajando / _tipoCambioUSD), Colors.green),
-            _buildResumenRow('Capital Liberado', _formatUSD(_capitalLiberado / _tipoCambioUSD), Colors.orange),
-            _buildResumenRow('Ganancias Netas', _formatUSD(_gananciasNetas / _tipoCambioUSD), Colors.purple),
+            const SizedBox(height: 16),
+            _buildResumenRow('Capital Total', _formatCurrency(_capitalTotal.toDouble()), const Color(0xFF1565C0)),
+            _buildResumenRow('Capital Trabajando', _formatCurrency(_capitalTrabajando.toDouble()), const Color(0xFF2E7D32)),
+            _buildResumenRow('Capital Liberado', _formatCurrency(_capitalLiberado.toDouble()), const Color(0xFFE65100)),
+            _buildResumenRow('Ganancias Netas', _formatCurrency(_gananciasNetas.toDouble()), const Color(0xFF6A1B9A)),
           ],
         ),
       ),
@@ -581,10 +541,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[700],
+              color: Color(0xFF546E7A), // Gris azulado formal
             ),
           ),
           Text(
@@ -600,7 +560,265 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  String _formatUSD(double amount) {
-    return '\$${amount.toStringAsFixed(2)} USD';
+  Widget _buildGraficaBarrasComparativa() {
+    final maxValue = [
+      _capitalTotal.toDouble(),
+      _capitalTrabajando.toDouble(),
+      _capitalLiberado.toDouble(),
+    ].reduce((a, b) => a > b ? a : b);
+
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Comparativa General',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildBarra(
+              'Capital Total',
+              _capitalTotal.toDouble(),
+              maxValue,
+              const Color(0xFF1976D2),
+            ),
+            const SizedBox(height: 16),
+            _buildBarra(
+              'Capital Trabajando',
+              _capitalTrabajando.toDouble(),
+              maxValue,
+              const Color(0xFF388E3C),
+            ),
+            const SizedBox(height: 16),
+            _buildBarra(
+              'Capital Liberado',
+              _capitalLiberado.toDouble(),
+              maxValue,
+              const Color(0xFFF57C00),
+            ),
+            const SizedBox(height: 16),
+            _buildBarra(
+              'Préstamos Pagados',
+              _prestamosPagados.length.toDouble(),
+              _totalPrestamos.toDouble(),
+              const Color(0xFF4CAF50),
+              isCount: true,
+            ),
+            const SizedBox(height: 16),
+            _buildBarra(
+              'Préstamos Activos',
+              _prestamosActivos.length.toDouble(),
+              _totalPrestamos.toDouble(),
+              const Color(0xFFFF9800),
+              isCount: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBarra(
+    String label,
+    double value,
+    double maxValue,
+    Color color, {
+    bool isCount = false,
+  }) {
+    final porcentaje = maxValue > 0 ? (value / maxValue) : 0.0;
+    final displayValue = isCount
+        ? value.toInt().toString()
+        : _formatCurrency(value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              displayValue,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: porcentaje,
+            minHeight: 24,
+            backgroundColor: color.withOpacity(0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEstadisticasAdicionales() {
+    final tasaRecuperacion = _capitalTotal > 0
+        ? (_capitalLiberado / _capitalTotal) * 100
+        : 0.0;
+    final promedioAbonos = _prestamosActivos.isNotEmpty
+        ? _capitalLiberado / _prestamosActivos.length
+        : 0.0;
+    final promedioInteres = _totalPrestamos > 0
+        ? _gananciasNetas / _totalPrestamos
+        : 0.0;
+    
+    // Calcular préstamos promedio mensual basado en TODOS los préstamos
+    DateTime? fechaMasAntigua;
+    for (var prestamo in _prestamosActivos) {
+      if (fechaMasAntigua == null || prestamo.fechaInicio.isBefore(fechaMasAntigua)) {
+        fechaMasAntigua = prestamo.fechaInicio;
+      }
+    }
+    for (var prestamo in _prestamosPagados) {
+      if (fechaMasAntigua == null || prestamo.fechaInicio.isBefore(fechaMasAntigua)) {
+        fechaMasAntigua = prestamo.fechaInicio;
+      }
+    }
+    
+    final diasOperando = fechaMasAntigua != null
+        ? DateTime.now().difference(fechaMasAntigua).inDays
+        : 0;
+    final mesesOperando = diasOperando > 0 ? diasOperando / 30 : 1;
+    final prestamosPromedioMensual = mesesOperando > 0
+        ? _totalPrestamos / mesesOperando
+        : 0.0;
+    
+    // Calcular monto promedio de préstamo
+    final montoPromedioPrestamo = _totalPrestamos > 0
+        ? _capitalTotal / _totalPrestamos
+        : 0.0;
+
+    return Column(
+      children: [
+        const Text(
+          'Indicadores Clave',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildIndicadorCard(
+                'Tasa de Recuperación',
+                '${tasaRecuperacion.toStringAsFixed(1)}%',
+                Icons.trending_up,
+                tasaRecuperacion >= 70 ? Colors.green : Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildIndicadorCard(
+                'Total Préstamos',
+                _totalPrestamos.toString(),
+                Icons.receipt_long,
+                const Color(0xFF1976D2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildIndicadorCard(
+                'Préstamos/Mes',
+                prestamosPromedioMensual.toStringAsFixed(1),
+                Icons.calendar_month,
+                const Color(0xFFD32F2F),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildIndicadorCard(
+                'Promedio Abonos',
+                _formatCurrency(promedioAbonos),
+                Icons.payment,
+                const Color(0xFF388E3C),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildIndicadorCard(
+                'Interés Promedio',
+                _formatCurrency(promedioInteres),
+                Icons.attach_money,
+                const Color(0xFF7B1FA2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildIndicadorCard(
+                'Monto Promedio',
+                _formatCurrency(montoPromedioPrestamo),
+                Icons.account_balance_wallet,
+                const Color(0xFFFF6F00),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIndicadorCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Card(
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

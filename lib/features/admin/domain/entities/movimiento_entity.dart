@@ -67,7 +67,7 @@ class MovimientoEntity {
   /// Estado textual
   String get estadoTexto {
     if (estadoPagado) return 'FINALIZADO';
-    if (estaVencido) return 'VENCIDO';
+    if (estaVencido) return 'MORA';
     return 'ACTIVO';
   }
 

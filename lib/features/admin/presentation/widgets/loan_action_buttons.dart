@@ -687,6 +687,9 @@ class LoanActionButtons extends StatelessWidget {
                 
                 Navigator.of(dialogContext).pop(); // Cerrar diálogo del formulario
                 
+                bool operacionExitosa = false;
+                String? mensajeError;
+                
                 // Mostrar indicador de carga
                 showDialog(
                   context: dialogContext,
@@ -723,8 +726,29 @@ class LoanActionButtons extends StatelessWidget {
                   // Cancelar notificaciones del préstamo
                   await NotificationService().cancelLoanNotifications(prestamo.id);
                   
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                  operacionExitosa = true;
+                } catch (e) {
+                  operacionExitosa = false;
+                  mensajeError = e.toString().contains('Invalid')
+                      ? '❌ Contraseña incorrecta'
+                      : '❌ Error: $e';
+                }
+                
+                // Esperar hasta 10 segundos (5 intentos de 2 segundos) para confirmar operación
+                for (int i = 0; i < 5; i++) {
+                  await Future.delayed(const Duration(seconds: 2));
+                  if (!dialogContext.mounted) break;
+                  
+                  if (operacionExitosa || mensajeError != null) {
+                    break;
+                  }
+                }
+                
+                // Cerrar loading y mostrar resultado
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(); // Cerrar loading
+                  
+                  if (operacionExitosa) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
                         content: Text('✅ Préstamo eliminado correctamente'),
@@ -733,15 +757,10 @@ class LoanActionButtons extends StatelessWidget {
                       ),
                     );
                     onActionComplete();
-                  }
-                } catch (e) {
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop(); // Cerrar loading
+                  } else {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(
-                        content: Text(e.toString().contains('Invalid')
-                            ? '❌ Contraseña incorrecta'
-                            : '❌ Error: $e'),
+                        content: Text(mensajeError ?? '❌ Error al eliminar préstamo'),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 3),
                       ),

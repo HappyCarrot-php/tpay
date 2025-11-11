@@ -7,7 +7,7 @@ enum FiltroEstadoPrestamo {
   todos,
   activos,
   pagados,
-  vencidos,
+  vencidos, // También conocido como "Mora"
 }
 
 class MovimientoRepository {
@@ -52,7 +52,7 @@ class MovimientoRepository {
       }
 
       final response = await query
-          .order('fecha_inicio', ascending: false)
+          .order('id', ascending: false)
           .range(offset, offset + limite - 1);
 
       return (response as List).map((json) {
@@ -94,7 +94,7 @@ class MovimientoRepository {
         // No se puede filtrar directamente en JOIN, así que traemos todo
       }
 
-      final response = await supabaseQuery.order('fecha_inicio', ascending: false);
+      final response = await supabaseQuery.order('id', ascending: false);
 
       List<MovimientoModel> movimientos = (response as List).map((json) {
         final nombreCliente = json['clientes'] is Map

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:go_router/go_router.dart';
-import '../../../admin/data/repositories/cliente_repository.dart';
-import '../../../admin/data/repositories/movimiento_repository.dart';
-import '../../../admin/data/models/cliente_model.dart';
 import '../../../../core/services/supabase_service.dart';
-import '../../../auth/data/repositories/auth_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ClientProfilePage extends StatefulWidget {
   const ClientProfilePage({super.key});
@@ -14,113 +9,162 @@ class ClientProfilePage extends StatefulWidget {
   State<ClientProfilePage> createState() => _ClientProfilePageState();
 }
 
-class _ClientProfilePageState extends State<ClientProfilePage> with SingleTickerProviderStateMixin {
-  final _clienteRepo = ClienteRepository();
-  final _movimientoRepo = MovimientoRepository();
+class _ClientProfilePageState extends State<ClientProfilePage> {
+  final _supabase = Supabase.instance.client;
   final _supabaseService = SupabaseService();
+  final _nombreController = TextEditingController();
+  final _apellidoPaternoController = TextEditingController();
+  final _apellidoMaternoController = TextEditingController();
   final _telefonoController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   
-  late TabController _tabController;
   bool _isLoading = true;
-  bool _isEditingTelefono = false;
-  bool _isSavingTelefono = false;
-  ClienteModel? _cliente;
-  double _deudaTotal = 0;
-  int _prestamosActivos = 0;
-  int _prestamosPagados = 0;
+  bool _isSaving = false;
+  Map<String, dynamic>? _perfil;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _cargarDatos();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _nombreController.dispose();
+    _apellidoPaternoController.dispose();
+    _apellidoMaternoController.dispose();
     _telefonoController.dispose();
     super.dispose();
   }
 
   Future<void> _cargarDatos() async {
     setState(() => _isLoading = true);
-
     try {
       final usuarioId = _supabaseService.currentUserId;
-      if (usuarioId == null) throw Exception('No hay usuario autenticado');
+      if (usuarioId == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      final clientes = await _clienteRepo.buscarClientes(usuarioId);
-      if (clientes.isEmpty) throw Exception('No se encontró perfil de cliente');
-
-      final cliente = clientes.first;
-      final deuda = await _clienteRepo.obtenerDeudaTotal(cliente.id);
+      // Cargar perfil desde la tabla perfiles
+      final response = await _supabase
+          .from('perfiles')
+          .select()
+          .eq('id', usuarioId)
+          .maybeSingle();
       
-      final activos = await _movimientoRepo.obtenerMovimientos(
-        clienteId: cliente.id,
-        filtro: FiltroEstadoPrestamo.activos,
-      );
-      
-      final pagados = await _movimientoRepo.obtenerMovimientos(
-        clienteId: cliente.id,
-        filtro: FiltroEstadoPrestamo.pagados,
-      );
-
       setState(() {
-        _cliente = cliente;
-        _telefonoController.text = cliente.telefono ?? '';
-        _deudaTotal = deuda;
-        _prestamosActivos = activos.length;
-        _prestamosPagados = pagados.length;
+        if (response != null) {
+          _perfil = response;
+          _nombreController.text = _perfil!['nombre'] ?? '';
+          _apellidoPaternoController.text = _perfil!['apellido_paterno'] ?? '';
+          _apellidoMaternoController.text = _perfil!['apellido_materno'] ?? '';
+          _telefonoController.text = _perfil!['telefono'] ?? '';
+        }
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error al cargar datos: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
   }
 
-  String _formatCurrency(double amount) {
-    return '\$${amount.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
+  Future<void> _actualizarPerfil() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final usuarioId = _supabaseService.currentUserId;
+      if (usuarioId == null) {
+        throw Exception('No se pudo obtener el ID del usuario');
+      }
+
+      // Solo actualizar teléfono (nombre y apellidos NO se pueden editar desde cliente)
+      await _supabase.from('perfiles').update({
+        'telefono': _telefonoController.text.trim().isEmpty 
+            ? null 
+            : _telefonoController.text.trim(),
+      }).eq('id', usuarioId);
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Teléfono actualizado correctamente'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        
+        // Recargar después de 2 segundos
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) await _cargarDatos();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Perfil'),
+        title: const Text('Editar Mi Perfil'),
         backgroundColor: const Color(0xFF00BCD4),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.person), text: 'Información'),
-            Tab(icon: Icon(Icons.account_balance_wallet), text: 'Finanzas'),
-          ],
-        ),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildInformacionTab(),
-                _buildFinanzasTab(),
-              ],
-            ),
+          : _buildFormularioPerfil(),
     );
   }
 
-  Widget _buildInformacionTab() {
-    if (_cliente == null) {
-      return const Center(child: Text('No hay información disponible'));
+  Widget _buildFormularioPerfil() {
+    if (_perfil == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_off, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No se encontró información del perfil',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
     }
+
+    // Obtener iniciales del nombre
+    final nombreCompleto = _perfil!['nombre_completo'] ?? 'Usuario';
+    final partes = nombreCompleto.split(' ');
+    final iniciales = partes.length >= 2
+        ? '${partes[0][0]}${partes[1][0]}'.toUpperCase()
+        : nombreCompleto[0].toUpperCase();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -128,12 +172,12 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
         children: [
           // Avatar
           CircleAvatar(
-            radius: 60,
+            radius: 50,
             backgroundColor: const Color(0xFF00BCD4),
             child: Text(
-              _cliente!.iniciales,
+              iniciales,
               style: const TextStyle(
-                fontSize: 36,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -141,548 +185,133 @@ class _ClientProfilePageState extends State<ClientProfilePage> with SingleTicker
           ),
           const SizedBox(height: 16),
           Text(
-            _cliente!.nombreCompleto,
+            nombreCompleto,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 32),
 
-          // Información personal
+          // Formulario de teléfono
           Card(
+            elevation: 4,
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Información Personal',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Mi Información Personal',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const Divider(height: 24),
-                  _buildInfoRow(Icons.badge, 'ID Cliente', '#${_cliente!.id}'),
-                  if (_cliente!.email != null)
-                    _buildInfoRow(Icons.email, 'Email', _cliente!.email!),
-                  _buildTelefonoEditableRow(),
-                  if (_cliente!.direccion != null)
-                    _buildInfoRow(Icons.location_on, 'Dirección', _cliente!.direccion!),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Estadísticas rápidas
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Resumen de Préstamos',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Solo puedes actualizar tu número de teléfono',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatBox('Activos', _prestamosActivos.toString(), Colors.orange),
-                      _buildStatBox('Pagados', _prestamosPagados.toString(), Colors.green),
-                      _buildStatBox('Total', (_prestamosActivos + _prestamosPagados).toString(), Colors.blue),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Botón cerrar sesión
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _cerrarSesion,
-              icon: const Icon(Icons.logout),
-              label: const Text('Cerrar Sesión'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFinanzasTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Card de deuda
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _deudaTotal > 0
-                    ? [Colors.red[400]!, Colors.red[600]!]
-                    : [Colors.green[400]!, Colors.green[600]!],
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.account_balance_wallet, color: Colors.white, size: 48),
-                const SizedBox(height: 12),
-                const Text(
-                  'Deuda Total',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatCurrency(_deudaTotal),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  _deudaTotal > 0 ? 'Monto pendiente' : 'Sin deuda activa',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Gráfica de préstamos
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Estado de Préstamos',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    const Divider(height: 24),
+                    
+                    // Nombre (SOLO LECTURA)
+                    TextFormField(
+                      controller: _nombreController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre',
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Color(0xFFF5F5F5),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.black54),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_prestamosActivos + _prestamosPagados > 0)
+                    const SizedBox(height: 16),
+                    
+                    // Apellido Paterno (SOLO LECTURA)
+                    TextFormField(
+                      controller: _apellidoPaternoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Apellido Paterno',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Color(0xFFF5F5F5),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Apellido Materno (SOLO LECTURA)
+                    TextFormField(
+                      controller: _apellidoMaternoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Apellido Materno',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Color(0xFFF5F5F5),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Teléfono
+                    TextFormField(
+                      controller: _telefonoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Teléfono',
+                        hintText: 'Ingresa tu número de teléfono',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty && value.length < 10) {
+                          return 'Ingresa un teléfono válido (mínimo 10 dígitos)';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
                     SizedBox(
-                      height: 200,
-                      child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 40,
-                          sections: [
-                            if (_prestamosActivos > 0)
-                              PieChartSectionData(
-                                value: _prestamosActivos.toDouble(),
-                                title: '$_prestamosActivos',
-                                color: Colors.orange,
-                                radius: 60,
-                                titleStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : _actualizarPerfil,
+                        icon: _isSaving 
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                 ),
-                              ),
-                            if (_prestamosPagados > 0)
-                              PieChartSectionData(
-                                value: _prestamosPagados.toDouble(),
-                                title: '$_prestamosPagados',
-                                color: Colors.green,
-                                radius: 60,
-                                titleStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                          ],
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(_isSaving ? 'Guardando...' : 'Guardar Cambios'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00BCD4),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                      ),
-                    )
-                  else
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text('No hay préstamos registrados'),
                       ),
                     ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildLegend('Activos', Colors.orange, _prestamosActivos),
-                      const SizedBox(width: 24),
-                      _buildLegend('Pagados', Colors.green, _prestamosPagados),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Métricas financieras
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Métricas Financieras',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Divider(height: 24),
-                  _buildMetricRow('Préstamos Activos', _prestamosActivos.toString(), Colors.orange),
-                  _buildMetricRow('Préstamos Pagados', _prestamosPagados.toString(), Colors.green),
-                  _buildMetricRow('Deuda Pendiente', _formatCurrency(_deudaTotal), Colors.red),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTelefonoEditableRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          const Icon(Icons.phone, color: Color(0xFF00BCD4), size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Teléfono',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (_isEditingTelefono)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _telefonoController,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (_isSavingTelefono)
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      else ...[
-                        IconButton(
-                          icon: const Icon(Icons.check, color: Colors.green),
-                          onPressed: _guardarTelefono,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              _isEditingTelefono = false;
-                              _telefonoController.text = _cliente?.telefono ?? '';
-                            });
-                          },
-                        ),
-                      ],
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _cliente?.telefono ?? 'No especificado',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Color(0xFF00BCD4), size: 20),
-                        onPressed: () {
-                          setState(() => _isEditingTelefono = true);
-                        },
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _guardarTelefono() async {
-    if (_telefonoController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El teléfono no puede estar vacío'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSavingTelefono = true);
-
-    try {
-      if (_cliente == null) throw Exception('No hay datos del cliente');
-
-      final clienteActualizado = ClienteModel(
-        id: _cliente!.id,
-        usuarioId: _cliente!.usuarioId,
-        nombre: _cliente!.nombre,
-        apellidoPaterno: _cliente!.apellidoPaterno,
-        apellidoMaterno: _cliente!.apellidoMaterno,
-        nombreCompleto: _cliente!.nombreCompleto,
-        telefono: _telefonoController.text.trim(),
-        email: _cliente!.email,
-        rfc: _cliente!.rfc,
-        curp: _cliente!.curp,
-        fechaNacimiento: _cliente!.fechaNacimiento,
-        direccion: _cliente!.direccion,
-        ciudad: _cliente!.ciudad,
-        estado: _cliente!.estado,
-        codigoPostal: _cliente!.codigoPostal,
-        identificacionTipo: _cliente!.identificacionTipo,
-        identificacionNumero: _cliente!.identificacionNumero,
-        fotoUrl: _cliente!.fotoUrl,
-        calificacionCliente: _cliente!.calificacionCliente,
-        notas: _cliente!.notas,
-        activo: _cliente!.activo,
-        creado: _cliente!.creado,
-        actualizado: DateTime.now(),
-      );
-
-      await _clienteRepo.actualizarCliente(clienteActualizado);
-
-      setState(() {
-        _cliente = clienteActualizado;
-        _isSavingTelefono = false;
-        _isEditingTelefono = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Teléfono actualizado correctamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isSavingTelefono = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF00BCD4), size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatBox(String label, String value, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLegend(String label, Color color, int value) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text('$label ($value)'),
-      ],
-    );
-  }
-
-  Widget _buildMetricRow(String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(label),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _cerrarSesion() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Cerrar Sesión'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar == true && mounted) {
-      try {
-        await AuthRepository().logout();
-        if (mounted) {
-          context.go('/login');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sesión cerrada exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error al cerrar sesión: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
   }
 }

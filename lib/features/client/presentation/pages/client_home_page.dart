@@ -123,6 +123,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
       appBar: AppBar(
         title: const Text('Mis Préstamos'),
         backgroundColor: const Color(0xFF00BCD4),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const ClientDrawer(),
       body: _isLoading
@@ -383,235 +385,97 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
   Widget _buildPrestamoCard(MovimientoModel prestamo) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 3,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: Color(prestamo.estadoColor).withOpacity(0.08),
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Color(prestamo.estadoColor).withOpacity(0.3),
+          width: 1.5,
+        ),
       ),
-      child: InkWell(
-        onTap: () => _mostrarDetalles(prestamo),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: ID y Estado
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.description,
-                        color: Color(prestamo.estadoColor),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Préstamo #${prestamo.id}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Color(prestamo.estadoColor).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Color(prestamo.estadoColor).withOpacity(0.3),
-                      ),
-                    ),
-                    child: Text(
-                      prestamo.estadoTexto,
-                      style: TextStyle(
-                        color: Color(prestamo.estadoColor),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 24),
-
-              // Monto y Total
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Monto Prestado',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatCurrency(prestamo.monto),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Total a Pagar',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatCurrency(prestamo.totalAPagar),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00BCD4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Progreso de pago
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Progreso de Pago',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        '${prestamo.porcentajePagado.toInt()}%',
-                        style: TextStyle(
-                          color: Colors.grey[800],
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: prestamo.porcentajePagado / 100,
-                      minHeight: 8,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        prestamo.estadoPagado
-                            ? Colors.green
-                            : const Color(0xFF00BCD4),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Saldo pendiente y fecha
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Saldo Pendiente',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatCurrency(prestamo.saldoPendiente),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: prestamo.estadoPagado
-                              ? Colors.green
-                              : Colors.red[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        prestamo.estaVencido ? 'Vencido' : 'Vence',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            prestamo.estaVencido
-                                ? Icons.warning
-                                : Icons.calendar_today,
-                            size: 14,
-                            color: prestamo.estaVencido
-                                ? Colors.red
-                                : Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDate(prestamo.fechaPago),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: prestamo.estaVencido
-                                  ? Colors.red
-                                  : Colors.grey[800],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (prestamo.estaVencido)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            '${prestamo.diasVencido} días de retraso',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Color(prestamo.estadoColor),
+          child: Text(
+            '#${prestamo.id}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Préstamo #${prestamo.id}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Color(prestamo.estadoColor),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                prestamo.estadoTexto,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text('Monto: ${_formatCurrency(prestamo.monto)}'),
+            Text(
+              'Pendiente: ${_formatCurrency(prestamo.saldoPendiente)}',
+              style: TextStyle(
+                color: prestamo.estadoPagado ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Vence: ${_formatDate(prestamo.fechaPago)}',
+              style: TextStyle(
+                color: prestamo.estaVencido ? Colors.red : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              _formatCurrency(prestamo.totalAPagar),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              '${prestamo.porcentajePagado.toInt()}% pagado',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        onTap: () => _mostrarDetalles(prestamo),
       ),
     );
   }
@@ -695,7 +559,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 Icons.payments,
               ),
               _buildDetalleItem(
-                'Saldo Pendiente',
+                'Pendiente',
                 _formatCurrency(prestamo.saldoPendiente),
                 Icons.wallet,
                 valueColor: prestamo.estadoPagado ? Colors.green : Colors.red,
@@ -725,7 +589,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               ),
               if (prestamo.estaVencido)
                 _buildDetalleItem(
-                  'Días de Retraso',
+                  'MORA',
                   '${prestamo.diasVencido} días',
                   Icons.warning,
                   valueColor: Colors.red,
