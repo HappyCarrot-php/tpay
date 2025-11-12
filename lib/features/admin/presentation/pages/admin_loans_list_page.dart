@@ -116,6 +116,24 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
         noPagados.sort((a, b) => a.fechaPago.compareTo(b.fechaPago));
         filtrados = [...noPagados, ...pagados];
         break;
+      case 'deuda_desc':
+        // Ordenar por deuda actual de mayor a menor, excluyendo pagados
+        final noPagadosDeudaDesc = filtrados.where((p) => !p.estadoPagado).toList();
+        final pagadosDeudaDesc = filtrados.where((p) => p.estadoPagado).toList();
+        noPagadosDeudaDesc.sort((a, b) {
+          return b.saldoPendiente.compareTo(a.saldoPendiente); // Mayor a menor
+        });
+        filtrados = [...noPagadosDeudaDesc, ...pagadosDeudaDesc];
+        break;
+      case 'deuda_asc':
+        // Ordenar por deuda actual de menor a mayor, excluyendo pagados
+        final noPagadosDeudaAsc = filtrados.where((p) => !p.estadoPagado).toList();
+        final pagadosDeudaAsc = filtrados.where((p) => p.estadoPagado).toList();
+        noPagadosDeudaAsc.sort((a, b) {
+          return a.saldoPendiente.compareTo(b.saldoPendiente); // Menor a mayor
+        });
+        filtrados = [...noPagadosDeudaAsc, ...pagadosDeudaAsc];
+        break;
     }
     
     // Aplicar paginación
@@ -337,6 +355,20 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
               Icons.calendar_today,
               'Fechas Próximas',
               'Próximos a vencer (sin pagados)',
+            ),
+            _buildOpcionOrdenamiento(
+              context,
+              'deuda_desc',
+              Icons.money_off,
+              'Deuda Mayor a Menor',
+              'Deuda actual descendente (sin pagados)',
+            ),
+            _buildOpcionOrdenamiento(
+              context,
+              'deuda_asc',
+              Icons.attach_money,
+              'Deuda Menor a Mayor',
+              'Deuda actual ascendente (sin pagados)',
             ),
             const SizedBox(height: 16),
           ],
