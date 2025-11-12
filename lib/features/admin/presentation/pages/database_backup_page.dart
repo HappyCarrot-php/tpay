@@ -64,6 +64,17 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
       if (mounted) {
         setState(() => _isGenerating = false);
         
+        if (file == null) {
+          // Usuario canceló
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Operación cancelada'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+        
         // Recargar lista de backups
         await _loadBackups();
         
@@ -78,6 +89,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
           SnackBar(
             content: Text('Error al generar backup: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }

@@ -2,19 +2,43 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DatabaseBackupService {
   final _supabase = Supabase.instance.client;
 
   /// Genera un backup completo de la base de datos en formato SQL
-  Future<File> generateFullBackup() async {
+  /// Permite al usuario seleccionar dónde guardar el archivo
+  Future<File?> generateFullBackup() async {
     try {
+      // Solicitar permisos de almacenamiento
+      final status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        final storageStatus = await Permission.storage.request();
+        if (!storageStatus.isGranted) {
+          throw Exception('Permisos de almacenamiento denegados');
+        }
+      }
+
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final filename = 'tpay_backup_$timestamp.sql';
 
-      // Obtener directorio para guardar el archivo
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/$filename');
+      // Permitir al usuario seleccionar dónde guardar el archivo
+      String? selectedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Guardar backup',
+        fileName: filename,
+        type: FileType.custom,
+        allowedExtensions: ['sql'],
+      );
+
+      if (selectedPath == null) {
+        // Usuario canceló
+        return null;
+      }
+
+      // Crear el archivo en la ubicación seleccionada
+      final file = File(selectedPath);
 
       // Iniciar el contenido SQL
       final buffer = StringBuffer();
@@ -22,9 +46,25 @@ class DatabaseBackupService {
       buffer.writeln('-- Generated: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
       buffer.writeln('-- ========================================');
       buffer.writeln();
+      buffer.writeln('-- NOTA: Ejecutar en Supabase SQL Editor');
+      buffer.writeln('-- Este archivo contiene CREATE TABLE e INSERT statements');
+      buffer.writeln();
+
+      // CREATE TABLE statements
+      buffer.writeln('-- ========================================');
+      buffer.writeln('-- CREATE TABLES');
+      buffer.writeln('-- ========================================');
+      buffer.writeln();
+      
+      buffer.writeln(_getCreateTablePerfiles());
+      buffer.writeln(_getCreateTableClientes());
+      buffer.writeln(_getCreateTableMovimientos());
+      buffer.writeln(_getCreateTableAbonos());
+      buffer.writeln();
 
       // Backup de tabla: perfiles
-      buffer.writeln('-- Tabla: perfiles');
+      buffer.writeln('-- ========================================');
+      buffer.writeln('-- DATOS: perfiles');
       buffer.writeln('-- ========================================');
       final perfiles = await _supabase.from('perfiles').select();
       for (var perfil in perfiles) {
@@ -33,7 +73,8 @@ class DatabaseBackupService {
       buffer.writeln();
 
       // Backup de tabla: clientes
-      buffer.writeln('-- Tabla: clientes');
+      buffer.writeln('-- ========================================');
+      buffer.writeln('-- DATOS: clientes');
       buffer.writeln('-- ========================================');
       final clientes = await _supabase.from('clientes').select();
       for (var cliente in clientes) {
@@ -42,7 +83,8 @@ class DatabaseBackupService {
       buffer.writeln();
 
       // Backup de tabla: movimientos
-      buffer.writeln('-- Tabla: movimientos');
+      buffer.writeln('-- ========================================');
+      buffer.writeln('-- DATOS: movimientos');
       buffer.writeln('-- ========================================');
       final movimientos = await _supabase.from('movimientos').select();
       for (var movimiento in movimientos) {
@@ -51,7 +93,8 @@ class DatabaseBackupService {
       buffer.writeln();
 
       // Backup de tabla: abonos
-      buffer.writeln('-- Tabla: abonos');
+      buffer.writeln('-- ========================================');
+      buffer.writeln('-- DATOS: abonos');
       buffer.writeln('-- ========================================');
       final abonos = await _supabase.from('abonos').select();
       for (var abono in abonos) {
@@ -151,5 +194,124 @@ class DatabaseBackupService {
     } catch (e) {
       throw Exception('Error al eliminar backup: $e');
     }
+  }
+
+  // ========================================
+  // CREATE TABLE STATEMENTS
+  // ========================================
+
+  String _getCreateTablePerfiles() {
+    return '''
+-- Tabla: perfiles
+CREATE TABLE IF NOT EXISTS public.perfiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    nombre VARCHAR(100) NOT NULL,
+    apellido_paterno VARCHAR(100),
+    apellido_materno VARCHAR(100),
+    nombre_completo VARCHAR(300) GENERATED ALWAYS AS (nombre || ' ' || COALESCE(apellido_paterno, '') || ' ' || COALESCE(apellido_materno, '')) STORED,
+    email VARCHAR(255),
+    telefono VARCHAR(20),
+    fecha_nacimiento DATE,
+    genero VARCHAR(20),
+    direccion TEXT,
+    ciudad VARCHAR(100),
+    estado VARCHAR(100),
+    codigo_postal VARCHAR(10),
+    rfc VARCHAR(13),
+    curp VARCHAR(18),
+    foto_url TEXT,
+    rol VARCHAR(50) DEFAULT 'cliente',
+    activo BOOLEAN DEFAULT true,
+    creado TIMESTAMPTZ DEFAULT NOW(),
+    actualizado TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_perfiles_usuario_id ON public.perfiles(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_perfiles_rol ON public.perfiles(rol);
+CREATE INDEX IF NOT EXISTS idx_perfiles_activo ON public.perfiles(activo);
+
+''';
+  }
+
+  String _getCreateTableClientes() {
+    return '''
+-- Tabla: clientes
+CREATE TABLE IF NOT EXISTS public.clientes (
+    id SERIAL PRIMARY KEY,
+    usuario_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    nombre VARCHAR(100) NOT NULL,
+    apellido_paterno VARCHAR(100),
+    apellido_materno VARCHAR(100),
+    nombre_completo VARCHAR(300) GENERATED ALWAYS AS (nombre || ' ' || COALESCE(apellido_paterno, '') || ' ' || COALESCE(apellido_materno, '')) STORED,
+    email VARCHAR(255),
+    telefono VARCHAR(20),
+    direccion TEXT,
+    rfc VARCHAR(13),
+    curp VARCHAR(18),
+    notas TEXT,
+    activo BOOLEAN DEFAULT true,
+    creado TIMESTAMPTZ DEFAULT NOW(),
+    actualizado TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_clientes_usuario_id ON public.clientes(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_clientes_activo ON public.clientes(activo);
+CREATE INDEX IF NOT EXISTS idx_clientes_nombre_completo ON public.clientes(nombre_completo);
+
+''';
+  }
+
+  String _getCreateTableMovimientos() {
+    return '''
+-- Tabla: movimientos
+CREATE TABLE IF NOT EXISTS public.movimientos (
+    id SERIAL PRIMARY KEY,
+    id_cliente INTEGER REFERENCES public.clientes(id) ON DELETE CASCADE,
+    monto DECIMAL(10,2) NOT NULL,
+    interes DECIMAL(10,2) DEFAULT 0,
+    tasa_interes_porcentaje DECIMAL(5,2),
+    abonos DECIMAL(10,2) DEFAULT 0,
+    saldo_pendiente DECIMAL(10,2) GENERATED ALWAYS AS (monto + interes - abonos) STORED,
+    fecha_inicio DATE NOT NULL,
+    fecha_pago DATE NOT NULL,
+    dias_prestamo INTEGER GENERATED ALWAYS AS (fecha_pago - fecha_inicio) STORED,
+    estado_pagado BOOLEAN DEFAULT false,
+    fecha_pagado TIMESTAMPTZ,
+    metodo_pago VARCHAR(50),
+    eliminado BOOLEAN DEFAULT false,
+    motivo_eliminacion TEXT,
+    usuario_registro VARCHAR(255),
+    notas TEXT,
+    creado TIMESTAMPTZ DEFAULT NOW(),
+    actualizado TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_movimientos_id_cliente ON public.movimientos(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_movimientos_estado_pagado ON public.movimientos(estado_pagado);
+CREATE INDEX IF NOT EXISTS idx_movimientos_eliminado ON public.movimientos(eliminado);
+CREATE INDEX IF NOT EXISTS idx_movimientos_fecha_pago ON public.movimientos(fecha_pago);
+
+''';
+  }
+
+  String _getCreateTableAbonos() {
+    return '''
+-- Tabla: abonos
+CREATE TABLE IF NOT EXISTS public.abonos (
+    id SERIAL PRIMARY KEY,
+    id_movimiento INTEGER REFERENCES public.movimientos(id) ON DELETE CASCADE,
+    monto DECIMAL(10,2) NOT NULL,
+    fecha_abono TIMESTAMPTZ DEFAULT NOW(),
+    metodo_pago VARCHAR(50),
+    notas TEXT,
+    usuario_registro VARCHAR(255),
+    creado TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_abonos_id_movimiento ON public.abonos(id_movimiento);
+CREATE INDEX IF NOT EXISTS idx_abonos_fecha_abono ON public.abonos(fecha_abono);
+
+''';
   }
 }
