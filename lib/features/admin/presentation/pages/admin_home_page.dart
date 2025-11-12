@@ -21,6 +21,7 @@ class AdminHomePage extends StatefulWidget {
 
 class _AdminHomePageState extends State<AdminHomePage> {
   late int _selectedIndex;
+  final GlobalKey<AdminLoansListPageState> _loansPageKey = GlobalKey<AdminLoansListPageState>();
   
   @override
   void initState() {
@@ -28,9 +29,9 @@ class _AdminHomePageState extends State<AdminHomePage> {
     _selectedIndex = widget.initialIndex;
   }
 
-  final List<Widget> _pages = [
+  List<Widget> get _pages => [
     const AdminDashboardPage(),
-    const AdminLoansListPage(),
+    AdminLoansListPage(key: _loansPageKey),
     const AdminClientsPage(),
     const AdminProfilePage(),
   ];
@@ -54,12 +55,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
       appBar: AppBar(
         title: Text(_titles[_selectedIndex]),
         actions: _selectedIndex == 1 ? [
-          // Botón para mostrar filtros cuando está en Préstamos
+          // Botón para mostrar filtros de ordenamiento cuando está en Préstamos
           IconButton(
             icon: const Icon(Icons.filter_list),
-            tooltip: 'Filtros',
+            tooltip: 'Ordenar',
             onPressed: () {
-              // Los filtros están visibles en la página
+              _loansPageKey.currentState?.mostrarMenuOrdenamiento();
             },
           ),
         ] : null,

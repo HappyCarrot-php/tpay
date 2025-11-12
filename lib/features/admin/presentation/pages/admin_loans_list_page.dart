@@ -8,10 +8,17 @@ class AdminLoansListPage extends StatefulWidget {
   const AdminLoansListPage({super.key});
 
   @override
-  State<AdminLoansListPage> createState() => _AdminLoansListPageState();
+  State<AdminLoansListPage> createState() => AdminLoansListPageState();
 }
 
-class _AdminLoansListPageState extends State<AdminLoansListPage> {
+class AdminLoansListPageState extends State<AdminLoansListPage> {
+  
+  // Método público para mostrar el menú de ordenamiento
+  void mostrarMenuOrdenamiento() {
+    if (mounted) {
+      _mostrarMenuOrdenamiento(context);
+    }
+  }
   final MovimientoRepository _movimientoRepository = MovimientoRepository();
   final TextEditingController _busquedaController = TextEditingController();
   
@@ -246,7 +253,177 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
     }
   }
 
+  void _mostrarMenuOrdenamiento(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Título
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.sort, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Ordenar préstamos',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Opciones
+            _buildOpcionOrdenamiento(
+              context,
+              'id_desc',
+              Icons.arrow_downward,
+              'ID Descendente',
+              'Más recientes primero',
+            ),
+            _buildOpcionOrdenamiento(
+              context,
+              'id_asc',
+              Icons.arrow_upward,
+              'ID Ascendente',
+              'Más antiguos primero',
+            ),
+            _buildOpcionOrdenamiento(
+              context,
+              'monto_desc',
+              Icons.trending_down,
+              'Monto Mayor a Menor',
+              'De mayor a menor cantidad',
+            ),
+            _buildOpcionOrdenamiento(
+              context,
+              'monto_asc',
+              Icons.trending_up,
+              'Monto Menor a Mayor',
+              'De menor a mayor cantidad',
+            ),
+            _buildOpcionOrdenamiento(
+              context,
+              'fecha_proxima',
+              Icons.calendar_today,
+              'Fechas Próximas',
+              'Próximos a vencer (sin pagados)',
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildOpcionOrdenamiento(
+    BuildContext context,
+    String valor,
+    IconData icono,
+    String titulo,
+    String descripcion,
+  ) {
+    final isSelected = _ordenamiento == valor;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _ordenamiento = valor;
+          _paginaActual = 0;
+          _aplicarFiltroYPaginacion();
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF00BCD4).withOpacity(0.1) : null,
+          border: Border(
+            left: BorderSide(
+              color: isSelected ? const Color(0xFF00BCD4) : Colors.transparent,
+              width: 4,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF00BCD4)
+                    : Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icono,
+                color: isSelected ? Colors.white : Colors.grey[600],
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? const Color(0xFF00BCD4) : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    descripcion,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF00BCD4),
+                size: 24,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,30 +432,29 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Barra de filtros compacta
+                // Barra de búsqueda y filtros
                 Container(
-                  color: const Color(0xFF00BCD4).withOpacity(0.1),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  color: Colors.grey[100],
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Primera fila: 3 dropdowns en línea
+                      // Dropdown de tipo de búsqueda y estado
                       Row(
                         children: [
                           Expanded(
+                            flex: 2,
                             child: DropdownButtonFormField<String>(
                               value: _tipoBusqueda,
                               decoration: const InputDecoration(
-                                labelText: 'Buscar',
+                                labelText: 'Buscar por',
                                 border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               ),
-                              style: const TextStyle(fontSize: 13),
                               items: const [
-                                DropdownMenuItem(value: 'todos', child: Text('Todos', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'id_prestamo', child: Text('ID Préstamo', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'id_cliente', child: Text('ID Cliente', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'nombre_cliente', child: Text('Nombre', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                                DropdownMenuItem(value: 'id_prestamo', child: Text('ID Préstamo')),
+                                DropdownMenuItem(value: 'id_cliente', child: Text('ID Cliente')),
+                                DropdownMenuItem(value: 'nombre_cliente', child: Text('Nombre Cliente')),
                               ],
                               onChanged: (value) {
                                 setState(() {
@@ -290,74 +466,44 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 8),
                           Expanded(
+                            flex: 2,
                             child: DropdownButtonFormField<String>(
                               value: _filtroEstado,
                               decoration: const InputDecoration(
                                 labelText: 'Estado',
                                 border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               ),
-                              style: const TextStyle(fontSize: 13),
                               items: const [
-                                DropdownMenuItem(value: 'todos', child: Text('Todos', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'pagado', child: Text('Pagados', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'no_pagado', child: Text('No Pagados', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                                DropdownMenuItem(value: 'pagado', child: Text('Pagados')),
+                                DropdownMenuItem(value: 'no_pagado', child: Text('No Pagados')),
                               ],
                               onChanged: (value) {
                                 _cambiarFiltro(value!);
                               },
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: _ordenamiento,
-                              decoration: const InputDecoration(
-                                labelText: 'Ordenar',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                isDense: true,
-                              ),
-                              style: const TextStyle(fontSize: 13),
-                              items: const [
-                                DropdownMenuItem(value: 'id_desc', child: Text('+ Recientes', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'id_asc', child: Text('+ Antiguos', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'monto_desc', child: Text('💰 Mayor', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'monto_asc', child: Text('💰 Menor', style: TextStyle(fontSize: 13))),
-                                DropdownMenuItem(value: 'fecha_proxima', child: Text('📅 Próximos', style: TextStyle(fontSize: 13))),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _ordenamiento = value!;
-                                  _paginaActual = 0;
-                                  _aplicarFiltroYPaginacion();
-                                });
-                              },
-                            ),
-                          ),
                         ],
                       ),
-                      // Campo de búsqueda (solo si es necesario)
-                      if (_tipoBusqueda != 'todos') ...[
-                        const SizedBox(height: 8),
+                      const SizedBox(height: 12),
+                      // Campo de búsqueda
+                      if (_tipoBusqueda != 'todos')
                         TextField(
                           controller: _busquedaController,
                           decoration: InputDecoration(
                             labelText: _tipoBusqueda == 'id_prestamo'
-                                ? 'ID del préstamo'
+                                ? 'Ingrese ID del préstamo'
                                 : _tipoBusqueda == 'id_cliente'
-                                    ? 'ID del cliente'
-                                    : 'Nombre del cliente',
+                                    ? 'Ingrese ID del cliente'
+                                    : 'Ingrese nombre del cliente',
                             border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.search, size: 20),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            isDense: true,
+                            prefixIcon: const Icon(Icons.search),
                             suffixIcon: _busquedaController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 20),
+                                    icon: const Icon(Icons.clear),
                                     onPressed: () {
                                       setState(() {
                                         _busquedaController.clear();
@@ -368,7 +514,6 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                                   )
                                 : null,
                           ),
-                          style: const TextStyle(fontSize: 14),
                           keyboardType: _tipoBusqueda.contains('id')
                               ? TextInputType.number
                               : TextInputType.text,
@@ -379,7 +524,6 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                             });
                           },
                         ),
-                      ],
                     ],
                   ),
                 ),
