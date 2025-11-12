@@ -696,6 +696,7 @@ class LoanActionButtons extends StatelessWidget {
     final abonosController = TextEditingController(text: prestamo.abonos.toString());
     final notasController = TextEditingController(text: prestamo.notas ?? '');
     DateTime fechaPago = prestamo.fechaPago;
+    bool marcarComoPagado = prestamo.estadoPagado;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -803,6 +804,29 @@ class LoanActionButtons extends StatelessWidget {
                       border: OutlineInputBorder(),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  // Checkbox para marcar como pagado
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: CheckboxListTile(
+                      title: const Text(
+                        'Marcar como pagado',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text('El préstamo se marcará como completamente pagado'),
+                      value: marcarComoPagado,
+                      activeColor: Colors.green,
+                      onChanged: (value) {
+                        setState(() {
+                          marcarComoPagado = value ?? false;
+                        });
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -830,6 +854,7 @@ class LoanActionButtons extends StatelessWidget {
                       abonos: abonos,
                       fechaPago: fechaPago,
                       notas: notas.isNotEmpty ? notas : null,
+                      estadoPagado: marcarComoPagado,
                     );
                     
                     if (context.mounted) {

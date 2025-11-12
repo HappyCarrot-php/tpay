@@ -266,21 +266,6 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                   final dialogContext = context;
                   Navigator.pop(context); // Cerrar el diálogo del formulario
                   
-                  // Mostrar diálogo de carga
-                  showDialog(
-                    context: dialogContext,
-                    barrierDismissible: false,
-                    builder: (loadingContext) => const AlertDialog(
-                      content: Row(
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(width: 20),
-                          Text('Cambiando contraseña...'),
-                        ],
-                      ),
-                    ),
-                  );
-
                   bool operacionExitosa = false;
                   String? mensajeError;
 
@@ -318,33 +303,52 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                     if (e.toString().contains('Invalid login') || 
                         e.toString().contains('Invalid') ||
                         e.toString().contains('incorrecta')) {
-                      mensajeError = '❌ Contraseña actual incorrecta';
+                      mensajeError = 'Contraseña actual incorrecta';
                     } else if (e.toString().contains('Network')) {
-                      mensajeError = '❌ Error de conexión';
+                      mensajeError = 'Error de conexión';
                     } else {
-                      mensajeError = '❌ Error al cambiar contraseña';
+                      mensajeError = 'Error al cambiar contraseña';
                     }
                   }
                   
-                  // Cerrar loading
+                  // Mostrar resultado directo con diálogo
                   if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                    
-                    // Mostrar resultado
                     if (operacionExitosa) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Contraseña actualizada correctamente'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 3),
+                      showDialog(
+                        context: dialogContext,
+                        builder: (context) => AlertDialog(
+                          icon: const Icon(Icons.check_circle, color: Colors.green, size: 60),
+                          title: const Text('¡Éxito!'),
+                          content: const Text('Contraseña actualizada correctamente'),
+                          actions: [
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Aceptar'),
+                            ),
+                          ],
                         ),
                       );
                     } else {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(
-                          content: Text(mensajeError ?? '❌ Error al cambiar contraseña'),
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 3),
+                      showDialog(
+                        context: dialogContext,
+                        builder: (context) => AlertDialog(
+                          icon: const Icon(Icons.error, color: Colors.red, size: 60),
+                          title: const Text('Error'),
+                          content: Text(mensajeError ?? 'Error al cambiar contraseña'),
+                          actions: [
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Aceptar'),
+                            ),
+                          ],
                         ),
                       );
                     }
@@ -499,7 +503,7 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
       // Actualizar en la tabla de perfiles
       await _supabase.from('perfiles').update({
         'foto_url': publicUrl,
-      }).eq('user_id', userId);
+      }).eq('usuario_id', userId);
 
       if (!mounted) return;
       Navigator.pop(context); // Cerrar loading

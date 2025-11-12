@@ -201,6 +201,7 @@ class MovimientoRepository {
     double? abonos,
     DateTime? fechaPago,
     String? notas,
+    bool? estadoPagado,
   }) async {
     try {
       final data = <String, dynamic>{};
@@ -209,6 +210,12 @@ class MovimientoRepository {
       if (abonos != null) data['abonos'] = abonos;
       if (fechaPago != null) data['fecha_pago'] = fechaPago.toIso8601String().split('T')[0];
       if (notas != null) data['notas'] = notas;
+      if (estadoPagado != null) {
+        data['estado_pagado'] = estadoPagado;
+        if (estadoPagado) {
+          data['fecha_pagado'] = DateTime.now().toIso8601String();
+        }
+      }
 
       final response = await _supabase
           .from(SupabaseConstants.movimientosTable)
