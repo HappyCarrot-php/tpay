@@ -22,6 +22,7 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
   // Filtros
   String _filtroEstado = 'todos'; // todos, pagado, no_pagado
   String _tipoBusqueda = 'todos'; // todos, id_prestamo, id_cliente, nombre_cliente
+  String _ordenamiento = 'id_desc'; // id_desc, id_asc, monto_desc, monto_asc, fecha_proxima
   
   // Paginación
   int _paginaActual = 0;
@@ -85,6 +86,29 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
       filtrados = filtrados.where((p) => p.estadoPagado).toList();
     } else if (_filtroEstado == 'no_pagado') {
       filtrados = filtrados.where((p) => !p.estadoPagado).toList();
+    }
+    
+    // Aplicar ordenamiento
+    switch (_ordenamiento) {
+      case 'id_asc':
+        filtrados.sort((a, b) => a.id.compareTo(b.id));
+        break;
+      case 'id_desc':
+        filtrados.sort((a, b) => b.id.compareTo(a.id));
+        break;
+      case 'monto_asc':
+        filtrados.sort((a, b) => a.monto.compareTo(b.monto));
+        break;
+      case 'monto_desc':
+        filtrados.sort((a, b) => b.monto.compareTo(a.monto));
+        break;
+      case 'fecha_proxima':
+        // Ordenar por fecha próxima, excluyendo pagados
+        final noPagados = filtrados.where((p) => !p.estadoPagado).toList();
+        final pagados = filtrados.where((p) => p.estadoPagado).toList();
+        noPagados.sort((a, b) => a.fechaPago.compareTo(b.fechaPago));
+        filtrados = [...noPagados, ...pagados];
+        break;
     }
     
     // Aplicar paginación
@@ -286,6 +310,31 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Dropdown de ordenamiento
+                      DropdownButtonFormField<String>(
+                        value: _ordenamiento,
+                        decoration: const InputDecoration(
+                          labelText: 'Ordenar por',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          prefixIcon: Icon(Icons.sort),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'id_desc', child: Text('ID Descendente (Más recientes)')),
+                          DropdownMenuItem(value: 'id_asc', child: Text('ID Ascendente (Más antiguos)')),
+                          DropdownMenuItem(value: 'monto_desc', child: Text('Monto Mayor a Menor')),
+                          DropdownMenuItem(value: 'monto_asc', child: Text('Monto Menor a Mayor')),
+                          DropdownMenuItem(value: 'fecha_proxima', child: Text('Fechas Próximas (sin pagados)')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _ordenamiento = value!;
+                            _paginaActual = 0;
+                            _aplicarFiltroYPaginacion();
+                          });
+                        },
                       ),
                       const SizedBox(height: 12),
                       // Campo de búsqueda

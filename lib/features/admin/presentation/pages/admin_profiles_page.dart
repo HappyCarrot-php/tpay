@@ -723,6 +723,9 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
       appBar: AppBar(
         title: const Text('Gestión de Perfiles'),
         centerTitle: true,
+        backgroundColor: const Color(0xFF00BCD4),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

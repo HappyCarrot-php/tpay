@@ -198,6 +198,7 @@ class MovimientoRepository {
     required int id,
     double? monto,
     double? interes,
+    double? abonos,
     DateTime? fechaPago,
     String? notas,
   }) async {
@@ -205,6 +206,7 @@ class MovimientoRepository {
       final data = <String, dynamic>{};
       if (monto != null) data['monto'] = monto;
       if (interes != null) data['interes'] = interes;
+      if (abonos != null) data['abonos'] = abonos;
       if (fechaPago != null) data['fecha_pago'] = fechaPago.toIso8601String().split('T')[0];
       if (notas != null) data['notas'] = notas;
 
