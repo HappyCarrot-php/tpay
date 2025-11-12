@@ -176,7 +176,7 @@ class _SplashScreenState extends State<SplashScreen>
                 );
               },
             ),
-            const SizedBox(height: 80),
+            const SizedBox(height: 60),
 
             // Indicador de carga
             AnimatedBuilder(
@@ -190,6 +190,102 @@ class _SplashScreenState extends State<SplashScreen>
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00BCD4)),
                       strokeWidth: 3,
+                    ),
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 60),
+
+            // Mensaje de conexión a internet
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.cloud, color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Requiere conexión a internet',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Créditos del desarrollador
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF00BCD4).withOpacity(0.1),
+                          const Color(0xFF00838F).withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF00BCD4).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.code,
+                              color: const Color(0xFF00838F),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Desarrollado por',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Toledo Avalos Ricardo',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: const Color(0xFF00838F),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );

@@ -24,21 +24,18 @@ class DatabaseBackupService {
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final filename = 'tpay_backup_$timestamp.sql';
 
-      // Permitir al usuario seleccionar dónde guardar el archivo
-      String? selectedPath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Guardar backup',
-        fileName: filename,
-        type: FileType.custom,
-        allowedExtensions: ['sql'],
+      // Permitir al usuario seleccionar un directorio
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Selecciona dónde guardar el backup',
       );
 
-      if (selectedPath == null) {
+      if (selectedDirectory == null) {
         // Usuario canceló
         return null;
       }
 
       // Crear el archivo en la ubicación seleccionada
-      final file = File(selectedPath);
+      final file = File('$selectedDirectory/$filename');
 
       // Iniciar el contenido SQL
       final buffer = StringBuffer();
