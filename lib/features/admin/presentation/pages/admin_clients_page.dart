@@ -94,6 +94,159 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
     return (_clientesFiltrados.length / _clientesPorPagina).ceil();
   }
 
+  Future<void> _mostrarDialogoDeuda(ClienteModel cliente) async {
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Obtener deuda total del cliente
+      final deudaTotal = await _clienteRepo.obtenerDeudaTotal(cliente.id);
+
+      if (mounted) Navigator.pop(context); // Cerrar loading
+
+      // Mostrar diálogo con la deuda
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Deuda Total',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Divider(),
+                const SizedBox(height: 16),
+                Text(
+                  cliente.nombreCompleto,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Deuda Actual',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '\$${deudaTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (deudaTotal == 0)
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Sin deudas pendientes',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.warning, color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Préstamos activos',
+                        style: TextStyle(
+                          color: Colors.orange[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00BCD4),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al obtener deuda: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _editarCliente(ClienteModel cliente) {
     Navigator.push(
       context,
@@ -314,10 +467,20 @@ class _AdminClientsPageState extends State<AdminClientsPage> {
                                       ),
                                     ],
                                   ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _editarCliente(cliente),
-                                    tooltip: 'Editar',
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.account_balance_wallet, color: Colors.green),
+                                        onPressed: () => _mostrarDialogoDeuda(cliente),
+                                        tooltip: 'Visualizar Deuda',
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed: () => _editarCliente(cliente),
+                                        tooltip: 'Editar',
+                                      ),
+                                    ],
                                   ),
                                   onTap: () => _editarCliente(cliente),
                                 ),

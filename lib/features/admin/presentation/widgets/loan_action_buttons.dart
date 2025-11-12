@@ -112,65 +112,66 @@ class LoanActionButtons extends StatelessWidget {
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Contenido del recibo (capturado en screenshot)
-            Screenshot(
-              controller: screenshotController,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                padding: const EdgeInsets.all(32),
-                constraints: const BoxConstraints(maxWidth: 450),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Contenido del recibo (capturado en screenshot)
+              Screenshot(
+                controller: screenshotController,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  constraints: const BoxConstraints(maxWidth: 380),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Encabezado con logo
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.account_balance_wallet, size: 48, color: Colors.white),
-                          const SizedBox(height: 12),
+                          const Icon(Icons.account_balance_wallet, size: 32, color: Colors.white),
+                          const SizedBox(height: 6),
                           const Text(
                             'TPay',
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                               letterSpacing: 2,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           const Text(
                             'RECIBO DE PRÉSTAMO',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: Colors.white70,
-                              letterSpacing: 1.5,
+                              letterSpacing: 1.2,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Información del préstamo
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
@@ -185,31 +186,31 @@ class LoanActionButtons extends StatelessWidget {
                               Text(
                                 'Préstamo #${prestamo.id.toString().padLeft(6, '0')}',
                                 style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF00838F),
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: prestamo.estadoPagado ? Colors.green : Colors.orange,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   prestamo.estadoTexto.toUpperCase(),
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const Divider(height: 24),
+                          const Divider(height: 16),
                           _buildReciboInfoRow('Cliente', prestamo.nombreCliente ?? 'N/A', Icons.person),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           _buildReciboInfoRow(
                             'Fecha de Emisión',
                             '${fechaEmision.day.toString().padLeft(2, '0')}/${fechaEmision.month.toString().padLeft(2, '0')}/${fechaEmision.year}',
@@ -218,26 +219,26 @@ class LoanActionButtons extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
                     
                     // Detalles financieros
                     const Text(
                       'DETALLES FINANCIEROS',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey,
                         letterSpacing: 1,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _buildMontoRow('Monto Prestado', prestamo.monto, false),
                     _buildMontoRow('Interés', prestamo.interes, false),
-                    const Divider(height: 24),
+                    const Divider(height: 16),
                     _buildMontoRow('Total a Pagar', prestamo.totalAPagar, true, color: Colors.blue),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _buildMontoRow('Abonos Realizados', prestamo.abonos, false, color: Colors.green),
-                    const Divider(height: 24, thickness: 2),
+                    const Divider(height: 16, thickness: 2),
                     _buildMontoRow(
                       'Saldo Pendiente',
                       prestamo.saldoPendiente,
@@ -245,14 +246,14 @@ class LoanActionButtons extends StatelessWidget {
                       color: prestamo.saldoPendiente > 0 ? Colors.red : Colors.green,
                       isLarge: true,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Fechas importantes
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         children: [
@@ -262,13 +263,13 @@ class LoanActionButtons extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Fecha Inicio',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  style: TextStyle(fontSize: 9, color: Colors.grey),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Text(
                                   '${prestamo.fechaInicio.day}/${prestamo.fechaInicio.month}/${prestamo.fechaInicio.year}',
                                   style: const TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -277,7 +278,7 @@ class LoanActionButtons extends StatelessWidget {
                           ),
                           Container(
                             width: 1,
-                            height: 30,
+                            height: 24,
                             color: Colors.grey[300],
                           ),
                           Expanded(
@@ -286,13 +287,13 @@ class LoanActionButtons extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Fecha Vencimiento',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  style: TextStyle(fontSize: 9, color: Colors.grey),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Text(
                                   '${prestamo.fechaPago.day}/${prestamo.fechaPago.month}/${prestamo.fechaPago.year}',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: prestamo.estaVencido ? Colors.red : Colors.black,
                                   ),
@@ -303,15 +304,15 @@ class LoanActionButtons extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Pie de página
                     Center(
                       child: Column(
                         children: [
                           Container(
-                            width: 60,
-                            height: 3,
+                            width: 40,
+                            height: 2,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
@@ -319,19 +320,19 @@ class LoanActionButtons extends StatelessWidget {
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Text(
                             'Documento generado el ${fechaEmision.day}/${fechaEmision.month}/${fechaEmision.year}',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 8,
                               color: Colors.grey[600],
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             'TPay - Sistema de Gestión de Préstamos',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 8,
                               color: Colors.grey[500],
                               fontStyle: FontStyle.italic,
                             ),
@@ -346,7 +347,7 @@ class LoanActionButtons extends StatelessWidget {
             
             // Botones (NO incluidos en el screenshot)
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
@@ -356,10 +357,11 @@ class LoanActionButtons extends StatelessWidget {
                 children: [
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Cerrar'),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Cerrar', style: TextStyle(fontSize: 13)),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.grey[700],
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
                   ),
                   ElevatedButton.icon(
@@ -414,18 +416,19 @@ class LoanActionButtons extends StatelessWidget {
                         }
                       }
                     },
-                    icon: const Icon(Icons.download),
-                    label: const Text('Guardar Imagen'),
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Descargar', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00BCD4),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -434,12 +437,12 @@ class LoanActionButtons extends StatelessWidget {
   Widget _buildReciboInfoRow(String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 8),
+        Icon(icon, size: 14, color: Colors.grey[600]),
+        const SizedBox(width: 6),
         Text(
           '$label: ',
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 11,
             color: Colors.grey,
           ),
         ),
@@ -447,7 +450,7 @@ class LoanActionButtons extends StatelessWidget {
           child: Text(
             value,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -458,14 +461,14 @@ class LoanActionButtons extends StatelessWidget {
 
   Widget _buildMontoRow(String label, double monto, bool isBold, {Color? color, bool isLarge = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: isLarge ? 16 : 14,
+              fontSize: isLarge ? 14 : 12,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
               color: color ?? Colors.black87,
             ),
@@ -473,7 +476,7 @@ class LoanActionButtons extends StatelessWidget {
           Text(
             '\$${monto.toStringAsFixed(2)}',
             style: TextStyle(
-              fontSize: isLarge ? 20 : 16,
+              fontSize: isLarge ? 16 : 13,
               fontWeight: FontWeight.bold,
               color: color ?? Colors.black,
             ),

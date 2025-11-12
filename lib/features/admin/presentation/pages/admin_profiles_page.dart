@@ -717,199 +717,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
     }
   }
 
-  Future<void> _mostrarDialogoDeuda(Map<String, dynamic> perfil) async {
-    // Primero necesito obtener el id del cliente desde la tabla clientes
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    try {
-      // Buscar el cliente por usuario_id
-      final clienteResponse = await _supabase
-          .from('clientes')
-          .select('id')
-          .eq('usuario_id', perfil['id'])
-          .maybeSingle();
-
-      if (clienteResponse == null) {
-        if (mounted) Navigator.pop(context);
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              icon: const Icon(Icons.error, color: Colors.orange, size: 60),
-              title: const Text('Sin Información'),
-              content: const Text('Este cliente no tiene préstamos registrados.'),
-              actions: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Aceptar'),
-                ),
-              ],
-            ),
-          );
-        }
-        return;
-      }
-
-      final clienteId = clienteResponse['id'] as int;
-
-      // Obtener deuda total
-      final deudaResponse = await _supabase
-          .from('movimientos')
-          .select('saldo_pendiente')
-          .eq('id_cliente', clienteId)
-          .eq('estado_pagado', false)
-          .eq('eliminado', false);
-
-      double deudaTotal = 0;
-      for (var mov in deudaResponse) {
-        deudaTotal += (mov['saldo_pendiente'] as num?)?.toDouble() ?? 0;
-      }
-
-      if (mounted) Navigator.pop(context); // Cerrar loading
-
-      // Mostrar diálogo con la deuda
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Deuda Total',
-                    style: TextStyle(fontSize: 20),
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Divider(),
-                const SizedBox(height: 16),
-                Text(
-                  perfil['nombre_completo'] ?? 'Sin nombre',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Deuda Actual',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '\$${deudaTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (deudaTotal == 0)
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Sin deudas pendientes',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.warning, color: Colors.orange, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Préstamos activos',
-                        style: TextStyle(
-                          color: Colors.orange[700],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00BCD4),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Cerrar'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al obtener deuda: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1091,9 +898,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
                                       case 'ver':
                                         _mostrarDialogoVerPerfil(perfil);
                                         break;
-                                      case 'deuda':
-                                        _mostrarDialogoDeuda(perfil);
-                                        break;
                                       case 'baja':
                                         _confirmarDarDeBaja(perfil);
                                         break;
@@ -1105,7 +909,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
                                   itemBuilder: (context) {
                                     final currentUserId = _supabase.auth.currentUser?.id;
                                     final isCurrentUser = perfil['id'] == currentUserId;
-                                    final esCliente = rol.toLowerCase() == 'cliente';
                                     
                                     return [
                                       const PopupMenuItem(
@@ -1118,17 +921,6 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
                                           ],
                                         ),
                                       ),
-                                      if (esCliente && activo)
-                                        const PopupMenuItem(
-                                          value: 'deuda',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.account_balance_wallet, size: 20, color: Colors.green),
-                                              SizedBox(width: 8),
-                                              Text('Visualizar Deuda'),
-                                            ],
-                                          ),
-                                        ),
                                       if (activo && !isCurrentUser)
                                         const PopupMenuItem(
                                           value: 'baja',
