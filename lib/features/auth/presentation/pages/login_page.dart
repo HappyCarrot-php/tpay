@@ -201,8 +201,10 @@ class _LoginPageState extends State<LoginPage> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  obscuringCharacter: '●',
                   enableSuggestions: false,
                   autocorrect: false,
+                  keyboardType: TextInputType.visiblePassword,
                   enabled: !_isLoading,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',

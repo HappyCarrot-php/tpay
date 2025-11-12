@@ -80,6 +80,8 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
       appBar: AppBar(
         title: const Text('Mi Perfil'),
         backgroundColor: const Color(0xFF00BCD4),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -265,6 +267,7 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                   Navigator.pop(context); // Cerrar el diálogo del formulario
                   
                   bool operacionExitosa = false;
+                  bool operacionTerminada = false;
                   String? mensajeError;
                   
                   showDialog(
@@ -281,78 +284,83 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
                     ),
                   );
 
-                  try {
-                    // Obtener email del usuario actual
-                    final email = _supabase.auth.currentUser?.email;
-                    if (email == null) {
-                      throw Exception('No se pudo obtener el email del usuario');
-                    }
+                  // Ejecutar el cambio de contraseña en un Future separado
+                  Future<void>(() async {
+                    try {
+                      // Obtener email del usuario actual
+                      final email = _supabase.auth.currentUser?.email;
+                      if (email == null) {
+                        throw Exception('No se pudo obtener el email del usuario');
+                      }
 
-                    // Verificar contraseña actual haciendo login temporal
-                    final response = await _supabase.auth.signInWithPassword(
-                      email: email,
-                      password: currentPasswordController.text,
-                    );
+                      // Verificar contraseña actual haciendo login temporal
+                      final response = await _supabase.auth.signInWithPassword(
+                        email: email,
+                        password: currentPasswordController.text,
+                      );
 
-                    if (response.user == null) {
-                      throw Exception('Contraseña actual incorrecta');
-                    }
+                      if (response.user == null) {
+                        throw Exception('Contraseña actual incorrecta');
+                      }
 
-                    // Si llegamos aquí, la contraseña actual es correcta
-                    // Ahora cambiamos la contraseña
-                    final updateResponse = await _supabase.auth.updateUser(
-                      UserAttributes(password: newPasswordController.text),
-                    );
+                      // Si llegamos aquí, la contraseña actual es correcta
+                      // Ahora cambiamos la contraseña
+                      final updateResponse = await _supabase.auth.updateUser(
+                        UserAttributes(password: newPasswordController.text),
+                      );
 
-                    if (updateResponse.user != null) {
-                      operacionExitosa = true;
-                    } else {
-                      throw Exception('No se pudo actualizar la contraseña');
+                      if (updateResponse.user != null) {
+                        operacionExitosa = true;
+                      } else {
+                        throw Exception('No se pudo actualizar la contraseña');
+                      }
+                    } catch (e) {
+                      operacionExitosa = false;
+                      
+                      if (e.toString().contains('Invalid login') || 
+                          e.toString().contains('Invalid') ||
+                          e.toString().contains('incorrecta')) {
+                        mensajeError = '❌ Contraseña actual incorrecta';
+                      } else if (e.toString().contains('Network')) {
+                        mensajeError = '❌ Error de conexión';
+                      } else {
+                        mensajeError = '❌ Error al cambiar contraseña';
+                      }
+                    } finally {
+                      operacionTerminada = true;
                     }
-                  } catch (e) {
-                    operacionExitosa = false;
-                    
-                    if (e.toString().contains('Invalid login') || 
-                        e.toString().contains('Invalid') ||
-                        e.toString().contains('incorrecta')) {
-                      mensajeError = '❌ Contraseña actual incorrecta';
-                    } else if (e.toString().contains('Network')) {
-                      mensajeError = '❌ Error de conexión';
-                    } else {
-                      mensajeError = '❌ Error al cambiar contraseña';
-                    }
-                  }
+                  });
                   
-                  // Esperar hasta 10 segundos (5 intentos de 2 segundos) para mostrar resultado
-                  for (int i = 0; i < 5; i++) {
-                    await Future.delayed(const Duration(seconds: 2));
-                    if (!dialogContext.mounted) break;
-                    
-                    if (operacionExitosa || mensajeError != null) {
-                      break;
-                    }
+                  // Polling cada segundo hasta que termine la operación
+                  while (!operacionTerminada && dialogContext.mounted) {
+                    await Future.delayed(const Duration(seconds: 1));
                   }
                   
                   // Cerrar loading y mostrar resultado
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop(); // Cerrar loading
                     
-                    if (operacionExitosa) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Contraseña actualizada correctamente'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(
-                          content: Text(mensajeError ?? '❌ Error al cambiar contraseña'),
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
+                    // Esperar un momento antes de mostrar el mensaje
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    
+                    if (dialogContext.mounted) {
+                      if (operacionExitosa) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('✅ Contraseña actualizada correctamente'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(
+                            content: Text(mensajeError ?? '❌ Error al cambiar contraseña'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
                     }
                   }
                 }

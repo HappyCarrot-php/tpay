@@ -53,6 +53,16 @@ class _AdminHomePageState extends State<AdminHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_titles[_selectedIndex]),
+        actions: _selectedIndex == 1 ? [
+          // Botón para mostrar filtros cuando está en Préstamos
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filtros',
+            onPressed: () {
+              // Los filtros están visibles en la página
+            },
+          ),
+        ] : null,
       ),
       drawer: const AdminDrawer(),
       body: _pages[_selectedIndex],

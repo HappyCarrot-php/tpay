@@ -255,29 +255,30 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Barra de búsqueda y filtros
+                // Barra de filtros compacta
                 Container(
-                  color: Colors.grey[100],
-                  padding: const EdgeInsets.all(16),
+                  color: const Color(0xFF00BCD4).withOpacity(0.1),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Column(
                     children: [
-                      // Dropdown de tipo de búsqueda
+                      // Primera fila: 3 dropdowns en línea
                       Row(
                         children: [
                           Expanded(
-                            flex: 2,
                             child: DropdownButtonFormField<String>(
                               value: _tipoBusqueda,
                               decoration: const InputDecoration(
-                                labelText: 'Buscar por',
+                                labelText: 'Buscar',
                                 border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                isDense: true,
                               ),
+                              style: const TextStyle(fontSize: 13),
                               items: const [
-                                DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                                DropdownMenuItem(value: 'id_prestamo', child: Text('ID Préstamo')),
-                                DropdownMenuItem(value: 'id_cliente', child: Text('ID Cliente')),
-                                DropdownMenuItem(value: 'nombre_cliente', child: Text('Nombre Cliente')),
+                                DropdownMenuItem(value: 'todos', child: Text('Todos', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'id_prestamo', child: Text('ID Préstamo', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'id_cliente', child: Text('ID Cliente', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'nombre_cliente', child: Text('Nombre', style: TextStyle(fontSize: 13))),
                               ],
                               onChanged: (value) {
                                 setState(() {
@@ -289,69 +290,74 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Expanded(
-                            flex: 2,
                             child: DropdownButtonFormField<String>(
                               value: _filtroEstado,
                               decoration: const InputDecoration(
                                 labelText: 'Estado',
                                 border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                isDense: true,
                               ),
+                              style: const TextStyle(fontSize: 13),
                               items: const [
-                                DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                                DropdownMenuItem(value: 'pagado', child: Text('Pagados')),
-                                DropdownMenuItem(value: 'no_pagado', child: Text('No Pagados')),
+                                DropdownMenuItem(value: 'todos', child: Text('Todos', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'pagado', child: Text('Pagados', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'no_pagado', child: Text('No Pagados', style: TextStyle(fontSize: 13))),
                               ],
                               onChanged: (value) {
                                 _cambiarFiltro(value!);
                               },
                             ),
                           ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _ordenamiento,
+                              decoration: const InputDecoration(
+                                labelText: 'Ordenar',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                isDense: true,
+                              ),
+                              style: const TextStyle(fontSize: 13),
+                              items: const [
+                                DropdownMenuItem(value: 'id_desc', child: Text('+ Recientes', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'id_asc', child: Text('+ Antiguos', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'monto_desc', child: Text('💰 Mayor', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'monto_asc', child: Text('💰 Menor', style: TextStyle(fontSize: 13))),
+                                DropdownMenuItem(value: 'fecha_proxima', child: Text('📅 Próximos', style: TextStyle(fontSize: 13))),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _ordenamiento = value!;
+                                  _paginaActual = 0;
+                                  _aplicarFiltroYPaginacion();
+                                });
+                              },
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      // Dropdown de ordenamiento
-                      DropdownButtonFormField<String>(
-                        value: _ordenamiento,
-                        decoration: const InputDecoration(
-                          labelText: 'Ordenar por',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          prefixIcon: Icon(Icons.sort),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'id_desc', child: Text('ID Descendente (Más recientes)')),
-                          DropdownMenuItem(value: 'id_asc', child: Text('ID Ascendente (Más antiguos)')),
-                          DropdownMenuItem(value: 'monto_desc', child: Text('Monto Mayor a Menor')),
-                          DropdownMenuItem(value: 'monto_asc', child: Text('Monto Menor a Mayor')),
-                          DropdownMenuItem(value: 'fecha_proxima', child: Text('Fechas Próximas (sin pagados)')),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _ordenamiento = value!;
-                            _paginaActual = 0;
-                            _aplicarFiltroYPaginacion();
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      // Campo de búsqueda
-                      if (_tipoBusqueda != 'todos')
+                      // Campo de búsqueda (solo si es necesario)
+                      if (_tipoBusqueda != 'todos') ...[
+                        const SizedBox(height: 8),
                         TextField(
                           controller: _busquedaController,
                           decoration: InputDecoration(
                             labelText: _tipoBusqueda == 'id_prestamo'
-                                ? 'Ingrese ID del préstamo'
+                                ? 'ID del préstamo'
                                 : _tipoBusqueda == 'id_cliente'
-                                    ? 'Ingrese ID del cliente'
-                                    : 'Ingrese nombre del cliente',
+                                    ? 'ID del cliente'
+                                    : 'Nombre del cliente',
                             border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.search),
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            isDense: true,
                             suffixIcon: _busquedaController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear),
+                                    icon: const Icon(Icons.clear, size: 20),
                                     onPressed: () {
                                       setState(() {
                                         _busquedaController.clear();
@@ -362,6 +368,7 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                                   )
                                 : null,
                           ),
+                          style: const TextStyle(fontSize: 14),
                           keyboardType: _tipoBusqueda.contains('id')
                               ? TextInputType.number
                               : TextInputType.text,
@@ -372,6 +379,7 @@ class _AdminLoansListPageState extends State<AdminLoansListPage> {
                             });
                           },
                         ),
+                      ],
                     ],
                   ),
                 ),
