@@ -650,7 +650,7 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                               ),
                             ),
                             subtitle: Text(
-                              '${prestamo.nombreCliente ?? 'Cliente #${prestamo.idCliente}'} • Vence: ${_formatDate(prestamo.fechaPago)}',
+                              '${prestamo.nombreCliente ?? 'Cliente #${prestamo.idCliente}'} • ${_formatDate(prestamo.fechaPago)}',
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -804,7 +804,9 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                                       prestamo: prestamo,
                                       onActionComplete: () async {
                                         await _cargarPrestamos();
-                                        setState(() {}); // Force refresh
+                                        if (mounted) {
+                                          setState(() {}); // Force refresh
+                                        }
                                       },
                                     ),
                                   ],

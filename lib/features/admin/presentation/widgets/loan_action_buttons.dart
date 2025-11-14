@@ -507,7 +507,9 @@ class LoanActionButtons extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              final dialogContext = context;
+              Navigator.pop(dialogContext);
+              
               try {
                 await MovimientoRepository().marcarComoPagado(prestamo.id);
                 
@@ -521,8 +523,8 @@ class LoanActionButtons extends StatelessWidget {
                   isAdmin: true,
                 );
                 
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('Préstamo marcado como pagado'),
                       backgroundColor: Colors.green,
@@ -531,8 +533,8 @@ class LoanActionButtons extends StatelessWidget {
                   onActionComplete();
                 }
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text('Error: $e'),
                       backgroundColor: Colors.red,
@@ -632,8 +634,9 @@ class LoanActionButtons extends StatelessWidget {
                 final monto = double.parse(montoController.text);
                 final metodoPago = metodoPagoController.text.trim();
                 final notas = notasController.text.trim();
+                final dialogContext = context;
                 
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 
                 try {
                   await AbonoRepository().registrarAbono(
@@ -664,8 +667,8 @@ class LoanActionButtons extends StatelessWidget {
                     );
                   }
                   
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(
                         content: Text('Abono de \$${monto.toStringAsFixed(2)} registrado'),
                         backgroundColor: Colors.green,
@@ -674,8 +677,8 @@ class LoanActionButtons extends StatelessWidget {
                     onActionComplete();
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(
                         content: Text('Error: $e'),
                         backgroundColor: Colors.red,
