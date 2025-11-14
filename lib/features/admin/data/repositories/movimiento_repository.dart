@@ -171,14 +171,45 @@ class MovimientoRepository {
         if (userId != null) 'usuario_registro': userId,
       };
 
-      final response = await _supabase
-          .from(SupabaseConstants.movimientosTable)
-          .insert(data)
-          .select('''
-            *,
-            clientes!inner(nombre_completo)
-          ''')
-          .single();
+      dynamic response;
+      int intentos = 0;
+      const maxIntentos = 3;
+      
+      // Reintentar si hay error de duplicate key
+      while (intentos < maxIntentos) {
+        try {
+          response = await _supabase
+              .from(SupabaseConstants.movimientosTable)
+              .insert(data)
+              .select('''
+                *,
+                clientes!inner(nombre_completo)
+              ''')
+              .single();
+          break; // Éxito, salir del loop
+        } catch (e) {
+          intentos++;
+          final errorStr = e.toString().toLowerCase();
+          
+          // Verificar si es error de duplicate key
+          if (errorStr.contains('duplicate') || errorStr.contains('23505')) {
+            if (intentos >= maxIntentos) {
+              throw Exception(
+                'Error: La base de datos tiene un problema de sincronización. '
+                'Por favor contacta al administrador para que ejecute: '
+                'SELECT setval(pg_get_serial_sequence(\'movimientos\',\'id\'), '
+                '(SELECT COALESCE(MAX(id), 1) FROM movimientos), true);'
+              );
+            }
+            // Esperar un poco antes de reintentar
+            await Future.delayed(Duration(milliseconds: 100 * intentos));
+            continue;
+          } else {
+            // Si no es error de duplicate key, lanzar inmediatamente
+            rethrow;
+          }
+        }
+      }
 
       final nombreCliente = response['clientes'] is Map
           ? response['clientes']['nombre_completo']
@@ -188,7 +219,23 @@ class MovimientoRepository {
         ...response,
         'nombre_cliente': nombreCliente,
       });
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Exception(
+          'Error de sincronización en la base de datos. '
+          'El préstamo no pudo ser registrado. '
+          'Contacta al administrador del sistema.'
+        );
+      }
+      throw Exception('Error de base de datos: ${e.message}');
     } catch (e) {
+      final errorStr = e.toString();
+      if (errorStr.contains('duplicate') || errorStr.contains('23505')) {
+        throw Exception(
+          'Error: No se puede registrar el préstamo por un problema de sincronización. '
+          'Contacta al administrador.'
+        );
+      }
       throw Exception('Error al crear préstamo: $e');
     }
   }

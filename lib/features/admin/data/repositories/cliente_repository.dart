@@ -128,14 +128,57 @@ class ClienteRepository {
         data['usuario_id'] = userId;
       }
 
-      final response = await _supabase
-          .from(SupabaseConstants.clientesTable)
-          .insert(data)
-          .select()
-          .single();
+      dynamic response;
+      int intentos = 0;
+      const maxIntentos = 3;
+      
+      while (intentos < maxIntentos) {
+        try {
+          response = await _supabase
+              .from(SupabaseConstants.clientesTable)
+              .insert(data)
+              .select()
+              .single();
+          break;
+        } catch (e) {
+          intentos++;
+          final errorStr = e.toString().toLowerCase();
+          
+          if (errorStr.contains('duplicate') || errorStr.contains('23505')) {
+            if (intentos >= maxIntentos) {
+              throw Exception(
+                'Error: La base de datos tiene un problema de sincronización. '
+                'Por favor contacta al administrador para que ejecute: '
+                'SELECT setval(pg_get_serial_sequence(\'clientes\',\'id\'), '
+                '(SELECT COALESCE(MAX(id), 1) FROM clientes), true);'
+              );
+            }
+            await Future.delayed(Duration(milliseconds: 100 * intentos));
+            continue;
+          } else {
+            rethrow;
+          }
+        }
+      }
 
       return ClienteModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Exception(
+          'Error de sincronización en la base de datos. '
+          'El cliente no pudo ser registrado. '
+          'Contacta al administrador del sistema.'
+        );
+      }
+      throw Exception('Error de base de datos: ${e.message}');
     } catch (e) {
+      final errorStr = e.toString();
+      if (errorStr.contains('duplicate') || errorStr.contains('23505')) {
+        throw Exception(
+          'Error: No se puede registrar el cliente por un problema de sincronización. '
+          'Contacta al administrador.'
+        );
+      }
       throw Exception('Error al crear cliente: $e');
     }
   }
@@ -161,14 +204,57 @@ class ClienteRepository {
         'activo': true,
       };
 
-      final response = await _supabase
-          .from(SupabaseConstants.clientesTable)
-          .insert(data)
-          .select()
-          .single();
+      dynamic response;
+      int intentos = 0;
+      const maxIntentos = 3;
+      
+      while (intentos < maxIntentos) {
+        try {
+          response = await _supabase
+              .from(SupabaseConstants.clientesTable)
+              .insert(data)
+              .select()
+              .single();
+          break;
+        } catch (e) {
+          intentos++;
+          final errorStr = e.toString().toLowerCase();
+          
+          if (errorStr.contains('duplicate') || errorStr.contains('23505')) {
+            if (intentos >= maxIntentos) {
+              throw Exception(
+                'Error: La base de datos tiene un problema de sincronización. '
+                'Por favor contacta al administrador para que ejecute: '
+                'SELECT setval(pg_get_serial_sequence(\'clientes\',\'id\'), '
+                '(SELECT COALESCE(MAX(id), 1) FROM clientes), true);'
+              );
+            }
+            await Future.delayed(Duration(milliseconds: 100 * intentos));
+            continue;
+          } else {
+            rethrow;
+          }
+        }
+      }
 
       return ClienteModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Exception(
+          'Error de sincronización en la base de datos. '
+          'El cliente no pudo ser registrado. '
+          'Contacta al administrador del sistema.'
+        );
+      }
+      throw Exception('Error de base de datos: ${e.message}');
     } catch (e) {
+      final errorStr = e.toString();
+      if (errorStr.contains('duplicate') || errorStr.contains('23505')) {
+        throw Exception(
+          'Error: No se puede registrar el cliente por un problema de sincronización. '
+          'Contacta al administrador.'
+        );
+      }
       throw Exception('Error al crear cliente simple: $e');
     }
   }

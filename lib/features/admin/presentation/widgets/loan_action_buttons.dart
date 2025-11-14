@@ -1008,21 +1008,6 @@ class LoanActionButtons extends StatelessWidget {
                 bool operacionExitosa = false;
                 String? mensajeError;
                 
-                // Mostrar indicador de carga
-                showDialog(
-                  context: dialogContext,
-                  barrierDismissible: false,
-                  builder: (loadingContext) => const AlertDialog(
-                    content: Row(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(width: 20),
-                        Text('Eliminando préstamo...'),
-                      ],
-                    ),
-                  ),
-                );
-                
                 try {
                   // Verificar contraseña (re-autenticar)
                   final supabase = SupabaseService().client;
@@ -1056,20 +1041,11 @@ class LoanActionButtons extends StatelessWidget {
                       : '❌ Error: $e';
                 }
                 
-                // Esperar hasta 10 segundos (5 intentos de 2 segundos) para confirmar operación
-                for (int i = 0; i < 5; i++) {
-                  await Future.delayed(const Duration(seconds: 2));
-                  if (!dialogContext.mounted) break;
-                  
-                  if (operacionExitosa || mensajeError != null) {
-                    break;
-                  }
-                }
+                // Pequeño delay antes de refrescar
+                await Future.delayed(const Duration(milliseconds: 300));
                 
-                // Cerrar loading y mostrar resultado
+                // Mostrar resultado
                 if (dialogContext.mounted) {
-                  Navigator.of(dialogContext).pop(); // Cerrar loading
-                  
                   if (operacionExitosa) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(

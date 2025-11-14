@@ -673,21 +673,6 @@ class _EditClientPageState extends State<EditClientPage> {
                 
                 Navigator.of(dialogContext).pop(); // Cerrar diálogo del formulario
                 
-                // Mostrar indicador de carga
-                showDialog(
-                  context: dialogContext,
-                  barrierDismissible: false,
-                  builder: (loadingContext) => const AlertDialog(
-                    content: Row(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(width: 20),
-                        Text('Desactivando cliente...'),
-                      ],
-                    ),
-                  ),
-                );
-                
                 try {
                   // Verificar contraseña
                   final supabase = Supabase.instance.client;
@@ -706,8 +691,10 @@ class _EditClientPageState extends State<EditClientPage> {
                   // Desactivar cliente
                   await _clienteRepo.desactivarCliente(widget.cliente.id);
                   
+                  // Pequeño delay antes de refrescar
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  
                   if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop(); // Cerrar loading
                     Navigator.of(dialogContext).pop(true); // Cerrar página de edición
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
@@ -719,7 +706,6 @@ class _EditClientPageState extends State<EditClientPage> {
                   }
                 } catch (e) {
                   if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop(); // Cerrar loading
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(
                         content: Text(e.toString().contains('Invalid')

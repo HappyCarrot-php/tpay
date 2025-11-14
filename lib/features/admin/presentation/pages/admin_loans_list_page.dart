@@ -803,6 +803,7 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                                     LoanActionButtons(
                                       prestamo: prestamo,
                                       onActionComplete: () async {
+                                        await Future.delayed(const Duration(milliseconds: 300));
                                         await _cargarPrestamos();
                                         if (mounted) {
                                           setState(() {}); // Force refresh

@@ -637,20 +637,157 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
         password: password,
       );
 
-      // Si llegamos aquí, la contraseña es correcta
-      await _supabase.from('perfiles').update({
-        'activo': false,
-      }).eq('id', perfil['id']);
+      // Si llegamos aquí, la contraseña es correcta - eliminar permanentemente
+      await _supabase.from('perfiles').delete().eq('id', perfil['id']);
+
+      // Pequeño delay antes de refrescar
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ Perfil dado de baja'),
+          content: Text('✅ Perfil eliminado permanentemente'),
           backgroundColor: Colors.orange,
         ),
       );
 
-      _cargarPerfiles();
+      await _cargarPerfiles();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().contains('Invalid')
+                ? '❌ Contraseña incorrecta'
+                : 'Error: $e',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmarEliminarPerfil(Map<String, dynamic> perfil) async {
+    // Verificar que no sea administrador
+    if (perfil['rol'] == 'Administrador') {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('❌ Operación No Permitida'),
+          content: const Text('No se puede eliminar un perfil de Administrador.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Si intenta eliminarse a sí mismo
+    final currentUserId = _supabase.auth.currentUser?.id;
+    if (perfil['id'] == currentUserId) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('❌ Operación No Permitida'),
+          content: const Text('No puedes eliminar tu propio perfil.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Pedir contraseña para confirmar eliminación
+    final passwordController = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('⚠️ Eliminar Perfil Permanentemente'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Estás seguro de eliminar permanentemente a "${perfil['nombre_completo']}"?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Esta acción es IRREVERSIBLE y eliminará todos los datos asociados al perfil.',
+              style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Por seguridad, ingresa tu contraseña para confirmar:',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Contraseña',
+                hintText: 'Ingresa tu contraseña',
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () => Navigator.pop(context, passwordController.text),
+            child: const Text('Eliminar Permanentemente'),
+          ),
+        ],
+      ),
+    );
+
+    if (password == null || password.isEmpty) return;
+
+    // Reautenticar al usuario
+    try {
+      final userEmail = _supabase.auth.currentUser?.email;
+      if (userEmail == null) throw Exception('No se pudo obtener el email del usuario');
+
+      // Intentar reautenticar
+      await _supabase.auth.signInWithPassword(
+        email: userEmail,
+        password: password,
+      );
+
+      // Si llegamos aquí, la contraseña es correcta - eliminar de Supabase Auth también
+      await _supabase.from('perfiles').delete().eq('id', perfil['id']);
+
+      // Pequeño delay antes de refrescar
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Perfil eliminado permanentemente'),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      await _cargarPerfiles();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -901,6 +1038,9 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
                                       case 'baja':
                                         _confirmarDarDeBaja(perfil);
                                         break;
+                                      case 'eliminar':
+                                        _confirmarEliminarPerfil(perfil);
+                                        break;
                                       case 'reactivar':
                                         _confirmarReactivar(perfil);
                                         break;
@@ -930,6 +1070,18 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
                                                   size: 20, color: Colors.orange),
                                               SizedBox(width: 8),
                                               Text('Dar de Baja'),
+                                            ],
+                                          ),
+                                        ),
+                                      if (!isCurrentUser)
+                                        const PopupMenuItem(
+                                          value: 'eliminar',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_forever,
+                                                  size: 20, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Eliminar perfil'),
                                             ],
                                           ),
                                         ),
