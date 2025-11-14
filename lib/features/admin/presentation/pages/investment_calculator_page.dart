@@ -421,47 +421,40 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ],
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: StatefulBuilder(
-                      builder: (context, setChartState) {
-                        return PieChart(
-                          PieChartData(
-                            pieTouchData: PieTouchData(
-                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                setChartState(() {
-                                  if (!event.isInterestedForInteractions ||
-                                      pieTouchResponse == null ||
-                                      pieTouchResponse.touchedSection == null) {
-                                    touchedIndex = -1;
-                                    return;
-                                  }
-                                  touchedIndex = pieTouchResponse
-                                      .touchedSection!.touchedSectionIndex;
-                                });
-                              },
-                            ),
-                            sections: _buildCompactSections(capitalInicial, touchedIndex),
-                            centerSpaceRadius: 50,
-                            sectionsSpace: 2,
-                            borderData: FlBorderData(show: false),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 3,
-                    child: _buildCompactLeyenda(capitalInicial),
-                  ),
-                ],
+            Center(
+              child: SizedBox(
+                height: 220,
+                width: 220,
+                child: StatefulBuilder(
+                  builder: (context, setChartState) {
+                    return PieChart(
+                      PieChartData(
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            setChartState(() {
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                touchedIndex = -1;
+                                return;
+                              }
+                              touchedIndex = pieTouchResponse
+                                  .touchedSection!.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                        sections: _buildCompactSections(capitalInicial, touchedIndex),
+                        centerSpaceRadius: 50,
+                        sectionsSpace: 2,
+                        borderData: FlBorderData(show: false),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
+            const SizedBox(height: 20),
+            _buildCompactLeyenda(capitalInicial),
           ],
         ),
       ),

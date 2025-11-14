@@ -739,7 +739,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const Color(0xFF1976D2),
               ),
             ),
-            const SizedBox(width: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(
               child: _buildIndicadorCard(
                 'Préstamos/Mes',
@@ -748,11 +752,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const Color(0xFFD32F2F),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
+            const SizedBox(width: 12),
             Expanded(
               child: _buildIndicadorCard(
                 'Promedio Abonos',
@@ -761,7 +761,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const Color(0xFF388E3C),
               ),
             ),
-            const SizedBox(width: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(
               child: _buildIndicadorCard(
                 'Interés Promedio',
@@ -794,15 +798,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Card(
       elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 28),
+            Icon(icon, color: color, size: 26),
             const SizedBox(height: 8),
             Text(
               value,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -812,7 +816,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 9,
                 color: Colors.grey[600],
               ),
             ),
