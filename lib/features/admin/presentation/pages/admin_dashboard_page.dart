@@ -794,25 +794,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Card(
       elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 36),
-            const SizedBox(height: 10),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
             Text(
               value,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 color: Colors.grey[600],
               ),
             ),

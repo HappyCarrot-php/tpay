@@ -395,93 +395,80 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     int touchedIndex = -1;
     
     return Card(
-      elevation: 6,
+      elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Colors.blue.shade50.withOpacity(0.3),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.donut_large,
+                  color: Colors.blue.shade700,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Composición',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 200,
+              child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.pie_chart_rounded,
-                      color: Colors.blue.shade700,
-                      size: 24,
+                  Expanded(
+                    flex: 2,
+                    child: StatefulBuilder(
+                      builder: (context, setChartState) {
+                        return PieChart(
+                          PieChartData(
+                            pieTouchData: PieTouchData(
+                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                setChartState(() {
+                                  if (!event.isInterestedForInteractions ||
+                                      pieTouchResponse == null ||
+                                      pieTouchResponse.touchedSection == null) {
+                                    touchedIndex = -1;
+                                    return;
+                                  }
+                                  touchedIndex = pieTouchResponse
+                                      .touchedSection!.touchedSectionIndex;
+                                });
+                              },
+                            ),
+                            sections: _buildCompactSections(capitalInicial, touchedIndex),
+                            centerSpaceRadius: 50,
+                            sectionsSpace: 2,
+                            borderData: FlBorderData(show: false),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Composición del Total Final',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 3,
+                    child: _buildCompactLeyenda(capitalInicial),
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                height: 280,
-                child: StatefulBuilder(
-                  builder: (context, setChartState) {
-                    return PieChart(
-                      PieChartData(
-                        pieTouchData: PieTouchData(
-                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                            setChartState(() {
-                              if (!event.isInterestedForInteractions ||
-                                  pieTouchResponse == null ||
-                                  pieTouchResponse.touchedSection == null) {
-                                touchedIndex = -1;
-                                return;
-                              }
-                              touchedIndex = pieTouchResponse
-                                  .touchedSection!.touchedSectionIndex;
-                            });
-                          },
-                        ),
-                        sections: _buildModernSections(capitalInicial, touchedIndex),
-                        centerSpaceRadius: 60,
-                        sectionsSpace: 3,
-                        borderData: FlBorderData(show: false),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Leyenda mejorada
-              _buildModernLeyenda(capitalInicial),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  List<PieChartSectionData> _buildModernSections(double capitalInicial, int touchedIndex) {
+  List<PieChartSectionData> _buildCompactSections(double capitalInicial, int touchedIndex) {
     final List<PieChartSectionData> sections = [];
     int index = 0;
 
@@ -490,45 +477,14 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     sections.add(
       PieChartSectionData(
         value: capitalInicial,
-        title: isCapitalTouched 
-            ? _formatCurrency(capitalInicial)
-            : '${(capitalInicial / _totalFinal * 100).toStringAsFixed(1)}%',
+        title: '${(capitalInicial / _totalFinal * 100).toStringAsFixed(0)}%',
         color: const Color(0xFF2196F3),
-        radius: isCapitalTouched ? 130 : 110,
-        titleStyle: TextStyle(
-          fontSize: isCapitalTouched ? 14 : 13,
+        radius: isCapitalTouched ? 65 : 55,
+        titleStyle: const TextStyle(
+          fontSize: 12,
           fontWeight: FontWeight.bold,
           color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.black.withOpacity(0.3),
-              offset: const Offset(1, 1),
-              blurRadius: 2,
-            ),
-          ],
         ),
-        badgeWidget: isCapitalTouched 
-            ? Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.account_balance_wallet,
-                  color: Color(0xFF2196F3),
-                  size: 24,
-                ),
-              )
-            : null,
-        badgePositionPercentageOffset: 0.8,
       ),
     );
     index++;
@@ -538,45 +494,14 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     sections.add(
       PieChartSectionData(
         value: _rendimientoTotal,
-        title: isRendimientoTouched
-            ? _formatCurrency(_rendimientoTotal)
-            : '${(_rendimientoTotal / _totalFinal * 100).toStringAsFixed(1)}%',
+        title: '${(_rendimientoTotal / _totalFinal * 100).toStringAsFixed(0)}%',
         color: const Color(0xFF4CAF50),
-        radius: isRendimientoTouched ? 130 : 110,
-        titleStyle: TextStyle(
-          fontSize: isRendimientoTouched ? 14 : 13,
+        radius: isRendimientoTouched ? 65 : 55,
+        titleStyle: const TextStyle(
+          fontSize: 12,
           fontWeight: FontWeight.bold,
           color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.black.withOpacity(0.3),
-              offset: const Offset(1, 1),
-              blurRadius: 2,
-            ),
-          ],
         ),
-        badgeWidget: isRendimientoTouched
-            ? Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.trending_up,
-                  color: Color(0xFF4CAF50),
-                  size: 24,
-                ),
-              )
-            : null,
-        badgePositionPercentageOffset: 0.8,
       ),
     );
     index++;
@@ -587,45 +512,14 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
       sections.add(
         PieChartSectionData(
           value: _aportacionesTotal,
-          title: isAportacionesTouched
-              ? _formatCurrency(_aportacionesTotal)
-              : '${(_aportacionesTotal / _totalFinal * 100).toStringAsFixed(1)}%',
+          title: '${(_aportacionesTotal / _totalFinal * 100).toStringAsFixed(0)}%',
           color: const Color(0xFF9C27B0),
-          radius: isAportacionesTouched ? 130 : 110,
-          titleStyle: TextStyle(
-            fontSize: isAportacionesTouched ? 14 : 13,
+          radius: isAportacionesTouched ? 65 : 55,
+          titleStyle: const TextStyle(
+            fontSize: 12,
             fontWeight: FontWeight.bold,
             color: Colors.white,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.3),
-                offset: const Offset(1, 1),
-                blurRadius: 2,
-              ),
-            ],
           ),
-          badgeWidget: isAportacionesTouched
-              ? Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.savings,
-                    color: Color(0xFF9C27B0),
-                    size: 24,
-                  ),
-                )
-              : null,
-          badgePositionPercentageOffset: 0.8,
         ),
       );
     }
@@ -633,101 +527,73 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     return sections;
   }
 
-  Widget _buildModernLeyenda(double capitalInicial) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          _buildModernLeyendaItem(
-            'Capital Inicial',
-            const Color(0xFF2196F3),
-            Icons.account_balance_wallet,
-            capitalInicial,
-            (capitalInicial / _totalFinal * 100),
-          ),
+  Widget _buildCompactLeyenda(double capitalInicial) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildCompactLeyendaItem(
+          'Capital',
+          const Color(0xFF2196F3),
+          capitalInicial,
+          (capitalInicial / _totalFinal * 100),
+        ),
+        const SizedBox(height: 12),
+        _buildCompactLeyendaItem(
+          'Rendimiento',
+          const Color(0xFF4CAF50),
+          _rendimientoTotal,
+          (_rendimientoTotal / _totalFinal * 100),
+        ),
+        if (_tieneAportaciones && _aportacionesTotal > 0) ...[
           const SizedBox(height: 12),
-          _buildModernLeyendaItem(
-            'Rendimiento',
-            const Color(0xFF4CAF50),
-            Icons.trending_up,
-            _rendimientoTotal,
-            (_rendimientoTotal / _totalFinal * 100),
+          _buildCompactLeyendaItem(
+            'Aportaciones',
+            const Color(0xFF9C27B0),
+            _aportacionesTotal,
+            (_aportacionesTotal / _totalFinal * 100),
           ),
-          if (_tieneAportaciones && _aportacionesTotal > 0) ...[
-            const SizedBox(height: 12),
-            _buildModernLeyendaItem(
-              'Aportaciones',
-              const Color(0xFF9C27B0),
-              Icons.savings,
-              _aportacionesTotal,
-              (_aportacionesTotal / _totalFinal * 100),
-            ),
-          ],
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildModernLeyendaItem(
+  Widget _buildCompactLeyendaItem(
     String label,
     Color color,
-    IconData icon,
     double amount,
     double percentage,
   ) {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: color,
+            shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: 20),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 14,
+                style: const TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
                 ),
               ),
-              const SizedBox(height: 2),
               Text(
                 _formatCurrency(amount),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            '${percentage.toStringAsFixed(1)}%',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
           ),
         ),
       ],
