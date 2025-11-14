@@ -681,24 +681,29 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Estado
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getEstadoColor(estado).withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        estado.toUpperCase(),
-                                        style: TextStyle(
-                                          color: _getEstadoColor(estado),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                    // Estado (movido a la derecha)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _getEstadoColor(estado).withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            estado.toUpperCase(),
+                                            style: TextStyle(
+                                              color: _getEstadoColor(estado),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                     const SizedBox(height: 16),
                                     const Divider(),

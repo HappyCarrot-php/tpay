@@ -392,212 +392,611 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
 
   Widget _buildGraficaCircular() {
     final double capitalInicial = double.parse(_montoController.text);
+    int touchedIndex = -1;
+    
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Colors.blue.shade50.withOpacity(0.3),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.pie_chart_rounded,
+                      color: Colors.blue.shade700,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Composición del Total Final',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                height: 280,
+                child: StatefulBuilder(
+                  builder: (context, setChartState) {
+                    return PieChart(
+                      PieChartData(
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            setChartState(() {
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                touchedIndex = -1;
+                                return;
+                              }
+                              touchedIndex = pieTouchResponse
+                                  .touchedSection!.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                        sections: _buildModernSections(capitalInicial, touchedIndex),
+                        centerSpaceRadius: 60,
+                        sectionsSpace: 3,
+                        borderData: FlBorderData(show: false),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Leyenda mejorada
+              _buildModernLeyenda(capitalInicial),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<PieChartSectionData> _buildModernSections(double capitalInicial, int touchedIndex) {
     final List<PieChartSectionData> sections = [];
+    int index = 0;
 
     // Capital inicial
+    final bool isCapitalTouched = index == touchedIndex;
     sections.add(
       PieChartSectionData(
         value: capitalInicial,
-        title: 'Capital\nInicial',
-        color: Colors.blue,
-        radius: 100,
-        titleStyle: const TextStyle(
-          fontSize: 12,
+        title: isCapitalTouched 
+            ? _formatCurrency(capitalInicial)
+            : '${(capitalInicial / _totalFinal * 100).toStringAsFixed(1)}%',
+        color: const Color(0xFF2196F3),
+        radius: isCapitalTouched ? 130 : 110,
+        titleStyle: TextStyle(
+          fontSize: isCapitalTouched ? 14 : 13,
           fontWeight: FontWeight.bold,
           color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black.withOpacity(0.3),
+              offset: const Offset(1, 1),
+              blurRadius: 2,
+            ),
+          ],
         ),
+        badgeWidget: isCapitalTouched 
+            ? Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet,
+                  color: Color(0xFF2196F3),
+                  size: 24,
+                ),
+              )
+            : null,
+        badgePositionPercentageOffset: 0.8,
       ),
     );
+    index++;
 
     // Rendimiento
+    final bool isRendimientoTouched = index == touchedIndex;
     sections.add(
       PieChartSectionData(
         value: _rendimientoTotal,
-        title: 'Rendi-\nmiento',
-        color: Colors.green,
-        radius: 100,
-        titleStyle: const TextStyle(
-          fontSize: 12,
+        title: isRendimientoTouched
+            ? _formatCurrency(_rendimientoTotal)
+            : '${(_rendimientoTotal / _totalFinal * 100).toStringAsFixed(1)}%',
+        color: const Color(0xFF4CAF50),
+        radius: isRendimientoTouched ? 130 : 110,
+        titleStyle: TextStyle(
+          fontSize: isRendimientoTouched ? 14 : 13,
           fontWeight: FontWeight.bold,
           color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black.withOpacity(0.3),
+              offset: const Offset(1, 1),
+              blurRadius: 2,
+            ),
+          ],
         ),
+        badgeWidget: isRendimientoTouched
+            ? Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.trending_up,
+                  color: Color(0xFF4CAF50),
+                  size: 24,
+                ),
+              )
+            : null,
+        badgePositionPercentageOffset: 0.8,
       ),
     );
+    index++;
 
     // Aportaciones (solo si son positivas)
     if (_tieneAportaciones && _aportacionesTotal > 0) {
+      final bool isAportacionesTouched = index == touchedIndex;
       sections.add(
         PieChartSectionData(
           value: _aportacionesTotal,
-          title: 'Aporta-\nciones',
-          color: Colors.purple,
-          radius: 100,
-          titleStyle: const TextStyle(
-            fontSize: 12,
+          title: isAportacionesTouched
+              ? _formatCurrency(_aportacionesTotal)
+              : '${(_aportacionesTotal / _totalFinal * 100).toStringAsFixed(1)}%',
+          color: const Color(0xFF9C27B0),
+          radius: isAportacionesTouched ? 130 : 110,
+          titleStyle: TextStyle(
+            fontSize: isAportacionesTouched ? 14 : 13,
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
           ),
+          badgeWidget: isAportacionesTouched
+              ? Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.savings,
+                    color: Color(0xFF9C27B0),
+                    size: 24,
+                  ),
+                )
+              : null,
+          badgePositionPercentageOffset: 0.8,
         ),
       );
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text(
-              'Composición del Total Final',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+    return sections;
+  }
+
+  Widget _buildModernLeyenda(double capitalInicial) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          _buildModernLeyendaItem(
+            'Capital Inicial',
+            const Color(0xFF2196F3),
+            Icons.account_balance_wallet,
+            capitalInicial,
+            (capitalInicial / _totalFinal * 100),
+          ),
+          const SizedBox(height: 12),
+          _buildModernLeyendaItem(
+            'Rendimiento',
+            const Color(0xFF4CAF50),
+            Icons.trending_up,
+            _rendimientoTotal,
+            (_rendimientoTotal / _totalFinal * 100),
+          ),
+          if (_tieneAportaciones && _aportacionesTotal > 0) ...[
+            const SizedBox(height: 12),
+            _buildModernLeyendaItem(
+              'Aportaciones',
+              const Color(0xFF9C27B0),
+              Icons.savings,
+              _aportacionesTotal,
+              (_aportacionesTotal / _totalFinal * 100),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 250,
-              child: PieChart(
-                PieChartData(
-                  sections: sections,
-                  centerSpaceRadius: 40,
-                  sectionsSpace: 2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Leyenda
-            _buildLeyenda(),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildLeyenda() {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
+  Widget _buildModernLeyendaItem(
+    String label,
+    Color color,
+    IconData icon,
+    double amount,
+    double percentage,
+  ) {
+    return Row(
       children: [
-        _buildLeyendaItem('Capital Inicial', Colors.blue),
-        _buildLeyendaItem('Rendimiento', Colors.green),
-        if (_tieneAportaciones && _aportacionesTotal > 0)
-          _buildLeyendaItem('Aportaciones', Colors.purple),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _formatCurrency(amount),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '${percentage.toStringAsFixed(1)}%',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildLeyendaItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
+
 
   Widget _buildTablaAnual() {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Proyección Año por Año',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(
-                  const Color(0xFFE3F2FD),
-                ),
-                columns: [
-                  const DataColumn(
-                    label: Text(
-                      'Año',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Colors.green.shade50.withOpacity(0.3),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.table_chart,
+                      color: Colors.green.shade700,
+                      size: 24,
                     ),
                   ),
-                  const DataColumn(
-                    label: Text(
-                      'Total Acumulado',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Proyección Año por Año',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const DataColumn(
-                    label: Text(
-                      'Rendimiento',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  if (_tieneAportaciones)
-                    DataColumn(
-                      label: Text(
-                        _aportacionesTotal >= 0 ? 'Aportación' : 'Gasto',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
                 ],
-                rows: _resultadosPorAnio.map((resultado) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text('${resultado['anio']}')),
-                      DataCell(
-                        Text(
-                          _formatCurrency(resultado['total']),
-                          style: const TextStyle(
-                            color: Color(0xFF00BCD4),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Text(
-                          _formatCurrency(resultado['rendimiento']),
-                          style: const TextStyle(color: Colors.green),
-                        ),
-                      ),
-                      if (_tieneAportaciones)
-                        DataCell(
+              ),
+              const SizedBox(height: 20),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(
+                    Colors.blue.shade100.withOpacity(0.5),
+                  ),
+                  headingRowHeight: 56,
+                  dataRowMinHeight: 52,
+                  dataRowMaxHeight: 60,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  columns: [
+                    const DataColumn(
+                      label: Row(
+                        children: [
+                          Icon(Icons.calendar_today, size: 16, color: Color(0xFF1976D2)),
+                          SizedBox(width: 8),
                           Text(
-                            _formatCurrency(resultado['aportacion'].abs()),
+                            'Año',
                             style: TextStyle(
-                              color: resultado['aportacion'] >= 0
-                                  ? Colors.purple
-                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF1976D2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const DataColumn(
+                      label: Row(
+                        children: [
+                          Icon(Icons.account_balance_wallet, size: 16, color: Color(0xFF1976D2)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Total Acumulado',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF1976D2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const DataColumn(
+                      label: Row(
+                        children: [
+                          Icon(Icons.trending_up, size: 16, color: Color(0xFF1976D2)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Rendimiento',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF1976D2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_tieneAportaciones)
+                      DataColumn(
+                        label: Row(
+                          children: [
+                            Icon(
+                              _aportacionesTotal >= 0 ? Icons.savings : Icons.money_off,
+                              size: 16,
+                              color: const Color(0xFF1976D2),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _aportacionesTotal >= 0 ? 'Aportación' : 'Gasto',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Color(0xFF1976D2),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                  rows: _resultadosPorAnio.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final resultado = entry.value;
+                    final isEvenRow = index % 2 == 0;
+                    
+                    return DataRow(
+                      color: WidgetStateProperty.all(
+                        isEvenRow 
+                            ? Colors.grey.shade50 
+                            : Colors.white,
+                      ),
+                      cells: [
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade700,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${resultado['anio']}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),
-                      DataCell(
-                        Text(
-                          _formatCurrency(resultado['total']),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF00BCD4),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00BCD4).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF00BCD4).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(
+                              _formatCurrency(resultado['total']),
+                              style: const TextStyle(
+                                color: Color(0xFF00838F),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                }).toList(),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.green.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.arrow_upward,
+                                  color: Colors.green,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatCurrency(resultado['rendimiento']),
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_tieneAportaciones)
+                          DataCell(
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: (resultado['aportacion'] >= 0
+                                        ? Colors.purple
+                                        : Colors.red)
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: (resultado['aportacion'] >= 0
+                                          ? Colors.purple
+                                          : Colors.red)
+                                      .withOpacity(0.3),
+                                ),
+                              ),
+                              child: Text(
+                                _formatCurrency(resultado['aportacion'].abs()),
+                                style: TextStyle(
+                                  color: resultado['aportacion'] >= 0
+                                      ? Colors.purple.shade700
+                                      : Colors.red.shade700,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
