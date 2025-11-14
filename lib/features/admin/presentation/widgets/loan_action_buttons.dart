@@ -513,15 +513,18 @@ class LoanActionButtons extends StatelessWidget {
               try {
                 await MovimientoRepository().marcarComoPagado(prestamo.id);
                 
-                // Cancelar notificaciones pendientes del préstamo
-                await NotificationService().cancelLoanNotifications(prestamo.id);
-                
-                // Notificar al admin que el préstamo fue completado
-                await NotificationService().notifyLoanPaidOff(
-                  loanId: prestamo.id,
-                  clientName: prestamo.nombreCliente ?? 'Cliente',
-                  isAdmin: true,
-                );
+                // Cancelar notificaciones pendientes del préstamo (sin bloquear)
+                try {
+                  await NotificationService().cancelLoanNotifications(prestamo.id);
+                  await NotificationService().notifyLoanPaidOff(
+                    loanId: prestamo.id,
+                    clientName: prestamo.nombreCliente ?? 'Cliente',
+                    isAdmin: true,
+                  );
+                } catch (notifError) {
+                  // Ignorar errores de notificación
+                  print('Error en notificaciones: $notifError');
+                }
                 
                 if (dialogContext.mounted) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -649,22 +652,25 @@ class LoanActionButtons extends StatelessWidget {
                   // Calcular nueva deuda después del abono
                   final nuevaDeuda = prestamo.saldoPendiente - monto;
                   
-                  // Notificar al admin sobre el pago recibido
-                  await NotificationService().notifyPaymentReceived(
-                    loanId: prestamo.id,
-                    clientName: prestamo.nombreCliente ?? 'Cliente',
-                    amount: monto,
-                    remainingDebt: nuevaDeuda,
-                  );
-                  
-                  // Si se pagó completamente, notificar y cancelar notificaciones pendientes
-                  if (nuevaDeuda <= 0) {
-                    await NotificationService().cancelLoanNotifications(prestamo.id);
-                    await NotificationService().notifyLoanPaidOff(
+                  // Notificaciones (sin bloquear operación principal)
+                  try {
+                    await NotificationService().notifyPaymentReceived(
                       loanId: prestamo.id,
                       clientName: prestamo.nombreCliente ?? 'Cliente',
-                      isAdmin: true,
+                      amount: monto,
+                      remainingDebt: nuevaDeuda,
                     );
+                    
+                    if (nuevaDeuda <= 0) {
+                      await NotificationService().cancelLoanNotifications(prestamo.id);
+                      await NotificationService().notifyLoanPaidOff(
+                        loanId: prestamo.id,
+                        clientName: prestamo.nombreCliente ?? 'Cliente',
+                        isAdmin: true,
+                      );
+                    }
+                  } catch (notifError) {
+                    print('Error en notificaciones: $notifError');
                   }
                   
                   if (dialogContext.mounted) {
@@ -1035,8 +1041,12 @@ class LoanActionButtons extends StatelessWidget {
                   // Si llegamos aquí, la contraseña es correcta
                   await MovimientoRepository().eliminarPrestamo(prestamo.id, motivo);
                   
-                  // Cancelar notificaciones del préstamo
-                  await NotificationService().cancelLoanNotifications(prestamo.id);
+                  // Cancelar notificaciones del préstamo (sin bloquear)
+                  try {
+                    await NotificationService().cancelLoanNotifications(prestamo.id);
+                  } catch (notifError) {
+                    print('Error al cancelar notificaciones: $notifError');
+                  }
                   
                   operacionExitosa = true;
                 } catch (e) {
