@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:gal/gal.dart';
 import '../../data/models/movimiento_model.dart';
+import '../../data/models/cliente_model.dart';
 import '../../data/repositories/movimiento_repository.dart';
+import '../../data/repositories/cliente_repository.dart';
 import '../../data/repositories/abono_repository.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/supabase_service.dart';
@@ -702,202 +704,19 @@ class LoanActionButtons extends StatelessWidget {
     );
   }
 
-  void _editarPrestamo(BuildContext context) {
-    final montoController = TextEditingController(text: prestamo.monto.toString());
-    final interesController = TextEditingController(text: prestamo.interes.toString());
-    final abonosController = TextEditingController(text: prestamo.abonos.toString());
-    final notasController = TextEditingController(text: prestamo.notas ?? '');
-    DateTime fechaPago = prestamo.fechaPago;
-    bool marcarComoPagado = prestamo.estadoPagado;
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
+  Future<void> _editarPrestamo(BuildContext context) async {
+    final shouldRefresh = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.edit, color: Colors.purple),
-              SizedBox(width: 8),
-              Text('Editar Préstamo'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Préstamo #${prestamo.id}'),
-                  Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: montoController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Monto *',
-                      prefixText: '\$',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Requerido';
-                      final monto = double.tryParse(value);
-                      if (monto == null || monto <= 0) return 'Monto inválido';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: interesController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Interés *',
-                      prefixText: '\$',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Requerido';
-                      final interes = double.tryParse(value);
-                      if (interes == null || interes < 0) return 'Interés inválido';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: abonosController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Abonos *',
-                      prefixText: '\$',
-                      border: OutlineInputBorder(),
-                      helperText: 'Total de abonos realizados',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Requerido';
-                      final abonos = double.tryParse(value);
-                      if (abonos == null || abonos < 0) return 'Abonos inválido';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: fechaPago,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                      );
-                      if (picked != null) {
-                        setState(() => fechaPago = picked);
-                      }
-                    },
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Fecha de pago',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('${fechaPago.day}/${fechaPago.month}/${fechaPago.year}'),
-                          const Icon(Icons.calendar_today, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: notasController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Notas (opcional)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Checkbox para marcar como pagado
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
-                    ),
-                    child: CheckboxListTile(
-                      title: const Text(
-                        'Marcar como pagado',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: const Text('El préstamo se marcará como completamente pagado'),
-                      value: marcarComoPagado,
-                      activeColor: Colors.green,
-                      onChanged: (value) {
-                        setState(() {
-                          marcarComoPagado = value ?? false;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  final monto = double.parse(montoController.text);
-                  final interes = double.parse(interesController.text);
-                  final abonos = double.parse(abonosController.text);
-                  final notas = notasController.text.trim();
-                  
-                  Navigator.pop(context);
-                  
-                  try {
-                    await MovimientoRepository().actualizarPrestamo(
-                      id: prestamo.id,
-                      monto: monto,
-                      interes: interes,
-                      abonos: abonos,
-                      fechaPago: fechaPago,
-                      notas: notas.isNotEmpty ? notas : null,
-                      estadoPagado: marcarComoPagado,
-                    );
-                    
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Préstamo editado correctamente'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                      onActionComplete();
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-              child: const Text('Guardar Cambios'),
-            ),
-          ],
-        ),
+      barrierDismissible: false,
+      builder: (dialogContext) => _EditLoanDialog(
+        prestamo: prestamo,
+        parentContext: context,
       ),
     );
+
+    if (shouldRefresh == true) {
+      onActionComplete();
+    }
   }
 
   void _eliminarPrestamo(BuildContext context) {
@@ -1073,5 +892,738 @@ class LoanActionButtons extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _EditLoanDialog extends StatefulWidget {
+  final MovimientoModel prestamo;
+  final BuildContext parentContext;
+
+  const _EditLoanDialog({
+    required this.prestamo,
+    required this.parentContext,
+  });
+
+  @override
+  State<_EditLoanDialog> createState() => _EditLoanDialogState();
+}
+
+class _EditLoanDialogState extends State<_EditLoanDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _clienteRepo = ClienteRepository();
+  final _movimientoRepo = MovimientoRepository();
+
+  late final TextEditingController _montoController;
+  late final TextEditingController _interesController;
+  late final TextEditingController _abonosController;
+  late final TextEditingController _notasController;
+  late final TextEditingController _searchController;
+  late final TextEditingController _diasExtraController;
+  late final TextEditingController _nombreController;
+  late final TextEditingController _apellidoPaternoController;
+  late final TextEditingController _apellidoMaternoController;
+  late final TextEditingController _telefonoController;
+  late final TextEditingController _emailController;
+
+  bool _marcarComoPagado = false;
+  bool _cargandoClientes = true;
+  bool _cambiandoCliente = false;
+  bool _forzarNuevoCliente = false;
+  bool _mostrarNuevoCliente = false;
+  bool _extenderVencimiento = false;
+  bool _guardando = false;
+
+  List<ClienteModel> _clientes = [];
+  List<ClienteModel> _clientesFiltrados = [];
+  ClienteModel? _clienteSeleccionado;
+  ClienteModel? _clienteActual;
+
+  DateTime _fechaPago = DateTime.now();
+  DateTime? _fechaPagoBase;
+  double _interesExtraCalculado = 0;
+  int _diasExtraSeleccionados = 0;
+  String _tasaDiasExtra = '10';
+
+  @override
+  void initState() {
+    super.initState();
+    _montoController = TextEditingController(text: widget.prestamo.monto.toStringAsFixed(2));
+    _interesController = TextEditingController(text: widget.prestamo.interes.toStringAsFixed(2));
+    _abonosController = TextEditingController(text: widget.prestamo.abonos.toStringAsFixed(2));
+    _notasController = TextEditingController(text: widget.prestamo.notas ?? '');
+    _searchController = TextEditingController();
+    _diasExtraController = TextEditingController();
+    _nombreController = TextEditingController();
+    _apellidoPaternoController = TextEditingController();
+    _apellidoMaternoController = TextEditingController();
+    _telefonoController = TextEditingController();
+    _emailController = TextEditingController();
+    _marcarComoPagado = widget.prestamo.estadoPagado;
+    _fechaPago = widget.prestamo.fechaPago;
+    _cargarClientes();
+  }
+
+  @override
+  void dispose() {
+    _montoController.dispose();
+    _interesController.dispose();
+    _abonosController.dispose();
+    _notasController.dispose();
+    _searchController.dispose();
+    _diasExtraController.dispose();
+    _nombreController.dispose();
+    _apellidoPaternoController.dispose();
+    _apellidoMaternoController.dispose();
+    _telefonoController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargarClientes() async {
+    try {
+      final clientes = await _clienteRepo.obtenerClientes();
+      ClienteModel? actual;
+      try {
+        actual = clientes.firstWhere((c) => c.id == widget.prestamo.idCliente);
+      } catch (_) {
+        actual = null;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _clientes = clientes;
+        _clientesFiltrados = clientes;
+        _clienteActual = actual;
+        _cargandoClientes = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _cargandoClientes = false);
+      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar clientes: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.edit, color: Colors.purple),
+          SizedBox(width: 8),
+          Text('Editar Préstamo'),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Préstamo #${widget.prestamo.id}'),
+              Text('Cliente actual: ${_clienteActual?.nombreCompleto ?? widget.prestamo.nombreCliente ?? "N/A"}'),
+              const SizedBox(height: 16),
+              _buildClienteSection(),
+              const SizedBox(height: 12),
+              _buildMontoFields(),
+              const SizedBox(height: 12),
+              _buildDatePicker(context),
+              const SizedBox(height: 12),
+              _buildDiasExtraSection(),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _notasController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Notas (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: CheckboxListTile(
+                  title: const Text(
+                    'Marcar como pagado',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text('El préstamo se marcará como completamente pagado'),
+                  value: _marcarComoPagado,
+                  activeColor: Colors.green,
+                  onChanged: (value) {
+                    setState(() => _marcarComoPagado = value ?? false);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _guardando ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: _guardando ? null : _guardarCambios,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+          child: _guardando
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Guardar cambios'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClienteSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Cambiar cliente asociado'),
+          subtitle: const Text('Usa esta opción si el préstamo debe asociarse a otro cliente'),
+          value: _cambiandoCliente,
+          onChanged: (value) {
+            setState(() {
+              _cambiandoCliente = value;
+              if (!value) {
+                _clienteSeleccionado = null;
+                _forzarNuevoCliente = false;
+                _mostrarNuevoCliente = false;
+                _searchController.clear();
+              }
+            });
+          },
+        ),
+        if (_cambiandoCliente)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _cargandoClientes ? const Center(child: CircularProgressIndicator()) : _buildClienteSelector(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildClienteSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            labelText: 'Buscar por ID o nombre',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchController.text.isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() {
+                        _searchController.clear();
+                        _clientesFiltrados = _clientes;
+                        _mostrarNuevoCliente = _forzarNuevoCliente;
+                        _clienteSeleccionado = null;
+                      });
+                    },
+                  ),
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: _filtrarClientes,
+        ),
+        const SizedBox(height: 8),
+        if (_clientesFiltrados.isNotEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 180),
+            child: Material(
+              color: Colors.transparent,
+              child: ListView.builder(
+                itemCount: _clientesFiltrados.length,
+                itemBuilder: (context, index) {
+                  final cliente = _clientesFiltrados[index];
+                  final seleccionado = _clienteSeleccionado?.id == cliente.id;
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(child: Text(cliente.iniciales)),
+                    title: Text(cliente.nombreCompleto),
+                    subtitle: Text('ID: ${cliente.id}'),
+                    trailing: seleccionado ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                    onTap: () {
+                      setState(() {
+                        _clienteSeleccionado = cliente;
+                        _searchController.text = cliente.displayText;
+                        _forzarNuevoCliente = false;
+                        _mostrarNuevoCliente = false;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          )
+        else if (_searchController.text.isNotEmpty && !_mostrarNuevoCliente)
+          const Text(
+            'Sin coincidencias, intenta con otro nombre o crea un nuevo cliente.',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _forzarNuevoCliente = !_forzarNuevoCliente;
+                _mostrarNuevoCliente = _forzarNuevoCliente;
+                if (!_forzarNuevoCliente) {
+                  _limpiarNuevoClienteForm();
+                }
+              });
+            },
+            icon: Icon(_mostrarNuevoCliente ? Icons.close : Icons.person_add_alt_1),
+            label: Text(_mostrarNuevoCliente ? 'Cancelar nuevo cliente' : 'Registrar nuevo cliente'),
+          ),
+        ),
+        if (_mostrarNuevoCliente) _buildNuevoClienteForm(),
+      ],
+    );
+  }
+
+  Widget _buildNuevoClienteForm() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Nuevo cliente', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _nombreController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Nombre *',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (!_mostrarNuevoCliente) return null;
+              if (value == null || value.trim().isEmpty) {
+                return 'Requerido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _apellidoPaternoController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Apellido paterno *',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (!_mostrarNuevoCliente) return null;
+              if (value == null || value.trim().isEmpty) {
+                return 'Requerido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _apellidoMaternoController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Apellido materno (opcional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _telefonoController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Teléfono (opcional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email (opcional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMontoFields() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _montoController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Monto *',
+            prefixText: '\$',
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Requerido';
+            final monto = double.tryParse(value);
+            if (monto == null || monto <= 0) return 'Monto inválido';
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _interesController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Interés *',
+            prefixText: '\$',
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Requerido';
+            final interes = double.tryParse(value);
+            if (interes == null || interes < 0) return 'Interés inválido';
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _abonosController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Abonos *',
+            prefixText: '\$',
+            border: OutlineInputBorder(),
+            helperText: 'Total de abonos registrados',
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Requerido';
+            final abonos = double.tryParse(value);
+            if (abonos == null || abonos < 0) return 'Abonos inválidos';
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatePicker(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _fechaPago,
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+        );
+        if (picked != null) {
+          setState(() {
+            _fechaPago = picked;
+            if (_extenderVencimiento) {
+              _fechaPagoBase = picked;
+              _diasExtraController.clear();
+              _interesExtraCalculado = 0;
+              _diasExtraSeleccionados = 0;
+            }
+          });
+        }
+      },
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Fecha de pago',
+          border: OutlineInputBorder(),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(_formatDate(_fechaPago)),
+            const Icon(Icons.calendar_today, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiasExtraSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Extender vencimiento (días extra)'),
+          subtitle: const Text('Calcula interés adicional del 10% o 5% mensual'),
+          value: _extenderVencimiento,
+          onChanged: (value) {
+            setState(() {
+              _extenderVencimiento = value;
+              if (value) {
+                _fechaPagoBase = _fechaPago;
+              } else {
+                _fechaPago = _fechaPagoBase ?? _fechaPago;
+                _fechaPagoBase = null;
+                _diasExtraController.clear();
+                _interesExtraCalculado = 0;
+                _diasExtraSeleccionados = 0;
+              }
+            });
+          },
+        ),
+        if (_extenderVencimiento) ...[
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _diasExtraController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Días extra *',
+              border: OutlineInputBorder(),
+              helperText: 'Los días se sumarán a la fecha de pago actual',
+            ),
+            validator: (value) {
+              if (!_extenderVencimiento) return null;
+              if (value == null || value.isEmpty) return 'Ingresa los días';
+              final dias = int.tryParse(value);
+              if (dias == null || dias <= 0) return 'Número inválido';
+              return null;
+            },
+            onChanged: (_) => _recalcularDiasExtra(),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _tasaDiasExtra,
+            decoration: const InputDecoration(
+              labelText: 'Interés mensual para días extra',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: '10', child: Text('10% mensual (por defecto)')),
+              DropdownMenuItem(value: '5', child: Text('5% mensual (avisado con tiempo)')),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _tasaDiasExtra = value);
+              _recalcularDiasExtra();
+            },
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Nueva fecha de pago: ${_formatDate(_fechaPago)}'),
+                const SizedBox(height: 4),
+                Text('Interés extra estimado: \$${_interesExtraCalculado.toStringAsFixed(2)}'),
+                const SizedBox(height: 4),
+                Text(
+                  'Interés total: \$${(_interesExtraCalculado + (double.tryParse(_interesController.text) ?? 0)).toStringAsFixed(2)}',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _filtrarClientes(String query) {
+    final normalized = query.trim().toLowerCase();
+    final resultados = _clientes.where((cliente) {
+      final nombre = cliente.nombreCompleto.toLowerCase();
+      final id = cliente.id.toString();
+      return nombre.contains(normalized) || id.contains(normalized);
+    }).toList();
+
+    final sinResultados = normalized.length > 2 && resultados.isEmpty;
+
+    setState(() {
+      _clientesFiltrados = resultados;
+      _mostrarNuevoCliente = _forzarNuevoCliente || sinResultados;
+      if (_mostrarNuevoCliente) {
+        _clienteSeleccionado = null;
+        _prefillNuevoCliente(query);
+      }
+    });
+  }
+
+  void _prefillNuevoCliente(String query) {
+    final partes = query.trim().split(' ');
+    if (partes.isEmpty) return;
+    if (_nombreController.text.isEmpty && partes.isNotEmpty) {
+      _nombreController.text = partes.first.capitalize();
+    }
+    if (_apellidoPaternoController.text.isEmpty && partes.length > 1) {
+      _apellidoPaternoController.text = partes[1].capitalize();
+    }
+    if (_apellidoMaternoController.text.isEmpty && partes.length > 2) {
+      _apellidoMaternoController.text = partes.sublist(2).join(' ').capitalize();
+    }
+  }
+
+  void _limpiarNuevoClienteForm() {
+    _mostrarNuevoCliente = false;
+    _nombreController.clear();
+    _apellidoPaternoController.clear();
+    _apellidoMaternoController.clear();
+    _telefonoController.clear();
+    _emailController.clear();
+  }
+
+  void _recalcularDiasExtra() {
+    if (!_extenderVencimiento) return;
+    final dias = int.tryParse(_diasExtraController.text);
+    if (dias == null || dias <= 0) {
+      setState(() {
+        _interesExtraCalculado = 0;
+        _diasExtraSeleccionados = 0;
+        _fechaPago = _fechaPagoBase ?? _fechaPago;
+      });
+      return;
+    }
+
+    final tasaMensual = double.parse(_tasaDiasExtra) / 100;
+    final monto = double.tryParse(_montoController.text) ?? widget.prestamo.monto;
+    final interesBase = double.tryParse(_interesController.text) ?? widget.prestamo.interes;
+    final abonos = double.tryParse(_abonosController.text) ?? widget.prestamo.abonos;
+    double saldoBase = (monto + interesBase) - abonos;
+    if (saldoBase < 0) saldoBase = 0;
+    final extra = saldoBase * tasaMensual * (dias / 30);
+    final base = _fechaPagoBase ?? _fechaPago;
+
+    setState(() {
+      _diasExtraSeleccionados = dias;
+      _interesExtraCalculado = extra;
+      _fechaPago = base.add(Duration(days: dias));
+    });
+  }
+
+  Future<void> _guardarCambios() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    int clienteIdFinal = widget.prestamo.idCliente;
+
+    if (_cambiandoCliente) {
+      if (_mostrarNuevoCliente) {
+        final valido = _nombreController.text.trim().isNotEmpty && _apellidoPaternoController.text.trim().isNotEmpty;
+        if (!valido) {
+          ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+            const SnackBar(content: Text('Completa los datos del nuevo cliente'), backgroundColor: Colors.red),
+          );
+          return;
+        }
+
+        try {
+          final nuevoCliente = await _clienteRepo.crearClienteSimple(
+            nombre: _nombreController.text.trim(),
+            apellidoPaterno: _apellidoPaternoController.text.trim(),
+            apellidoMaterno: _apellidoMaternoController.text.trim().isNotEmpty ? _apellidoMaternoController.text.trim() : null,
+            telefono: _telefonoController.text.trim().isNotEmpty ? _telefonoController.text.trim() : null,
+            email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+          );
+          clienteIdFinal = nuevoCliente.id;
+        } catch (e) {
+          ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+            SnackBar(content: Text('Error al crear cliente: $e'), backgroundColor: Colors.red),
+          );
+          return;
+        }
+      } else {
+        if (_clienteSeleccionado == null) {
+          ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+            const SnackBar(content: Text('Selecciona un cliente'), backgroundColor: Colors.red),
+          );
+          return;
+        }
+        clienteIdFinal = _clienteSeleccionado!.id;
+      }
+    }
+
+    final monto = double.parse(_montoController.text);
+    final interesBase = double.parse(_interesController.text);
+    final abonos = double.parse(_abonosController.text);
+    final notas = _notasController.text.trim();
+
+    double interesFinal = interesBase;
+    DateTime fechaPagoFinal = _fechaPago;
+
+    if (_extenderVencimiento && _diasExtraSeleccionados > 0) {
+      interesFinal += _interesExtraCalculado;
+      if (_fechaPagoBase != null) {
+        fechaPagoFinal = _fechaPagoBase!.add(Duration(days: _diasExtraSeleccionados));
+      }
+    }
+
+    setState(() => _guardando = true);
+
+    try {
+      await _movimientoRepo.actualizarPrestamo(
+        id: widget.prestamo.id,
+        monto: monto,
+        interes: interesFinal,
+        abonos: abonos,
+        fechaPago: fechaPagoFinal,
+        notas: notas.isNotEmpty ? notas : null,
+        estadoPagado: _marcarComoPagado,
+        clienteId: _cambiandoCliente ? clienteIdFinal : null,
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Préstamo editado correctamente'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _guardando = false);
+      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+        SnackBar(content: Text('Error al actualizar préstamo: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+}
+
+extension _CapitalizationExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
   }
 }
