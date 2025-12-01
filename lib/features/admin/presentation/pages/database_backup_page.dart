@@ -59,12 +59,12 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
     setState(() => _isGenerating = true);
 
     try {
-      final file = await _backupService.generateFullBackup();
+      final result = await _backupService.generateFullBackup();
       
       if (mounted) {
         setState(() => _isGenerating = false);
         
-        if (file == null) {
+        if (result == null) {
           // Usuario canceló
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -79,7 +79,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
         await _loadBackups();
         
         // Mostrar diálogo de éxito con opciones
-        _showBackupSuccessDialog(file);
+        _showBackupSuccessDialog(result);
       }
     } catch (e) {
       if (mounted) {
@@ -96,7 +96,12 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
     }
   }
 
-  void _showBackupSuccessDialog(File file) {
+  void _showBackupSuccessDialog(BackupResult result) {
+    final exported = result.exportedFile;
+    final archive = result.archiveFile;
+    final exportedName = _fileNameFromPath(exported.path);
+    final archiveName = _fileNameFromPath(archive.path);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -113,7 +118,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
             const Text('El backup se generó exitosamente.'),
             const SizedBox(height: 16),
             Text(
-              'Archivo: ${file.path.split('/').last}',
+              'Archivo exportado: $exportedName',
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -121,12 +126,28 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Tamaño: ${_formatFileSize(file.lengthSync())}',
+              'Tamaño: ${_formatFileSize(exported.lengthSync())}',
               style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 8),
             Text(
-              'Ubicación: ${file.parent.path}',
+              'Ubicación exportada: ${exported.parent.path}',
+              style: const TextStyle(
+                fontSize: 10,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Copia interna: $archiveName',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ubicación interna: ${archive.parent.path}',
               style: const TextStyle(
                 fontSize: 10,
                 color: Colors.grey,
@@ -142,7 +163,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              _shareBackup(file);
+              _shareBackup(exported);
             },
             icon: const Icon(Icons.share),
             label: const Text('Compartir'),
@@ -245,6 +266,12 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
 
   String _formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy HH:mm').format(date);
+  }
+
+  String _fileNameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final segments = normalized.split('/');
+    return segments.isNotEmpty ? segments.last : path;
   }
 
   @override
@@ -395,7 +422,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                       itemBuilder: (context, index) {
                         final backup = _backups[index];
                         final stat = backup.statSync();
-                        final filename = backup.path.split(Platform.pathSeparator).last;
+                        final filename = _fileNameFromPath(backup.path);
                         
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),

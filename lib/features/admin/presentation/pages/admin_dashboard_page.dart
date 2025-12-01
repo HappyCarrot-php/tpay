@@ -1,6 +1,10 @@
-﻿import 'package:flutter/material.dart';
-import '../../data/repositories/movimiento_repository.dart';
+﻿import 'dart:math';
+
+import 'package:flutter/material.dart';
+
 import '../../data/models/movimiento_model.dart';
+import '../../data/repositories/movimiento_repository.dart';
+import '../../data/repositories/perfil_repository.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -11,6 +15,16 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final _movimientoRepo = MovimientoRepository();
+  final _perfilRepo = PerfilRepository();
+  final Random _random = Random();
+
+  static const List<String> _frasesSaludo = [
+    '¿Cómo estás hoy?',
+    '¿Qué tal tu día?',
+    '¿Todo en orden?',
+    '¿Listo para revisar los números?',
+    '¿Preparado para seguir?'
+  ];
 
   bool _isLoading = true;
   int _totalPrestamos = 0;
@@ -20,11 +34,70 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _gananciasNetas = 0;
   List<MovimientoModel> _prestamosActivos = [];
   List<MovimientoModel> _prestamosPagados = [];
+  String _saludoBase = '';
+  String _nombreSaludo = '';
+  String _fraseSaludo = '';
 
   @override
   void initState() {
     super.initState();
+    _cargarSaludo();
     _cargarEstadisticas();
+  }
+
+  Future<void> _cargarSaludo() async {
+    try {
+      final perfil = await _perfilRepo.obtenerPerfilActual();
+      final ahora = DateTime.now();
+      final saludo = _obtenerSaludoSegunHora(ahora);
+      final apellido = (perfil?.apellidoPaterno ?? '').trim();
+      final nombre = (perfil?.nombre ?? '').trim();
+      final nombreFormateado = [apellido, nombre]
+          .where((parte) => parte.isNotEmpty)
+          .join(' ');
+      final frase = _obtenerFraseAleatoria();
+
+      if (!mounted) return;
+      setState(() {
+        _saludoBase = saludo;
+        _nombreSaludo = nombreFormateado.isNotEmpty ? nombreFormateado : 'Administrador';
+        _fraseSaludo = frase;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saludoBase = _obtenerSaludoSegunHora(DateTime.now());
+        _nombreSaludo = 'Administrador';
+        _fraseSaludo = _obtenerFraseAleatoria();
+      });
+    }
+  }
+
+  String _obtenerSaludoSegunHora(DateTime fecha) {
+    final hora = fecha.hour;
+    if (hora >= 5 && hora < 12) {
+      return 'Buenos días';
+    } else if (hora >= 12 && hora < 19) {
+      return 'Buenas tardes';
+    }
+    return 'Buenas noches';
+  }
+
+  String _obtenerFraseAleatoria() {
+    if (_frasesSaludo.isEmpty) {
+      return '¿Cómo estás hoy?';
+    }
+    final indice = _random.nextInt(_frasesSaludo.length);
+    return _frasesSaludo[indice];
+  }
+
+  String get _textoSaludo {
+    final saludo = _saludoBase.isNotEmpty
+        ? _saludoBase
+        : _obtenerSaludoSegunHora(DateTime.now());
+    final nombre = _nombreSaludo.isNotEmpty ? _nombreSaludo : 'Administrador';
+    final frase = _fraseSaludo.isNotEmpty ? _fraseSaludo : '¿Cómo estás hoy?';
+    return '$saludo, $nombre, $frase';
   }
 
   Future<void> _cargarEstadisticas() async {
@@ -107,12 +180,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
-            onRefresh: _cargarEstadisticas,
+            onRefresh: () async {
+              await Future.wait([
+                _cargarEstadisticas(),
+                _cargarSaludo(),
+              ]);
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _textoSaludo,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   _buildKPICards(),
                   const SizedBox(height: 16),
                   const Text(
