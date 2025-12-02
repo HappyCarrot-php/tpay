@@ -4,10 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_data_cache.dart';
-import '../constants/supabase_constants.dart';
 
 class BackupResult {
   final File exportedFile;
@@ -16,12 +14,20 @@ class BackupResult {
   const BackupResult({required this.exportedFile, required this.archiveFile});
 }
 
-class DatabaseBackupService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+class BackupDataUnavailableException implements Exception {
+  final String message;
+  const BackupDataUnavailableException(this.message);
 
+  @override
+  String toString() => message;
+}
+
+class DatabaseBackupService {
   /// Genera un respaldo completo, lo guarda en la ruta elegida por el usuario
   /// y conserva una copia en el almacenamiento interno de la app.
-  Future<BackupResult?> generateFullBackup({DatabaseSnapshotData? snapshot}) async {
+  Future<BackupResult?> generateFullBackup({
+    DatabaseSnapshotData? snapshot,
+  }) async {
     try {
       await _requestStoragePermission();
 
@@ -37,7 +43,10 @@ class DatabaseBackupService {
       }
 
       final resolvedSnapshot = await _resolveSnapshot(snapshot);
-      final backupContent = await _buildBackupContent(timestamp, resolvedSnapshot);
+      final backupContent = await _buildBackupContent(
+        timestamp,
+        resolvedSnapshot,
+      );
 
       final exportedPath = _joinPath(selectedDirectory, filename);
       final exportedFile = File(exportedPath);
@@ -54,7 +63,9 @@ class DatabaseBackupService {
     }
   }
 
-  Future<DatabaseSnapshotData> _resolveSnapshot(DatabaseSnapshotData? snapshot) async {
+  Future<DatabaseSnapshotData> _resolveSnapshot(
+    DatabaseSnapshotData? snapshot,
+  ) async {
     final cache = AppDataCache();
 
     if (snapshot != null && snapshot.hasAnyData) {
@@ -66,46 +77,8 @@ class DatabaseBackupService {
       return cached;
     }
 
-    final fetched = await _fetchSnapshotFromSupabase();
-    cache.mergeSnapshot(fetched);
-    return fetched;
-  }
-
-  Future<DatabaseSnapshotData> _fetchSnapshotFromSupabase() async {
-    final perfilesData = _castRows(
-      await _supabase
-          .from(SupabaseConstants.perfilesTable)
-          .select()
-          .order('creado', ascending: true),
-    );
-
-    final clientesData = _castRows(
-      await _supabase
-          .from(SupabaseConstants.clientesTable)
-          .select()
-          .order('id_cliente', ascending: true),
-    );
-
-    final movimientosData = _castRows(
-      await _supabase
-          .from(SupabaseConstants.movimientosTable)
-          .select()
-          .eq('eliminado', false)
-          .order('id', ascending: true),
-    );
-
-    final abonosData = _castRows(
-      await _supabase
-          .from(SupabaseConstants.abonosTable)
-          .select()
-          .order('id', ascending: true),
-    );
-
-    return DatabaseSnapshotData(
-      perfiles: perfilesData,
-      clientes: clientesData,
-      movimientos: movimientosData,
-      abonos: abonosData,
+    throw const BackupDataUnavailableException(
+      'No hay datos preparados para respaldar. Navega primero por los módulos que deseas incluir y vuelve a intentarlo.',
     );
   }
 
@@ -126,7 +99,9 @@ class DatabaseBackupService {
 
     buffer
       ..writeln('-- T-Pay Database Backup')
-      ..writeln('-- Generated: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}')
+      ..writeln(
+        '-- Generated: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}',
+      )
       ..writeln('-- Timestamp: $timestamp')
       ..writeln('-- ========================================')
       ..writeln()
@@ -178,7 +153,9 @@ class DatabaseBackupService {
       buffer.writeln('-- (sin registros)');
     } else {
       for (final movimiento in movimientosData) {
-        buffer.writeln(_generateInsertStatement('public.movimientos', movimiento));
+        buffer.writeln(
+          _generateInsertStatement('public.movimientos', movimiento),
+        );
       }
     }
     buffer.writeln();
@@ -200,8 +177,12 @@ class DatabaseBackupService {
       ..writeln('-- ========================================')
       ..writeln('-- AJUSTE DE SECUENCIAS')
       ..writeln('-- ========================================')
-      ..writeln(_generateSetvalStatement('clientes_id_cliente_seq', clientesMaxId))
-      ..writeln(_generateSetvalStatement('movimientos_id_seq', movimientosMaxId))
+      ..writeln(
+        _generateSetvalStatement('clientes_id_cliente_seq', clientesMaxId),
+      )
+      ..writeln(
+        _generateSetvalStatement('movimientos_id_seq', movimientosMaxId),
+      )
       ..writeln(_generateSetvalStatement('abonos_id_seq', abonosMaxId))
       ..writeln()
       ..writeln('COMMIT;')
@@ -254,7 +235,9 @@ class DatabaseBackupService {
         maxValue = maxValue == null || value > maxValue ? value : maxValue;
       } else if (value is num) {
         final intValue = value.toInt();
-        maxValue = maxValue == null || intValue > maxValue ? intValue : maxValue;
+        maxValue = maxValue == null || intValue > maxValue
+            ? intValue
+            : maxValue;
       }
     }
     return maxValue;
@@ -262,7 +245,9 @@ class DatabaseBackupService {
 
   String _generateInsertStatement(String tableName, Map<String, dynamic> row) {
     final columns = row.keys.toList();
-    final values = columns.map((column) => _serializeValue(row[column])).toList();
+    final values = columns
+        .map((column) => _serializeValue(row[column]))
+        .toList();
     return 'INSERT INTO $tableName (${columns.join(', ')}) VALUES (${values.join(', ')});';
   }
 
@@ -301,13 +286,15 @@ class DatabaseBackupService {
   }
 
   String _joinPath(String directory, String filename) {
-    final endsWithSeparator = directory.endsWith('/') || directory.endsWith('\\');
+    final endsWithSeparator =
+        directory.endsWith('/') || directory.endsWith('\\');
     final separator = endsWithSeparator ? '' : Platform.pathSeparator;
     return '$directory$separator$filename';
   }
 
   int _estimateSnapshotSize(DatabaseSnapshotData snapshot) {
-    final totalRows = snapshot.perfiles.length +
+    final totalRows =
+        snapshot.perfiles.length +
         snapshot.clientes.length +
         snapshot.movimientos.length +
         snapshot.abonos.length;
@@ -318,10 +305,9 @@ class DatabaseBackupService {
   Future<String> getEstimatedBackupSize() async {
     try {
       final cache = AppDataCache();
-      var snapshot = cache.toSnapshot();
+      final snapshot = cache.toSnapshot();
       if (!snapshot.hasAnyData) {
-        snapshot = await _fetchSnapshotFromSupabase();
-        cache.mergeSnapshot(snapshot);
+        return 'Sin datos';
       }
 
       final estimatedBytes = _estimateSnapshotSize(snapshot);
@@ -352,7 +338,9 @@ class DatabaseBackupService {
           .where((file) => file.path.endsWith('.sql'))
           .toList();
 
-      files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+      files.sort(
+        (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
+      );
       return files;
     } catch (e) {
       return [];

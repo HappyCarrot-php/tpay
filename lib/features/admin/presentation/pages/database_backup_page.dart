@@ -8,6 +8,14 @@ import '../../data/repositories/cliente_repository.dart';
 import '../../data/repositories/movimiento_repository.dart';
 import '../../data/repositories/perfil_repository.dart';
 
+class BackupPreparationException implements Exception {
+  final String message;
+  const BackupPreparationException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class DatabaseBackupPage extends StatefulWidget {
   const DatabaseBackupPage({super.key});
 
@@ -21,7 +29,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
   final _movimientoRepository = MovimientoRepository();
   final _abonoRepository = AbonoRepository();
   final _perfilRepository = PerfilRepository();
-  
+
   bool _isGenerating = false;
   List<File> _backups = [];
   String _estimatedSize = 'Calculando...';
@@ -75,17 +83,24 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
       await _clienteRepository.obtenerClientes(soloActivos: false);
     }
 
-    // Siempre recargamos movimientos con filtro general para asegurar datos actualizados
-    await _movimientoRepository.obtenerMovimientos(
-      filtro: FiltroEstadoPrestamo.todos,
-      limite: 5000,
-    );
-
     if (!cache.hasAbonos) {
       await _abonoRepository.obtenerTodosLosAbonos();
     }
 
-    return cache.toSnapshot();
+    if (!cache.hasMovimientos) {
+      throw const BackupPreparationException(
+        'No se encontraron movimientos cargados. Abre la sección de Movimientos y navega por los registros que quieras respaldar antes de generar el backup.',
+      );
+    }
+
+    final snapshot = cache.toSnapshot();
+    if (snapshot.movimientos.isEmpty) {
+      throw const BackupPreparationException(
+        'Los movimientos visibles aún no se han preparado para respaldo. Revisa la lista de movimientos desde el panel de administración y vuelve a intentarlo.',
+      );
+    }
+
+    return snapshot;
   }
 
   Future<void> _generateBackup() async {
@@ -106,11 +121,13 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
         return;
       }
 
-      final result = await _backupService.generateFullBackup(snapshot: snapshot);
-      
+      final result = await _backupService.generateFullBackup(
+        snapshot: snapshot,
+      );
+
       if (mounted) {
         setState(() => _isGenerating = false);
-        
+
         if (result == null) {
           // Usuario canceló
           ScaffoldMessenger.of(context).showSnackBar(
@@ -121,17 +138,38 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
           );
           return;
         }
-        
-        // Recargar lista de backups
+
         await _loadBackups();
-        
+
         // Mostrar diálogo de éxito con opciones
         _showBackupSuccessDialog(result);
+      }
+    } on BackupDataUnavailableException catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } on BackupPreparationException catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isGenerating = false);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al generar backup: $e'),
@@ -152,11 +190,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(
-          Icons.check_circle,
-          color: Colors.green,
-          size: 60,
-        ),
+        icon: const Icon(Icons.check_circle, color: Colors.green, size: 60),
         title: const Text('Backup Generado'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -166,10 +200,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
             const SizedBox(height: 16),
             Text(
               'Archivo exportado: $exportedName',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -179,26 +210,17 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
             const SizedBox(height: 8),
             Text(
               'Ubicación exportada: ${exported.parent.path}',
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
             ),
             const SizedBox(height: 12),
             Text(
               'Copia interna: $archiveName',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Ubicación interna: ${archive.parent.path}',
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
             ),
           ],
         ),
@@ -246,10 +268,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -260,7 +279,9 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Backup'),
-        content: Text('¿Estás seguro de eliminar ${file.path.split('/').last}?'),
+        content: Text(
+          '¿Estás seguro de eliminar ${file.path.split('/').last}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -279,7 +300,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
       try {
         await _backupService.deleteBackup(file);
         await _loadBackups();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -336,24 +357,20 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00BCD4)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF00BCD4),
+                    ),
                     strokeWidth: 6,
                   ),
                   const SizedBox(height: 24),
                   const Text(
                     'Generando archivo...',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Por favor espera',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -373,7 +390,10 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.info_outline, color: Colors.blue.shade700),
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade700,
+                              ),
                               const SizedBox(width: 8),
                               const Text(
                                 'Backup de Base de Datos',
@@ -405,9 +425,9 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Botón generar backup
                   ElevatedButton.icon(
                     onPressed: _generateBackup,
@@ -425,19 +445,16 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Lista de backups anteriores
                   const Text(
                     'Backups Anteriores',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   if (_backups.isEmpty)
                     Card(
                       child: Padding(
@@ -470,7 +487,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                         final backup = _backups[index];
                         final stat = backup.statSync();
                         final filename = _fileNameFromPath(backup.path);
-                        
+
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
