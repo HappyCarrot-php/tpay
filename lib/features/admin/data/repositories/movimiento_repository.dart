@@ -354,7 +354,11 @@ class MovimientoRepository {
         'motivo_eliminacion': motivoEliminacion,
       }).eq('id', id);
 
-      AppDataCache().removeMovimiento(id);
+      AppDataCache().removeMovimiento(
+        id,
+        keepHistory: true,
+        motivo: motivoEliminacion,
+      );
     } catch (e) {
       throw Exception('Error al eliminar préstamo: $e');
     }

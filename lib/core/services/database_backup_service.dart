@@ -91,10 +91,21 @@ class DatabaseBackupService {
     final perfilesData = snapshot.perfiles;
     final clientesData = snapshot.clientes;
     final movimientosData = snapshot.movimientos;
+    final movimientosActivos = movimientosData
+      .where((row) => row['eliminado'] != true)
+      .map((row) => Map<String, dynamic>.from(row))
+      .toList();
+    final movimientosEliminados = movimientosData
+      .where((row) => row['eliminado'] == true)
+      .map((row) => Map<String, dynamic>.from(row))
+      .toList();
     final abonosData = snapshot.abonos;
 
     final clientesMaxId = _maxNumericId(clientesData, 'id_cliente');
-    final movimientosMaxId = _maxNumericId(movimientosData, 'id');
+    final movimientosMaxId = _maxNumericId(
+      movimientosActivos.isEmpty ? movimientosData : movimientosActivos,
+      'id',
+    );
     final abonosMaxId = _maxNumericId(abonosData, 'id');
 
     buffer
@@ -149,13 +160,36 @@ class DatabaseBackupService {
       ..writeln('-- ========================================')
       ..writeln('-- DATOS: movimientos')
       ..writeln('-- ========================================');
-    if (movimientosData.isEmpty) {
+    if (movimientosActivos.isEmpty && movimientosEliminados.isEmpty) {
       buffer.writeln('-- (sin registros)');
     } else {
-      for (final movimiento in movimientosData) {
-        buffer.writeln(
-          _generateInsertStatement('public.movimientos', movimiento),
-        );
+      if (movimientosActivos.isEmpty) {
+        buffer.writeln('-- (sin registros activos)');
+      } else {
+        for (final movimiento in movimientosActivos) {
+          buffer.writeln(
+            _generateInsertStatement('public.movimientos', movimiento),
+          );
+        }
+      }
+
+      if (movimientosEliminados.isNotEmpty) {
+        buffer
+          ..writeln()
+          ..writeln('-- ---- Movimientos eliminados (solo referencia) ----');
+        for (final movimiento in movimientosEliminados) {
+          final id = movimiento['id'];
+            final motivo = (movimiento['motivo_eliminacion'] ?? '')
+              .toString()
+              .replaceAll(RegExp(r'[\r\n]+'), ' ')
+              .trim();
+          final motivoLabel = motivo.isEmpty ? '' : ' | Motivo: $motivo';
+          buffer
+            ..writeln('-- ID eliminado: $id$motivoLabel')
+            ..writeln(
+              '-- ${_generateInsertStatement('public.movimientos', movimiento)}',
+            );
+        }
       }
     }
     buffer.writeln();

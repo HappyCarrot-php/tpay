@@ -38,7 +38,8 @@ class AppDataCache {
 
   final Map<String, Map<String, dynamic>> _perfiles = {};
   final Map<int, Map<String, dynamic>> _clientes = {};
-  final Map<int, Map<String, dynamic>> _movimientos = {};
+  final Map<int, Map<String, dynamic>> _movimientosActivos = {};
+  final List<Map<String, dynamic>> _movimientosEliminados = [];
   final Map<int, Map<String, dynamic>> _abonos = {};
 
   void cachePerfiles(Iterable<Map<String, dynamic>> rows) {
@@ -70,15 +71,21 @@ class AppDataCache {
   void cacheMovimientos(Iterable<Map<String, dynamic>> rows) {
     for (final row in rows) {
       final id = row['id'];
-      if (id is int) {
-        if (row.containsKey('eliminado')) {
-          final eliminado = row['eliminado'];
-          if (eliminado is bool && eliminado) {
-            _movimientos.remove(id);
-            continue;
-          }
-        }
-        _movimientos[id] = Map<String, dynamic>.from(row)..remove('nombre_cliente');
+      if (id is! int) {
+        continue;
+      }
+
+      final sanitized = Map<String, dynamic>.from(row)
+        ..remove('nombre_cliente');
+
+      sanitized['eliminado'] = sanitized['eliminado'] == true;
+      final eliminado = sanitized['eliminado'] == true;
+
+      if (eliminado) {
+        _storeEliminadoSnapshot(sanitized);
+        _movimientosActivos.remove(id);
+      } else {
+        _movimientosActivos[id] = sanitized;
       }
     }
   }
@@ -100,21 +107,46 @@ class AppDataCache {
     cacheAbonos([row]);
   }
 
-  void removeMovimiento(int id) => _movimientos.remove(id);
+  void removeMovimiento(
+    int id, {
+    bool keepHistory = false,
+    String? motivo,
+  }) {
+    final removed = _movimientosActivos.remove(id);
+
+    if (!keepHistory) {
+      return;
+    }
+
+    if (removed != null) {
+      final snapshot = Map<String, dynamic>.from(removed)
+        ..['eliminado'] = true;
+
+      if (motivo != null && motivo.isNotEmpty) {
+        snapshot['motivo_eliminacion'] = motivo;
+      } else if (!snapshot.containsKey('motivo_eliminacion')) {
+        snapshot['motivo_eliminacion'] = 'Sin motivo registrado';
+      }
+
+      _storeEliminadoSnapshot(snapshot);
+    }
+  }
 
   void removeAbono(int id) => _abonos.remove(id);
 
   void removeCliente(int id) => _clientes.remove(id);
 
   bool get hasClientes => _clientes.isNotEmpty;
-  bool get hasMovimientos => _movimientos.isNotEmpty;
+  bool get hasMovimientos =>
+      _movimientosActivos.isNotEmpty || _movimientosEliminados.isNotEmpty;
   bool get hasAbonos => _abonos.isNotEmpty;
   bool get hasPerfiles => _perfiles.isNotEmpty;
 
   void clear() {
     _perfiles.clear();
     _clientes.clear();
-    _movimientos.clear();
+    _movimientosActivos.clear();
+    _movimientosEliminados.clear();
     _abonos.clear();
   }
 
@@ -122,7 +154,7 @@ class AppDataCache {
     return DatabaseSnapshotData(
       perfiles: _sortedValues(_perfiles),
       clientes: _sortedValues(_clientes),
-      movimientos: _sortedValues(_movimientos),
+      movimientos: _collectMovimientosSnapshot(),
       abonos: _sortedValues(_abonos),
     );
   }
@@ -133,6 +165,31 @@ class AppDataCache {
     return entries.map((entry) => Map<String, dynamic>.from(entry.value)).toList();
   }
 
+  List<Map<String, dynamic>> _collectMovimientosSnapshot() {
+    final activos = _sortedValues(_movimientosActivos);
+
+    if (_movimientosEliminados.isEmpty) {
+      return activos;
+    }
+
+    final eliminados = _movimientosEliminados
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList()
+      ..sort((a, b) {
+        final idA = a['id'];
+        final idB = b['id'];
+        if (idA is int && idB is int && idA != idB) {
+          return idA.compareTo(idB);
+        }
+
+        final updatedA = a['actualizado']?.toString() ?? '';
+        final updatedB = b['actualizado']?.toString() ?? '';
+        return updatedA.compareTo(updatedB);
+      });
+
+    return [...activos, ...eliminados];
+  }
+
   void mergeSnapshot(DatabaseSnapshotData snapshot) {
     cachePerfiles(snapshot.perfiles);
     cacheClientes(snapshot.clientes);
@@ -141,5 +198,30 @@ class AppDataCache {
   }
 
   bool get isEmpty =>
-      _perfiles.isEmpty && _clientes.isEmpty && _movimientos.isEmpty && _abonos.isEmpty;
+      _perfiles.isEmpty &&
+      _clientes.isEmpty &&
+      _movimientosActivos.isEmpty &&
+      _movimientosEliminados.isEmpty &&
+      _abonos.isEmpty;
+
+  void _storeEliminadoSnapshot(Map<String, dynamic> row) {
+    final clone = Map<String, dynamic>.from(row);
+    final signature = _movementSignature(clone);
+    final alreadyStored = _movimientosEliminados.any(
+      (existing) => _movementSignature(existing) == signature,
+    );
+
+    if (!alreadyStored) {
+      _movimientosEliminados.add(clone);
+    }
+  }
+
+  String _movementSignature(Map<String, dynamic> row) {
+    final keys = row.keys.toList()..sort();
+    final buffer = StringBuffer();
+    for (final key in keys) {
+      buffer.write('$key=${row[key]};');
+    }
+    return buffer.toString();
+  }
 }
