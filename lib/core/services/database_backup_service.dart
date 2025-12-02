@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../constants/supabase_constants.dart';
 import 'app_data_cache.dart';
+import 'supabase_service.dart';
 
 class BackupResult {
   final File exportedFile;
@@ -58,28 +60,35 @@ class DatabaseBackupService {
       await archiveFile.writeAsString(backupContent);
 
       return BackupResult(exportedFile: exportedFile, archiveFile: archiveFile);
+    } on BackupDataUnavailableException {
+      rethrow;
     } catch (e) {
       throw Exception('Error al generar backup: $e');
     }
   }
 
+  Future<DatabaseSnapshotData> getLatestSnapshot() async {
+    return _resolveSnapshot(null);
+  }
+
   Future<DatabaseSnapshotData> _resolveSnapshot(
     DatabaseSnapshotData? snapshot,
   ) async {
-    final cache = AppDataCache();
-
     if (snapshot != null && snapshot.hasAnyData) {
-      cache.mergeSnapshot(snapshot);
+      return _sanitizeSnapshot(snapshot);
     }
 
-    final cached = cache.toSnapshot();
-    if (cached.hasAnyData) {
-      return cached;
+    try {
+      final freshSnapshot = await _fetchLatestSnapshotFromSupabase();
+      return freshSnapshot;
+    } on BackupDataUnavailableException {
+      final cache = AppDataCache();
+      final cachedSnapshot = cache.toSnapshot();
+      if (cachedSnapshot.hasAnyData) {
+        return _sanitizeSnapshot(cachedSnapshot);
+      }
+      rethrow;
     }
-
-    throw const BackupDataUnavailableException(
-      'No hay datos preparados para respaldar. Navega primero por los módulos que deseas incluir y vuelve a intentarlo.',
-    );
   }
 
   Future<String> _buildBackupContent(
@@ -226,6 +235,120 @@ class DatabaseBackupService {
     return buffer.toString();
   }
 
+  Future<DatabaseSnapshotData> _fetchLatestSnapshotFromSupabase() async {
+    try {
+      final client = SupabaseService().client;
+
+      final perfilesResponse = await client
+          .from(SupabaseConstants.perfilesTable)
+          .select('*');
+      final clientesResponse = await client
+          .from(SupabaseConstants.clientesTable)
+          .select('*');
+      final movimientosResponse = await client
+          .from(SupabaseConstants.movimientosTable)
+          .select('*');
+      final abonosResponse = await client
+          .from(SupabaseConstants.abonosTable)
+          .select('*');
+
+      final perfiles = _cloneRows(_castRows(perfilesResponse));
+      final clientes = _cloneRows(_castRows(clientesResponse));
+      final movimientos = _normalizeMovimientos(_castRows(movimientosResponse));
+      final abonos = _cloneRows(_castRows(abonosResponse));
+
+      return DatabaseSnapshotData(
+        perfiles: perfiles,
+        clientes: clientes,
+        movimientos: movimientos,
+        abonos: abonos,
+      );
+    } catch (e) {
+      throw const BackupDataUnavailableException(
+        'No se pudo obtener la información actualizada desde Supabase. Verifica tu conexión e inténtalo nuevamente.',
+      );
+    }
+  }
+
+  DatabaseSnapshotData _sanitizeSnapshot(DatabaseSnapshotData snapshot) {
+    return DatabaseSnapshotData(
+      perfiles: _cloneRows(snapshot.perfiles),
+      clientes: _cloneRows(snapshot.clientes),
+      movimientos: _normalizeMovimientos(snapshot.movimientos),
+      abonos: _cloneRows(snapshot.abonos),
+    );
+  }
+
+  List<Map<String, dynamic>> _cloneRows(List<Map<String, dynamic>> rows) {
+    return rows.map((row) => Map<String, dynamic>.from(row)).toList();
+  }
+
+  List<Map<String, dynamic>> _normalizeMovimientos(
+    List<Map<String, dynamic>> rows,
+  ) {
+    final activos = <Map<String, dynamic>>[];
+    final eliminados = <Map<String, dynamic>>[];
+    final firmasEliminados = <String>{};
+
+    for (final row in rows) {
+      final clone = Map<String, dynamic>.from(row)
+        ..remove('nombre_cliente');
+
+      clone['eliminado'] = clone['eliminado'] == true;
+
+      if (clone['motivo_eliminacion'] == null) {
+        clone['motivo_eliminacion'] = '';
+      }
+
+      if (clone['eliminado'] == true) {
+        final firma = _movementSignature(clone);
+        if (firmasEliminados.add(firma)) {
+          eliminados.add(clone);
+        }
+      } else {
+        activos.add(clone);
+      }
+    }
+
+    activos.sort(_compareMovimientosPorId);
+    eliminados.sort(_compareMovimientosEliminados);
+
+    return [...activos, ...eliminados];
+  }
+
+  int _compareMovimientosPorId(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final idA = a['id'] as int? ?? 0;
+    final idB = b['id'] as int? ?? 0;
+    return idA.compareTo(idB);
+  }
+
+  int _compareMovimientosEliminados(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final idCompare = _compareMovimientosPorId(a, b);
+    if (idCompare != 0) {
+      return idCompare;
+    }
+
+    final updatedA = a['actualizado']?.toString() ?? '';
+    final updatedB = b['actualizado']?.toString() ?? '';
+    return updatedA.compareTo(updatedB);
+  }
+
+  String _movementSignature(Map<String, dynamic> row) {
+    final keys = row.keys.toList()
+      ..sort();
+    final buffer = StringBuffer();
+    for (final key in keys) {
+      buffer.write('$key=${row[key]};');
+    }
+    return buffer.toString();
+  }
+
   Future<void> _requestStoragePermission() async {
     if (!Platform.isAndroid) {
       return;
@@ -338,8 +461,8 @@ class DatabaseBackupService {
   /// Obtiene el tamaño estimado del backup
   Future<String> getEstimatedBackupSize() async {
     try {
-      final cache = AppDataCache();
-      final snapshot = cache.toSnapshot();
+      final snapshot = await getLatestSnapshot();
+
       if (!snapshot.hasAnyData) {
         return 'Sin datos';
       }
@@ -353,6 +476,8 @@ class DatabaseBackupService {
       } else {
         return '${(estimatedBytes / (1024 * 1024)).toStringAsFixed(1)}MB';
       }
+    } on BackupDataUnavailableException {
+      return 'Sin datos';
     } catch (e) {
       return 'Desconocido';
     }

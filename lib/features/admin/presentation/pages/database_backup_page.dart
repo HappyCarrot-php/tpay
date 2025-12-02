@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/app_data_cache.dart';
 import '../../../../core/services/database_backup_service.dart';
-import '../../data/repositories/abono_repository.dart';
-import '../../data/repositories/cliente_repository.dart';
-import '../../data/repositories/movimiento_repository.dart';
-import '../../data/repositories/perfil_repository.dart';
 
 class BackupPreparationException implements Exception {
   final String message;
@@ -25,10 +21,6 @@ class DatabaseBackupPage extends StatefulWidget {
 
 class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
   final _backupService = DatabaseBackupService();
-  final _clienteRepository = ClienteRepository();
-  final _movimientoRepository = MovimientoRepository();
-  final _abonoRepository = AbonoRepository();
-  final _perfilRepository = PerfilRepository();
 
   bool _isGenerating = false;
   List<File> _backups = [];
@@ -73,34 +65,21 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
   }
 
   Future<DatabaseSnapshotData> _collectSnapshot() async {
-    final cache = AppDataCache();
+    try {
+      final snapshot = await _backupService.getLatestSnapshot();
 
-    if (!cache.hasPerfiles) {
-      await _perfilRepository.obtenerPerfiles(soloActivos: false);
+      if (snapshot.isEmpty) {
+        throw const BackupPreparationException(
+          'Supabase no devolvió información para respaldar. Verifica que existan registros y vuelve a intentarlo.',
+        );
+      }
+
+      return snapshot;
+    } on BackupDataUnavailableException catch (e) {
+      throw BackupPreparationException(e.message);
+    } catch (e) {
+      throw BackupPreparationException('No se pudo preparar el respaldo: $e');
     }
-
-    if (!cache.hasClientes) {
-      await _clienteRepository.obtenerClientes(soloActivos: false);
-    }
-
-    if (!cache.hasAbonos) {
-      await _abonoRepository.obtenerTodosLosAbonos();
-    }
-
-    if (!cache.hasMovimientos) {
-      throw const BackupPreparationException(
-        'No se encontraron movimientos cargados. Abre la sección de Movimientos y navega por los registros que quieras respaldar antes de generar el backup.',
-      );
-    }
-
-    final snapshot = cache.toSnapshot();
-    if (snapshot.movimientos.isEmpty) {
-      throw const BackupPreparationException(
-        'Los movimientos visibles aún no se han preparado para respaldo. Revisa la lista de movimientos desde el panel de administración y vuelve a intentarlo.',
-      );
-    }
-
-    return snapshot;
   }
 
   Future<void> _generateBackup() async {
@@ -113,7 +92,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
           setState(() => _isGenerating = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No se encontraron datos locales para respaldar'),
+              content: Text('Supabase no reportó datos disponibles para respaldar'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -410,6 +389,14 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'El respaldo consulta directamente la información más reciente en Supabase, incluyendo registros eliminados como referencia.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
                             ),
                           ),
                           const SizedBox(height: 8),
