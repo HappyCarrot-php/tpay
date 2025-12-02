@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/supabase_constants.dart';
+import '../../../../core/services/app_data_cache.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../models/movimiento_model.dart';
 
@@ -55,17 +56,25 @@ class MovimientoRepository {
           .order('id', ascending: false)
           .range(offset, offset + limite - 1);
 
-      return (response as List).map((json) {
-        // Extraer nombre del cliente del JOIN
-        final nombreCliente = json['clientes'] is Map
-            ? json['clientes']['nombre_completo']
+      final rowsForCache = <Map<String, dynamic>>[];
+
+      final movimientos = (response as List).map((json) {
+        final raw = Map<String, dynamic>.from(json);
+        final sanitized = _extractMovimientoRow(raw);
+        rowsForCache.add(sanitized);
+
+        final nombreCliente = raw['clientes'] is Map
+            ? raw['clientes']['nombre_completo']
             : null;
-        
+
         return MovimientoModel.fromJson({
-          ...json,
+          ...sanitized,
           'nombre_cliente': nombreCliente,
         });
       }).toList();
+
+      AppDataCache().cacheMovimientos(rowsForCache);
+      return movimientos;
     } catch (e) {
       throw Exception('Error al obtener movimientos: $e');
     }
@@ -96,16 +105,24 @@ class MovimientoRepository {
 
       final response = await supabaseQuery.order('id', ascending: false);
 
+      final rowsForCache = <Map<String, dynamic>>[];
+
       List<MovimientoModel> movimientos = (response as List).map((json) {
-        final nombreCliente = json['clientes'] is Map
-            ? json['clientes']['nombre_completo']
+        final raw = Map<String, dynamic>.from(json);
+        final sanitized = _extractMovimientoRow(raw);
+        rowsForCache.add(sanitized);
+
+        final nombreCliente = raw['clientes'] is Map
+            ? raw['clientes']['nombre_completo']
             : null;
         
         return MovimientoModel.fromJson({
-          ...json,
+          ...sanitized,
           'nombre_cliente': nombreCliente,
         });
       }).toList();
+
+      AppDataCache().cacheMovimientos(rowsForCache);
 
       // Filtrar por nombre del lado del cliente si es necesario
       if (idPrestamo == null && idCliente == null) {
@@ -132,12 +149,16 @@ class MovimientoRepository {
           .eq('id', id)
           .single();
 
-      final nombreCliente = response['nombre_cliente'] is Map
-          ? response['nombre_cliente']['nombre_completo']
+      final raw = Map<String, dynamic>.from(response);
+      final sanitized = _extractMovimientoRow(raw);
+      AppDataCache().cacheMovimiento(sanitized);
+
+      final nombreCliente = raw['clientes'] is Map
+          ? raw['clientes']['nombre_completo']
           : null;
 
       return MovimientoModel.fromJson({
-        ...response,
+        ...sanitized,
         'nombre_cliente': nombreCliente,
       });
     } catch (e) {
@@ -211,12 +232,16 @@ class MovimientoRepository {
         }
       }
 
-      final nombreCliente = response['clientes'] is Map
-          ? response['clientes']['nombre_completo']
+      final raw = Map<String, dynamic>.from(response);
+      final sanitized = _extractMovimientoRow(raw);
+      AppDataCache().cacheMovimiento(sanitized);
+
+      final nombreCliente = raw['clientes'] is Map
+          ? raw['clientes']['nombre_completo']
           : null;
 
       return MovimientoModel.fromJson({
-        ...response,
+        ...sanitized,
         'nombre_cliente': nombreCliente,
       });
     } on PostgrestException catch (e) {
@@ -276,12 +301,16 @@ class MovimientoRepository {
           ''')
           .single();
 
-      final nombreCliente = response['clientes'] is Map
-          ? response['clientes']['nombre_completo']
+      final raw = Map<String, dynamic>.from(response);
+      final sanitized = _extractMovimientoRow(raw);
+      AppDataCache().cacheMovimiento(sanitized);
+
+      final nombreCliente = raw['clientes'] is Map
+          ? raw['clientes']['nombre_completo']
           : null;
 
       return MovimientoModel.fromJson({
-        ...response,
+        ...sanitized,
         'nombre_cliente': nombreCliente,
       });
     } catch (e) {
@@ -298,6 +327,20 @@ class MovimientoRepository {
         'abonos': 0, // Establecer a 0 para no alterar finanzas
         if (metodoPago != null) 'metodo_pago': metodoPago,
       }).eq('id', movimientoId);
+
+      if (AppDataCache().hasMovimientos) {
+        final existing = AppDataCache()
+            .toSnapshot()
+            .movimientos
+            .firstWhere((row) => row['id'] == movimientoId, orElse: () => {});
+        if (existing.isNotEmpty) {
+          final updated = Map<String, dynamic>.from(existing)
+            ..['estado_pagado'] = true
+            ..['fecha_pagado'] = DateTime.now().toIso8601String()
+            ..['abonos'] = 0;
+          AppDataCache().cacheMovimiento(updated);
+        }
+      }
     } catch (e) {
       throw Exception('Error al marcar como pagado: $e');
     }
@@ -310,6 +353,8 @@ class MovimientoRepository {
         'eliminado': true,
         'motivo_eliminacion': motivoEliminacion,
       }).eq('id', id);
+
+      AppDataCache().removeMovimiento(id);
     } catch (e) {
       throw Exception('Error al eliminar préstamo: $e');
     }
@@ -347,9 +392,47 @@ class MovimientoRepository {
       }
 
       final response = await query;
+      AppDataCache().cacheMovimientos(
+        (response as List)
+        .whereType<Map<String, dynamic>>()
+        .map((row) => _extractMovimientoRow(Map<String, dynamic>.from(row))),
+      );
       return (response as List).length;
     } catch (e) {
       throw Exception('Error al contar movimientos: $e');
     }
+  }
+
+  Map<String, dynamic> _extractMovimientoRow(Map<String, dynamic> source) {
+    final sanitized = <String, dynamic>{};
+    const allowedKeys = [
+      'id',
+      'id_cliente',
+      'monto',
+      'interes',
+      'tasa_interes_porcentaje',
+      'abonos',
+      'saldo_pendiente',
+      'fecha_inicio',
+      'fecha_pago',
+      'dias_prestamo',
+      'estado_pagado',
+      'fecha_pagado',
+      'metodo_pago',
+      'eliminado',
+      'motivo_eliminacion',
+      'usuario_registro',
+      'notas',
+      'creado',
+      'actualizado',
+    ];
+
+    for (final key in allowedKeys) {
+      if (source.containsKey(key)) {
+        sanitized[key] = source[key];
+      }
+    }
+
+    return sanitized;
   }
 }

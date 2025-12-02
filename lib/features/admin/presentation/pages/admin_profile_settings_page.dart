@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import '../../data/repositories/perfil_repository.dart';
+import '../../../../core/services/profile_image_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
 
 class AdminProfileSettingsPage extends StatefulWidget {
   const AdminProfileSettingsPage({super.key});
@@ -16,7 +14,7 @@ class AdminProfileSettingsPage extends StatefulWidget {
 class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
   final _perfilRepo = PerfilRepository();
   final _supabase = SupabaseService().client;
-  final _imagePicker = ImagePicker();
+  final ProfileImageService _profileImageService = ProfileImageService();
   
   bool _isLoading = true;
   String? _nombre;
@@ -403,113 +401,17 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
 
   Future<void> _cambiarFoto() async {
     try {
-      // Mostrar opciones (Cámara o Galería)
-      final ImageSource? source = await showDialog<ImageSource>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Cambiar Foto de Perfil'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo_library, color: Color(0xFF00BCD4)),
-                title: const Text('Galería'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Color(0xFF00BCD4)),
-                title: const Text('Cámara'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      if (source == null) return;
-
-      // Seleccionar imagen
-      final XFile? pickedImage = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 100, // Máxima calidad para el crop
-      );
-
-      if (pickedImage == null) return;
-
-      // Intentar recortar imagen (puede fallar en algunos dispositivos)
-      XFile image = pickedImage;
-      try {
-        final ImageCropper cropper = ImageCropper();
-        final CroppedFile? croppedFile = await cropper.cropImage(
-          sourcePath: pickedImage.path,
-          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-          uiSettings: [
-            AndroidUiSettings(
-              toolbarTitle: 'Ajustar Foto',
-              toolbarColor: const Color(0xFF00BCD4),
-              toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: true,
-              hideBottomControls: false,
-            ),
-            IOSUiSettings(
-              title: 'Ajustar Foto',
-              aspectRatioLockEnabled: true,
-              resetAspectRatioEnabled: false,
-            ),
-          ],
-        );
-
-        if (croppedFile != null) {
-          image = XFile(croppedFile.path);
-        }
-        // Si croppedFile es null, usar la imagen original
-      } catch (cropError) {
-        // Si el crop falla, continuar con la imagen original
-        debugPrint('Error al recortar: $cropError');
+      final newUrl = await _profileImageService.pickAndUploadProfilePhoto(context);
+      if (newUrl == null) {
+        return;
       }
 
-      // Mostrar loading
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      // Obtener el ID del usuario
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) throw Exception('Usuario no autenticado');
-
-      // Leer el archivo
-      final bytes = await File(image.path).readAsBytes();
-      final fileExt = 'jpg'; // Siempre usar jpg para compatibilidad
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'avatar_${userId}_$timestamp.$fileExt';
-
-      // Subir nuevo archivo a Supabase Storage con upsert
-      await _supabase.storage.from('profiles').uploadBinary(
-        fileName,
-        bytes,
-        fileOptions: const FileOptions(
-          contentType: 'image/jpeg',
-          upsert: true,
-        ),
-      );
-
-      // Obtener URL pública
-      final publicUrl = _supabase.storage.from('profiles').getPublicUrl(fileName);
-
-      // Actualizar en la tabla de perfiles
-      await _supabase.from('perfiles').update({
-        'foto_url': publicUrl,
-      }).eq('usuario_id', userId);
-
-      if (!mounted) return;
-      Navigator.pop(context); // Cerrar loading
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
-        _fotoUrl = publicUrl;
+        _fotoUrl = newUrl;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -519,15 +421,15 @@ class _AdminProfileSettingsPageState extends State<AdminProfileSettingsPage> {
         ),
       );
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Cerrar loading si está abierto
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cambiar foto: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (!mounted) {
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cambiar foto: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

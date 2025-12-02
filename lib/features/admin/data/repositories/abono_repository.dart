@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/supabase_constants.dart';
+import '../../../../core/services/app_data_cache.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../models/abono_model.dart';
 
@@ -15,7 +16,13 @@ class AbonoRepository {
           .eq('movimiento_id', movimientoId)
           .order('fecha_abono', ascending: false);
 
-      return (response as List).map((json) => AbonoModel.fromJson(json)).toList();
+        final rowsForCache = (response as List)
+          .whereType<Map<String, dynamic>>()
+          .map((json) => _extractAbonoRow(Map<String, dynamic>.from(json)))
+          .toList();
+        AppDataCache().cacheAbonos(rowsForCache);
+
+        return rowsForCache.map((json) => AbonoModel.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Error al obtener abonos: $e');
     }
@@ -66,7 +73,9 @@ class AbonoRepository {
           .update({'abonos': nuevosAbonos})
           .eq('id', movimientoId);
 
-      return AbonoModel.fromJson(abonoResponse);
+      final sanitized = _extractAbonoRow(Map<String, dynamic>.from(abonoResponse));
+      AppDataCache().cacheAbono(sanitized);
+      return AbonoModel.fromJson(sanitized);
     } catch (e) {
       throw Exception('Error al registrar abono: $e');
     }
@@ -80,6 +89,12 @@ class AbonoRepository {
           .select('monto')
           .eq('movimiento_id', movimientoId);
 
+      AppDataCache().cacheAbonos(
+        (response as List)
+            .whereType<Map<String, dynamic>>()
+            .map((row) => _extractAbonoRow(Map<String, dynamic>.from(row))),
+      );
+
       double total = 0;
       for (var abono in response) {
         total += (abono['monto'] as num).toDouble();
@@ -91,12 +106,56 @@ class AbonoRepository {
     }
   }
 
+  Future<List<AbonoModel>> obtenerTodosLosAbonos() async {
+    try {
+      final response = await _supabase
+          .from(SupabaseConstants.abonosTable)
+          .select()
+          .order('id', ascending: true);
+
+      final rows = (response as List)
+          .whereType<Map<String, dynamic>>()
+          .map((json) => _extractAbonoRow(Map<String, dynamic>.from(json)))
+          .toList();
+      AppDataCache().cacheAbonos(rows);
+
+      return rows.map((json) => AbonoModel.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Error al obtener abonos: $e');
+    }
+  }
+
   // Eliminar abono
   Future<void> eliminarAbono(int id) async {
     try {
       await _supabase.from(SupabaseConstants.abonosTable).delete().eq('id', id);
+      AppDataCache().removeAbono(id);
     } catch (e) {
       throw Exception('Error al eliminar abono: $e');
     }
+  }
+
+  Map<String, dynamic> _extractAbonoRow(Map<String, dynamic> source) {
+    final sanitized = <String, dynamic>{};
+    const allowedKeys = [
+      'id',
+      'id_movimiento',
+      'monto_abono',
+      'fecha_abono',
+      'metodo_pago',
+      'referencia',
+      'comprobante_url',
+      'usuario_registro',
+      'notas',
+      'creado',
+    ];
+
+    for (final key in allowedKeys) {
+      if (source.containsKey(key)) {
+        sanitized[key] = source[key];
+      }
+    }
+
+    return sanitized;
   }
 }

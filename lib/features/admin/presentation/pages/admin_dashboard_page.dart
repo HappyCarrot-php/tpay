@@ -1,6 +1,7 @@
 ﻿import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/models/movimiento_model.dart';
 import '../../data/repositories/movimiento_repository.dart';
@@ -34,6 +35,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _gananciasNetas = 0;
   List<MovimientoModel> _prestamosActivos = [];
   List<MovimientoModel> _prestamosPagados = [];
+  double _saldoPendienteActivos = 0;
+  double _totalAbonosRecibidos = 0;
+  double _promedioAbonosActivos = 0;
+  double _promedioInteres = 0;
+  double _montoPromedio = 0;
+  double _prestamosPromedioMensual = 0;
+  double _tasaRecuperacion = 0;
+  double _tasaMora = 0;
+  int _prestamosVencidos = 0;
+  double _capitalVencido = 0;
+  double _promedioDuracionDias = 0;
+  double _porcentajePrestamosPagados = 0;
   String _saludoBase = '';
   String _nombreSaludo = '';
   String _fraseSaludo = '';
@@ -91,15 +104,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return _frasesSaludo[indice];
   }
 
-  String get _textoSaludo {
-    final saludo = _saludoBase.isNotEmpty
-        ? _saludoBase
-        : _obtenerSaludoSegunHora(DateTime.now());
-    final nombre = _nombreSaludo.isNotEmpty ? _nombreSaludo : 'Administrador';
-    final frase = _fraseSaludo.isNotEmpty ? _fraseSaludo : '¿Cómo estás hoy?';
-    return '$saludo, $nombre, $frase';
-  }
-
   Future<void> _cargarEstadisticas() async {
     setState(() => _isLoading = true);
 
@@ -117,42 +121,105 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         limite: 1000,
       );
 
-      int capitalTotal = 0;
-      int capitalTrabajando = 0;
-      int capitalLiberado = 0;
-      int gananciasNetas = 0;
+      double capitalTotal = 0;
+      double capitalTrabajando = 0;
+      double capitalLiberado = 0;
+      double gananciasNetas = 0;
+      double totalAbonosActivos = 0;
+      double totalAbonosPagados = 0;
+      double saldoPendienteActivos = 0;
+      double capitalVencido = 0;
+      int prestamosVencidos = 0;
 
-      // Capital Total = suma de todos los montos + intereses (de TODOS los préstamos)
-      for (var prestamo in todos) {
-        capitalTotal += (prestamo.monto + prestamo.interes).toInt();
-      }
-
-      // Capital Trabajando = suma de (monto + interes - abonos) solo de préstamos ACTIVOS
-      for (var prestamo in activos) {
-        capitalTrabajando += (prestamo.monto + prestamo.interes - prestamo.abonos).toInt();
-      }
-
-      // Capital Liberado = total de préstamos pagados (monto + interés) + abonos de activos
-      for (var prestamo in pagados) {
-        capitalLiberado += (prestamo.monto + prestamo.interes).toInt();
-      }
-      for (var prestamo in activos) {
-        capitalLiberado += prestamo.abonos.toInt();
+      for (final prestamo in todos) {
+        capitalTotal += prestamo.monto + prestamo.interes;
+        gananciasNetas += prestamo.interes;
       }
 
-      // Ganancias Netas = suma de TODOS los intereses
-      for (var prestamo in todos) {
-        gananciasNetas += prestamo.interes.toInt();
+      for (final prestamo in activos) {
+        final totalPrestamo = prestamo.monto + prestamo.interes;
+        capitalTrabajando += totalPrestamo - prestamo.abonos;
+        saldoPendienteActivos += prestamo.saldoPendiente;
+        totalAbonosActivos += prestamo.abonos;
+
+        if (prestamo.estaVencido) {
+          prestamosVencidos++;
+          capitalVencido += prestamo.saldoPendiente;
+        }
       }
+
+      for (final prestamo in pagados) {
+        capitalLiberado += prestamo.monto + prestamo.interes;
+        totalAbonosPagados += prestamo.abonos;
+      }
+
+      capitalLiberado += totalAbonosActivos;
+
+        final totalAbonosRecibidos = totalAbonosActivos + totalAbonosPagados;
+        final promedioAbonosActivos = activos.isNotEmpty
+          ? totalAbonosActivos / activos.length
+          : 0.0;
+        final tasaRecuperacion = capitalTotal > 0
+          ? (capitalLiberado / capitalTotal) * 100
+          : 0.0;
+        final tasaMora = todos.isNotEmpty
+          ? (prestamosVencidos / todos.length) * 100
+          : 0.0;
+        final promedioInteres = todos.isNotEmpty
+          ? gananciasNetas / todos.length
+          : 0.0;
+        final montoPromedio = todos.isNotEmpty
+          ? capitalTotal / todos.length
+          : 0.0;
+
+      DateTime? fechaMasAntigua;
+      for (final prestamo in todos) {
+        final inicio = prestamo.fechaInicio;
+        if (fechaMasAntigua == null || inicio.isBefore(fechaMasAntigua)) {
+          fechaMasAntigua = inicio;
+        }
+      }
+
+      final diasOperando = fechaMasAntigua != null
+          ? DateTime.now().difference(fechaMasAntigua).inDays
+          : 0;
+      final mesesOperando = diasOperando > 0 ? diasOperando / 30 : 1.0;
+        final prestamosPromedioMensual = mesesOperando > 0
+          ? todos.length / mesesOperando
+          : todos.length.toDouble();
+
+      final totalDiasPrestamos = todos.fold<int>(
+        0,
+        (acumulado, prestamo) => acumulado + prestamo.diasPrestamo,
+      );
+        final promedioDuracionDias = todos.isNotEmpty
+          ? totalDiasPrestamos / todos.length
+          : 0.0;
+
+      final porcentajePrestamosPagados = todos.isNotEmpty
+          ? (pagados.length / todos.length) * 100
+          : 0.0;
 
       setState(() {
         _totalPrestamos = todos.length;
         _prestamosActivos = activos;
         _prestamosPagados = pagados;
-        _capitalTotal = capitalTotal;
-        _capitalTrabajando = capitalTrabajando;
-        _capitalLiberado = capitalLiberado;
-        _gananciasNetas = gananciasNetas;
+        _capitalTotal = capitalTotal.round();
+        _capitalTrabajando = capitalTrabajando.round();
+        _capitalLiberado = capitalLiberado.round();
+        _gananciasNetas = gananciasNetas.round();
+        _saldoPendienteActivos = saldoPendienteActivos;
+        _totalAbonosRecibidos = totalAbonosRecibidos;
+        _promedioAbonosActivos = promedioAbonosActivos;
+        _promedioInteres = promedioInteres;
+        _montoPromedio = montoPromedio;
+        _prestamosPromedioMensual = prestamosPromedioMensual;
+        _tasaRecuperacion = tasaRecuperacion;
+        _tasaMora = tasaMora;
+        _prestamosVencidos = prestamosVencidos;
+        _capitalVencido = capitalVencido;
+        _promedioDuracionDias = promedioDuracionDias;
+        _porcentajePrestamosPagados = porcentajePrestamosPagados;
         _isLoading = false;
       });
     } catch (e) {
@@ -169,10 +236,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   String _formatCurrency(double amount) {
-    return '\$${amount.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
+    final formatter = NumberFormat.currency(
+      locale: 'es_MX',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
   }
 
   @override
@@ -193,12 +262,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      _textoSaludo,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_saludoBase.isNotEmpty ? _saludoBase : _obtenerSaludoSegunHora(DateTime.now())}, ${_nombreSaludo.isNotEmpty ? _nombreSaludo : 'Administrador'}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _fraseSaludo.isNotEmpty ? _fraseSaludo : '¿Cómo estás hoy?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -763,41 +846,78 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildEstadisticasAdicionales() {
-    final tasaRecuperacion = _capitalTotal > 0
-        ? (_capitalLiberado / _capitalTotal) * 100
-        : 0.0;
-    final promedioAbonos = _prestamosActivos.isNotEmpty
-        ? _capitalLiberado / _prestamosActivos.length
-        : 0.0;
-    final promedioInteres = _totalPrestamos > 0
-        ? _gananciasNetas / _totalPrestamos
-        : 0.0;
-    
-    // Calcular préstamos promedio mensual basado en TODOS los préstamos
-    DateTime? fechaMasAntigua;
-    for (var prestamo in _prestamosActivos) {
-      if (fechaMasAntigua == null || prestamo.fechaInicio.isBefore(fechaMasAntigua)) {
-        fechaMasAntigua = prestamo.fechaInicio;
-      }
-    }
-    for (var prestamo in _prestamosPagados) {
-      if (fechaMasAntigua == null || prestamo.fechaInicio.isBefore(fechaMasAntigua)) {
-        fechaMasAntigua = prestamo.fechaInicio;
-      }
-    }
-    
-    final diasOperando = fechaMasAntigua != null
-        ? DateTime.now().difference(fechaMasAntigua).inDays
-        : 0;
-    final mesesOperando = diasOperando > 0 ? diasOperando / 30 : 1;
-    final prestamosPromedioMensual = mesesOperando > 0
-        ? _totalPrestamos / mesesOperando
-        : 0.0;
-    
-    // Calcular monto promedio de préstamo
-    final montoPromedioPrestamo = _totalPrestamos > 0
-        ? _capitalTotal / _totalPrestamos
-        : 0.0;
+    final indicatorRows = [
+      [
+        _IndicatorConfig(
+          label: 'Tasa de Recuperación',
+          value: '${_tasaRecuperacion.toStringAsFixed(1)}%',
+          icon: Icons.trending_up,
+          color: _tasaRecuperacion >= 70 ? Colors.green : Colors.orange,
+        ),
+        _IndicatorConfig(
+          label: '% Préstamos Pagados',
+          value: '${_porcentajePrestamosPagados.toStringAsFixed(1)}%',
+          icon: Icons.task_alt,
+          color: const Color(0xFF00ACC1),
+        ),
+      ],
+      [
+        _IndicatorConfig(
+          label: 'Préstamos en Mora',
+          value: '${_prestamosVencidos.toString()} (${_tasaMora.toStringAsFixed(1)}%)',
+          icon: Icons.warning_amber,
+          color: _tasaMora > 10 ? Colors.red : Colors.orange,
+        ),
+        _IndicatorConfig(
+          label: 'Capital en Mora',
+          value: _formatCurrency(_capitalVencido),
+          icon: Icons.report,
+          color: Colors.deepOrange,
+        ),
+      ],
+      [
+        _IndicatorConfig(
+          label: 'Saldo por Cobrar',
+          value: _formatCurrency(_saldoPendienteActivos),
+          icon: Icons.account_balance_wallet,
+          color: const Color(0xFF1976D2),
+        ),
+        _IndicatorConfig(
+          label: 'Total Abonos',
+          value: _formatCurrency(_totalAbonosRecibidos),
+          icon: Icons.payments,
+          color: Colors.teal,
+        ),
+      ],
+      [
+        _IndicatorConfig(
+          label: 'Préstamos/Mes',
+          value: _prestamosPromedioMensual.toStringAsFixed(1),
+          icon: Icons.calendar_month,
+          color: Colors.indigo,
+        ),
+        _IndicatorConfig(
+          label: 'Promedio Abonos Activos',
+          value: _formatCurrency(_promedioAbonosActivos),
+          icon: Icons.savings,
+          color: Colors.purple,
+        ),
+      ],
+      [
+        _IndicatorConfig(
+          label: 'Interés Promedio',
+          value: _formatCurrency(_promedioInteres),
+          icon: Icons.attach_money,
+          color: Colors.brown,
+        ),
+        _IndicatorConfig(
+          label: 'Monto Promedio',
+          value: _formatCurrency(_montoPromedio),
+          icon: Icons.stacked_line_chart,
+          color: Colors.blueGrey,
+        ),
+      ],
+    ];
 
     return Column(
       children: [
@@ -809,71 +929,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildIndicadorCard(
-                'Tasa de Recuperación',
-                '${tasaRecuperacion.toStringAsFixed(1)}%',
-                Icons.trending_up,
-                tasaRecuperacion >= 70 ? Colors.green : Colors.orange,
+        for (var i = 0; i < indicatorRows.length; i++) ...[
+          Row(
+            children: [
+              Expanded(
+                child: _buildIndicadorCard(
+                  indicatorRows[i][0].label,
+                  indicatorRows[i][0].value,
+                  indicatorRows[i][0].icon,
+                  indicatorRows[i][0].color,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildIndicadorCard(
-                'Total Préstamos',
-                _totalPrestamos.toString(),
-                Icons.receipt_long,
-                const Color(0xFF1976D2),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildIndicadorCard(
+                  indicatorRows[i][1].label,
+                  indicatorRows[i][1].value,
+                  indicatorRows[i][1].icon,
+                  indicatorRows[i][1].color,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildIndicadorCard(
-                'Préstamos/Mes',
-                prestamosPromedioMensual.toStringAsFixed(1),
-                Icons.calendar_month,
-                const Color(0xFFD32F2F),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildIndicadorCard(
-                'Promedio Abonos',
-                _formatCurrency(promedioAbonos),
-                Icons.payment,
-                const Color(0xFF388E3C),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildIndicadorCard(
-                'Interés Promedio',
-                _formatCurrency(promedioInteres),
-                Icons.attach_money,
-                const Color(0xFF7B1FA2),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildIndicadorCard(
-                'Monto Promedio',
-                _formatCurrency(montoPromedioPrestamo),
-                Icons.account_balance_wallet,
-                const Color(0xFFFF6F00),
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          if (i != indicatorRows.length - 1) const SizedBox(height: 12),
+        ],
       ],
     );
   }
@@ -914,4 +993,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ),
     );
   }
+}
+
+class _IndicatorConfig {
+  const _IndicatorConfig({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
 }

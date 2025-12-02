@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_data_cache.dart';
 import '../constants/supabase_constants.dart';
 
 class BackupResult {
@@ -20,7 +21,7 @@ class DatabaseBackupService {
 
   /// Genera un respaldo completo, lo guarda en la ruta elegida por el usuario
   /// y conserva una copia en el almacenamiento interno de la app.
-  Future<BackupResult?> generateFullBackup() async {
+  Future<BackupResult?> generateFullBackup({DatabaseSnapshotData? snapshot}) async {
     try {
       await _requestStoragePermission();
 
@@ -35,7 +36,8 @@ class DatabaseBackupService {
         return null;
       }
 
-      final backupContent = await _buildBackupContent(timestamp);
+      final resolvedSnapshot = await _resolveSnapshot(snapshot);
+      final backupContent = await _buildBackupContent(timestamp, resolvedSnapshot);
 
       final exportedPath = _joinPath(selectedDirectory, filename);
       final exportedFile = File(exportedPath);
@@ -52,9 +54,24 @@ class DatabaseBackupService {
     }
   }
 
-  Future<String> _buildBackupContent(String timestamp) async {
-    final buffer = StringBuffer();
+  Future<DatabaseSnapshotData> _resolveSnapshot(DatabaseSnapshotData? snapshot) async {
+    final cache = AppDataCache();
 
+    if (snapshot != null && snapshot.hasAnyData) {
+      cache.mergeSnapshot(snapshot);
+    }
+
+    final cached = cache.toSnapshot();
+    if (cached.hasAnyData) {
+      return cached;
+    }
+
+    final fetched = await _fetchSnapshotFromSupabase();
+    cache.mergeSnapshot(fetched);
+    return fetched;
+  }
+
+  Future<DatabaseSnapshotData> _fetchSnapshotFromSupabase() async {
     final perfilesData = _castRows(
       await _supabase
           .from(SupabaseConstants.perfilesTable)
@@ -73,6 +90,7 @@ class DatabaseBackupService {
       await _supabase
           .from(SupabaseConstants.movimientosTable)
           .select()
+          .eq('eliminado', false)
           .order('id', ascending: true),
     );
 
@@ -82,6 +100,25 @@ class DatabaseBackupService {
           .select()
           .order('id', ascending: true),
     );
+
+    return DatabaseSnapshotData(
+      perfiles: perfilesData,
+      clientes: clientesData,
+      movimientos: movimientosData,
+      abonos: abonosData,
+    );
+  }
+
+  Future<String> _buildBackupContent(
+    String timestamp,
+    DatabaseSnapshotData snapshot,
+  ) async {
+    final buffer = StringBuffer();
+
+    final perfilesData = snapshot.perfiles;
+    final clientesData = snapshot.clientes;
+    final movimientosData = snapshot.movimientos;
+    final abonosData = snapshot.abonos;
 
     final clientesMaxId = _maxNumericId(clientesData, 'id_cliente');
     final movimientosMaxId = _maxNumericId(movimientosData, 'id');
@@ -269,24 +306,25 @@ class DatabaseBackupService {
     return '$directory$separator$filename';
   }
 
+  int _estimateSnapshotSize(DatabaseSnapshotData snapshot) {
+    final totalRows = snapshot.perfiles.length +
+        snapshot.clientes.length +
+        snapshot.movimientos.length +
+        snapshot.abonos.length;
+    return totalRows * 500;
+  }
+
   /// Obtiene el tamaño estimado del backup
   Future<String> getEstimatedBackupSize() async {
     try {
-      int totalRows = 0;
+      final cache = AppDataCache();
+      var snapshot = cache.toSnapshot();
+      if (!snapshot.hasAnyData) {
+        snapshot = await _fetchSnapshotFromSupabase();
+        cache.mergeSnapshot(snapshot);
+      }
 
-      final perfiles = await _supabase.from(SupabaseConstants.perfilesTable).select();
-      totalRows += perfiles.length;
-
-      final clientes = await _supabase.from(SupabaseConstants.clientesTable).select();
-      totalRows += clientes.length;
-
-      final movimientos = await _supabase.from(SupabaseConstants.movimientosTable).select();
-      totalRows += movimientos.length;
-
-      final abonos = await _supabase.from(SupabaseConstants.abonosTable).select();
-      totalRows += abonos.length;
-
-      final estimatedBytes = totalRows * 500;
+      final estimatedBytes = _estimateSnapshotSize(snapshot);
 
       if (estimatedBytes < 1024) {
         return '${estimatedBytes}B';

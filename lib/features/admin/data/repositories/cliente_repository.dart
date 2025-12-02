@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/supabase_constants.dart';
+import '../../../../core/services/app_data_cache.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../models/cliente_model.dart';
 
@@ -18,6 +19,8 @@ class ClienteRepository {
       }
 
       final response = await query.order('id_cliente', ascending: false);
+
+      AppDataCache().cacheClientes(_normalizeList(response));
 
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
@@ -39,6 +42,8 @@ class ClienteRepository {
           .eq('activo', true)
           .order('id_cliente', ascending: false);
 
+        AppDataCache().cacheClientes(_normalizeList(response));
+
       return (response as List)
           .map((json) => ClienteModel.fromJson(json))
           .toList();
@@ -55,6 +60,8 @@ class ClienteRepository {
           .select()
           .eq('id_cliente', id)
           .single();
+
+        AppDataCache().cacheCliente(Map<String, dynamic>.from(response));
 
       return ClienteModel.fromJson(response);
     } catch (e) {
@@ -73,6 +80,7 @@ class ClienteRepository {
           .maybeSingle();
 
       if (response == null) return null;
+        AppDataCache().cacheCliente(Map<String, dynamic>.from(response));
       return ClienteModel.fromJson(response);
     } catch (e) {
       throw Exception('Error al buscar cliente por nombre: $e');
@@ -90,6 +98,7 @@ class ClienteRepository {
           .maybeSingle();
 
       if (response == null) return null;
+        AppDataCache().cacheCliente(Map<String, dynamic>.from(response));
       return ClienteModel.fromJson(response);
     } catch (e) {
       throw Exception('Error al buscar cliente por email: $e');
@@ -159,9 +168,11 @@ class ClienteRepository {
             rethrow;
           }
         }
-      }
+        }
 
-      return ClienteModel.fromJson(response);
+        final model = ClienteModel.fromJson(response);
+        AppDataCache().cacheCliente(Map<String, dynamic>.from(response));
+        return model;
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
         throw Exception(
@@ -237,7 +248,9 @@ class ClienteRepository {
         }
       }
 
-      return ClienteModel.fromJson(response);
+      final model = ClienteModel.fromJson(response);
+      AppDataCache().cacheCliente(Map<String, dynamic>.from(response));
+      return model;
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
         throw Exception(
@@ -269,7 +282,8 @@ class ClienteRepository {
           .select()
           .single();
 
-      return ClienteModel.fromJson(response);
+        AppDataCache().cacheCliente(Map<String, dynamic>.from(response));
+        return ClienteModel.fromJson(response);
     } catch (e) {
       throw Exception('Error al actualizar cliente: $e');
     }
@@ -282,6 +296,16 @@ class ClienteRepository {
           .from(SupabaseConstants.clientesTable)
           .update({'activo': false})
           .eq('id_cliente', id);
+      if (AppDataCache().hasClientes) {
+        final existing = AppDataCache().toSnapshot().clientes.firstWhere(
+          (row) => row['id_cliente'] == id,
+          orElse: () => {},
+        );
+        if (existing.isNotEmpty) {
+          final updated = Map<String, dynamic>.from(existing)..['activo'] = false;
+          AppDataCache().cacheCliente(updated);
+        }
+      }
     } catch (e) {
       throw Exception('Error al desactivar cliente: $e');
     }
@@ -299,9 +323,20 @@ class ClienteRepository {
       }
 
       final response = await query;
+      AppDataCache().cacheClientes(_normalizeList(response));
       return (response as List).length;
     } catch (e) {
       throw Exception('Error al contar clientes: $e');
     }
+  }
+
+  List<Map<String, dynamic>> _normalizeList(dynamic response) {
+    if (response is List) {
+      return response
+          .whereType<Map<String, dynamic>>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+    }
+    return const [];
   }
 }

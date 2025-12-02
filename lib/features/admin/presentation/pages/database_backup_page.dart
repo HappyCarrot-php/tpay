@@ -1,7 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/services/app_data_cache.dart';
 import '../../../../core/services/database_backup_service.dart';
+import '../../data/repositories/abono_repository.dart';
+import '../../data/repositories/cliente_repository.dart';
+import '../../data/repositories/movimiento_repository.dart';
+import '../../data/repositories/perfil_repository.dart';
 
 class DatabaseBackupPage extends StatefulWidget {
   const DatabaseBackupPage({super.key});
@@ -12,6 +17,10 @@ class DatabaseBackupPage extends StatefulWidget {
 
 class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
   final _backupService = DatabaseBackupService();
+  final _clienteRepository = ClienteRepository();
+  final _movimientoRepository = MovimientoRepository();
+  final _abonoRepository = AbonoRepository();
+  final _perfilRepository = PerfilRepository();
   
   bool _isGenerating = false;
   List<File> _backups = [];
@@ -55,11 +64,49 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
     }
   }
 
+  Future<DatabaseSnapshotData> _collectSnapshot() async {
+    final cache = AppDataCache();
+
+    if (!cache.hasPerfiles) {
+      await _perfilRepository.obtenerPerfiles(soloActivos: false);
+    }
+
+    if (!cache.hasClientes) {
+      await _clienteRepository.obtenerClientes(soloActivos: false);
+    }
+
+    // Siempre recargamos movimientos con filtro general para asegurar datos actualizados
+    await _movimientoRepository.obtenerMovimientos(
+      filtro: FiltroEstadoPrestamo.todos,
+      limite: 5000,
+    );
+
+    if (!cache.hasAbonos) {
+      await _abonoRepository.obtenerTodosLosAbonos();
+    }
+
+    return cache.toSnapshot();
+  }
+
   Future<void> _generateBackup() async {
     setState(() => _isGenerating = true);
 
     try {
-      final result = await _backupService.generateFullBackup();
+      final snapshot = await _collectSnapshot();
+      if (snapshot.isEmpty) {
+        if (mounted) {
+          setState(() => _isGenerating = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se encontraron datos locales para respaldar'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      final result = await _backupService.generateFullBackup(snapshot: snapshot);
       
       if (mounted) {
         setState(() => _isGenerating = false);

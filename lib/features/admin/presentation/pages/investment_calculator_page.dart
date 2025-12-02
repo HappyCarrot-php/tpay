@@ -44,27 +44,29 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
 
       List<Map<String, dynamic>> resultados = [];
       double capitalActual = capitalInicial;
-      double totalAportaciones = 0;
-      double totalRendimiento = 0;
+      double aportacionesAcumuladas = 0;
+      double rendimientoAcumulado = 0;
 
       for (int anio = 1; anio <= plazoAnios; anio++) {
-        // Calcular rendimiento del año
+        final double capitalInicio = capitalActual;
         final double rendimiento = capitalActual * tasaAnual;
-        totalRendimiento += rendimiento;
-
-        // Sumar rendimiento al capital
+        rendimientoAcumulado += rendimiento;
         capitalActual += rendimiento;
 
-        // Agregar aportación (puede ser negativa para gastos)
+        double aportacionAplicada = 0;
         if (_tieneAportaciones) {
           capitalActual += aportacionAnual;
-          totalAportaciones += aportacionAnual;
+          aportacionesAcumuladas += aportacionAnual;
+          aportacionAplicada = aportacionAnual;
         }
 
         resultados.add({
           'anio': anio,
+          'capital_inicio': capitalInicio,
           'rendimiento': rendimiento,
-          'aportacion': aportacionAnual,
+          'rendimiento_acumulado': rendimientoAcumulado,
+          'aportacion': aportacionAplicada,
+          'aportaciones_acumuladas': aportacionesAcumuladas,
           'total': capitalActual,
         });
       }
@@ -72,8 +74,8 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
       setState(() {
         _resultadosPorAnio = resultados;
         _totalFinal = capitalActual;
-        _rendimientoTotal = totalRendimiento;
-        _aportacionesTotal = totalAportaciones;
+        _rendimientoTotal = rendimientoAcumulado;
+        _aportacionesTotal = aportacionesAcumuladas;
         _mostrarResultados = true;
       });
     }
@@ -131,7 +133,11 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Icon(Icons.trending_up, color: Colors.blue[700], size: 32),
+                      Icon(
+                        Icons.trending_up,
+                        color: Colors.blue[700],
+                        size: 32,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -163,7 +169,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                     return 'Ingrese el capital inicial';
                   }
                   final monto = double.tryParse(value);
-                  if (monto == null || monto <= 0) {
+                  if (monto == null || monto < 0) {
                     return 'Ingrese un monto válido';
                   }
                   return null;
@@ -321,10 +327,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
           children: [
             const Text(
               'Resumen de Inversión',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             _buildResumenRow(
@@ -341,9 +344,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
             if (_tieneAportaciones && _aportacionesTotal != 0) ...[
               const Divider(),
               _buildResumenRow(
-                _aportacionesTotal >= 0
-                    ? 'Aportaciones Total'
-                    : 'Gastos Total',
+                _aportacionesTotal >= 0 ? 'Aportaciones Total' : 'Gastos Total',
                 _formatCurrency(_aportacionesTotal.abs()),
                 _aportacionesTotal >= 0 ? Colors.purple : Colors.red,
               ),
@@ -362,8 +363,12 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     );
   }
 
-  Widget _buildResumenRow(String label, String value, Color color,
-      {bool isTotal = false}) {
+  Widget _buildResumenRow(
+    String label,
+    String value,
+    Color color, {
+    bool isTotal = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -391,32 +396,82 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
   }
 
   Widget _buildGraficaCircular() {
-    final double capitalInicial = double.parse(_montoController.text);
+    final double capitalInicial = double.tryParse(_montoController.text) ?? 0;
+    final double capitalPositivo = capitalInicial > 0 ? capitalInicial : 0;
+    final double rendimientoPositivo = _rendimientoTotal > 0
+        ? _rendimientoTotal
+        : 0;
+    final double aportacionesPositivas =
+        (_tieneAportaciones && _aportacionesTotal > 0) ? _aportacionesTotal : 0;
+
+    final double totalGraficable =
+        capitalPositivo + rendimientoPositivo + aportacionesPositivas;
+
+    if (totalGraficable <= 0) {
+      return Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue.shade700),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Sin datos para graficar',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Ingresa capital, rendimiento o aportaciones positivas para visualizar la composición de tu inversión.',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (_tieneAportaciones && _aportacionesTotal < 0) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Las aportaciones negativas (gastos) no se incluyen en la gráfica circular.',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     int touchedIndex = -1;
-    
+
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.donut_large,
-                  color: Colors.blue.shade700,
-                  size: 20,
-                ),
+                Icon(Icons.donut_large, color: Colors.blue.shade700, size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   'Composición',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -430,20 +485,28 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                     return PieChart(
                       PieChartData(
                         pieTouchData: PieTouchData(
-                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                            setChartState(() {
-                              if (!event.isInterestedForInteractions ||
-                                  pieTouchResponse == null ||
-                                  pieTouchResponse.touchedSection == null) {
-                                touchedIndex = -1;
-                                return;
-                              }
-                              touchedIndex = pieTouchResponse
-                                  .touchedSection!.touchedSectionIndex;
-                            });
-                          },
+                          touchCallback:
+                              (FlTouchEvent event, pieTouchResponse) {
+                                setChartState(() {
+                                  if (!event.isInterestedForInteractions ||
+                                      pieTouchResponse == null ||
+                                      pieTouchResponse.touchedSection == null) {
+                                    touchedIndex = -1;
+                                    return;
+                                  }
+                                  touchedIndex = pieTouchResponse
+                                      .touchedSection!
+                                      .touchedSectionIndex;
+                                });
+                              },
                         ),
-                        sections: _buildCompactSections(capitalInicial, touchedIndex),
+                        sections: _buildCompactSections(
+                          capital: capitalPositivo,
+                          rendimiento: rendimientoPositivo,
+                          aportaciones: aportacionesPositivas,
+                          total: totalGraficable,
+                          touchedIndex: touchedIndex,
+                        ),
                         centerSpaceRadius: 50,
                         sectionsSpace: 2,
                         borderData: FlBorderData(show: false),
@@ -454,60 +517,53 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildCompactLeyenda(capitalInicial),
+            _buildCompactLeyenda(
+              capital: capitalPositivo,
+              rendimiento: rendimientoPositivo,
+              aportaciones: aportacionesPositivas,
+              total: totalGraficable,
+            ),
+            if (_tieneAportaciones && _aportacionesTotal < 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'Nota: Las aportaciones negativas (gastos) no se muestran en la gráfica.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  List<PieChartSectionData> _buildCompactSections(double capitalInicial, int touchedIndex) {
+  List<PieChartSectionData> _buildCompactSections({
+    required double capital,
+    required double rendimiento,
+    required double aportaciones,
+    required double total,
+    required int touchedIndex,
+  }) {
     final List<PieChartSectionData> sections = [];
-    int index = 0;
+    final segments = [
+      {'value': capital, 'color': const Color(0xFF2196F3)},
+      {'value': rendimiento, 'color': const Color(0xFF4CAF50)},
+      {'value': aportaciones, 'color': const Color(0xFF9C27B0)},
+    ];
 
-    // Capital inicial
-    final bool isCapitalTouched = index == touchedIndex;
-    sections.add(
-      PieChartSectionData(
-        value: capitalInicial,
-        title: '${(capitalInicial / _totalFinal * 100).toStringAsFixed(0)}%',
-        color: const Color(0xFF2196F3),
-        radius: isCapitalTouched ? 65 : 55,
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    );
-    index++;
-
-    // Rendimiento
-    final bool isRendimientoTouched = index == touchedIndex;
-    sections.add(
-      PieChartSectionData(
-        value: _rendimientoTotal,
-        title: '${(_rendimientoTotal / _totalFinal * 100).toStringAsFixed(0)}%',
-        color: const Color(0xFF4CAF50),
-        radius: isRendimientoTouched ? 65 : 55,
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    );
-    index++;
-
-    // Aportaciones (solo si son positivas)
-    if (_tieneAportaciones && _aportacionesTotal > 0) {
-      final bool isAportacionesTouched = index == touchedIndex;
+    int sectionIndex = 0;
+    for (final segment in segments) {
+      final double value = segment['value'] as double;
+      if (value <= 0) continue;
+      final Color color = segment['color'] as Color;
+      final bool isTouched = sectionIndex == touchedIndex;
       sections.add(
         PieChartSectionData(
-          value: _aportacionesTotal,
-          title: '${(_aportacionesTotal / _totalFinal * 100).toStringAsFixed(0)}%',
-          color: const Color(0xFF9C27B0),
-          radius: isAportacionesTouched ? 65 : 55,
+          value: value,
+          title: '${_percentage(value, total).round()}%',
+          color: color,
+          radius: isTouched ? 65 : 55,
           titleStyle: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -515,38 +571,47 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
           ),
         ),
       );
+      sectionIndex++;
     }
 
     return sections;
   }
 
-  Widget _buildCompactLeyenda(double capitalInicial) {
+  Widget _buildCompactLeyenda({
+    required double capital,
+    required double rendimiento,
+    required double aportaciones,
+    required double total,
+  }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCompactLeyendaItem(
-          'Capital',
-          const Color(0xFF2196F3),
-          capitalInicial,
-          (capitalInicial / _totalFinal * 100),
-        ),
-        const SizedBox(height: 12),
-        _buildCompactLeyendaItem(
-          'Rendimiento',
-          const Color(0xFF4CAF50),
-          _rendimientoTotal,
-          (_rendimientoTotal / _totalFinal * 100),
-        ),
-        if (_tieneAportaciones && _aportacionesTotal > 0) ...[
+        if (capital > 0) ...[
+          _buildCompactLeyendaItem(
+            'Capital',
+            const Color(0xFF2196F3),
+            capital,
+            _percentage(capital, total),
+          ),
           const SizedBox(height: 12),
+        ],
+        if (rendimiento > 0) ...[
+          _buildCompactLeyendaItem(
+            'Rendimiento',
+            const Color(0xFF4CAF50),
+            rendimiento,
+            _percentage(rendimiento, total),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (aportaciones > 0)
           _buildCompactLeyendaItem(
             'Aportaciones',
             const Color(0xFF9C27B0),
-            _aportacionesTotal,
-            (_aportacionesTotal / _totalFinal * 100),
+            aportaciones,
+            _percentage(aportaciones, total),
           ),
-        ],
       ],
     );
   }
@@ -562,10 +627,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -581,36 +643,44 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ),
               Text(
                 _formatCurrency(amount),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
             ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${percentage.toStringAsFixed(1)}%',
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
 
-
+  double _percentage(double value, double total) {
+    if (total <= 0) {
+      return 0;
+    }
+    return (value / total) * 100;
+  }
 
   Widget _buildTablaAnual() {
+    final bool muestraAportaciones = _tieneAportaciones;
+
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Colors.green.shade50.withOpacity(0.3),
-            ],
+            colors: [Colors.white, Colors.green.shade50],
           ),
         ),
         child: Padding(
@@ -627,7 +697,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      Icons.table_chart,
+                      Icons.timeline,
                       color: Colors.green.shade700,
                       size: 24,
                     ),
@@ -644,218 +714,197 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                 ],
               ),
               const SizedBox(height: 20),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(
-                    Colors.blue.shade100.withOpacity(0.5),
-                  ),
-                  headingRowHeight: 56,
-                  dataRowMinHeight: 52,
-                  dataRowMaxHeight: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  columns: [
-                    const DataColumn(
-                      label: Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 16, color: Color(0xFF1976D2)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Año',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Color(0xFF1976D2),
-                            ),
-                          ),
-                        ],
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final resultado = _resultadosPorAnio[index];
+                  final bool esUltimo = index == _resultadosPorAnio.length - 1;
+                  final double capitalInicio =
+                      (resultado['capital_inicio'] as double?) ?? 0;
+                  final double rendimiento =
+                      (resultado['rendimiento'] as double?) ?? 0;
+                  final double rendimientoAcumulado =
+                      (resultado['rendimiento_acumulado'] as double?) ?? 0;
+                  final double aportacion =
+                      (resultado['aportacion'] as double?) ?? 0;
+                  final double aportacionesAcumuladas =
+                      (resultado['aportaciones_acumuladas'] as double?) ?? 0;
+                  final double total = (resultado['total'] as double?) ?? 0;
+
+                  final bool aportacionTieneValor =
+                      muestraAportaciones && aportacion != 0;
+                  final bool aportacionesAcumTienenValor =
+                      muestraAportaciones && aportacionesAcumuladas != 0;
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: esUltimo
+                            ? const Color(0xFF26C6DA)
+                            : Colors.grey.shade200,
                       ),
+                      color: esUltimo ? const Color(0xFFE0F7FA) : Colors.white,
                     ),
-                    const DataColumn(
-                      label: Row(
-                        children: [
-                          Icon(Icons.account_balance_wallet, size: 16, color: Color(0xFF1976D2)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Total Acumulado',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Color(0xFF1976D2),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const DataColumn(
-                      label: Row(
-                        children: [
-                          Icon(Icons.trending_up, size: 16, color: Color(0xFF1976D2)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Rendimiento',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Color(0xFF1976D2),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_tieneAportaciones)
-                      DataColumn(
-                        label: Row(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              _aportacionesTotal >= 0 ? Icons.savings : Icons.money_off,
-                              size: 16,
-                              color: const Color(0xFF1976D2),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _aportacionesTotal >= 0 ? 'Aportación' : 'Gasto',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Color(0xFF1976D2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                  rows: _resultadosPorAnio.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final resultado = entry.value;
-                    final isEvenRow = index % 2 == 0;
-                    
-                    return DataRow(
-                      color: WidgetStateProperty.all(
-                        isEvenRow 
-                            ? Colors.grey.shade50 
-                            : Colors.white,
-                      ),
-                      cells: [
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade700,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${resultado['anio']}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontSize: 14,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade700,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00BCD4).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: const Color(0xFF00BCD4).withOpacity(0.3),
-                              ),
-                            ),
-                            child: Text(
-                              _formatCurrency(resultado['total']),
-                              style: const TextStyle(
-                                color: Color(0xFF00838F),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.green.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.arrow_upward,
-                                  color: Colors.green,
-                                  size: 14,
+                              child: Text(
+                                'Año ${resultado['anio']}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 4),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                if (esUltimo) ...[
+                                  const Icon(
+                                    Icons.star,
+                                    color: Color(0xFF00838F),
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
                                 Text(
-                                  _formatCurrency(resultado['rendimiento']),
-                                  style: const TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                                  _formatCurrency(total),
+                                  style: TextStyle(
+                                    color: const Color(0xFF006064),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                          ],
                         ),
-                        if (_tieneAportaciones)
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: (resultado['aportacion'] >= 0
-                                        ? Colors.purple
-                                        : Colors.red)
-                                    .withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: (resultado['aportacion'] >= 0
-                                          ? Colors.purple
-                                          : Colors.red)
-                                      .withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                _formatCurrency(resultado['aportacion'].abs()),
-                                style: TextStyle(
-                                  color: resultado['aportacion'] >= 0
-                                      ? Colors.purple.shade700
-                                      : Colors.red.shade700,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _buildMetricPill(
+                              icon: Icons.payments_outlined,
+                              label: 'Capital inicial',
+                              value: _formatCurrency(capitalInicio),
+                              color: Colors.indigo,
                             ),
-                          ),
+                            _buildMetricPill(
+                              icon: Icons.trending_up,
+                              label: 'Rendimiento',
+                              value: _formatCurrency(rendimiento),
+                              color: rendimiento >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                            _buildMetricPill(
+                              icon: Icons.auto_graph,
+                              label: 'Rendimiento acum.',
+                              value: _formatCurrency(rendimientoAcumulado),
+                              color: Colors.teal,
+                            ),
+                            if (aportacionTieneValor)
+                              _buildMetricPill(
+                                icon: aportacion >= 0
+                                    ? Icons.savings
+                                    : Icons.money_off,
+                                label: aportacion >= 0 ? 'Aportación' : 'Gasto',
+                                value: _formatCurrency(aportacion),
+                                color: aportacion >= 0
+                                    ? Colors.deepPurple
+                                    : Colors.red,
+                              ),
+                            if (aportacionesAcumTienenValor)
+                              _buildMetricPill(
+                                icon: aportacionesAcumuladas >= 0
+                                    ? Icons.account_balance
+                                    : Icons.receipt_long,
+                                label: aportacionesAcumuladas >= 0
+                                    ? 'Aportaciones acumuladas'
+                                    : 'Gastos acumulados',
+                                value: _formatCurrency(aportacionesAcumuladas),
+                                color: aportacionesAcumuladas >= 0
+                                    ? Colors.deepPurple
+                                    : Colors.red,
+                              ),
+                          ],
+                        ),
                       ],
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  );
+                },
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemCount: _resultadosPorAnio.length,
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricPill({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    final Color background = color.withValues(alpha: 0.08);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );

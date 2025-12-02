@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/app_data_cache.dart';
 import '../../../../core/services/supabase_service.dart';
 
 class PerfilModel {
@@ -55,6 +56,7 @@ class PerfilRepository {
           .maybeSingle();
 
       if (response == null) return null;
+      AppDataCache().cachePerfil(Map<String, dynamic>.from(response));
       return PerfilModel.fromJson(response);
     } catch (e) {
       throw Exception('Error al obtener perfil: $e');
@@ -64,5 +66,26 @@ class PerfilRepository {
   // Obtener email del usuario actual
   String? obtenerEmailActual() {
     return _supabase.auth.currentUser?.email;
+  }
+
+  Future<List<PerfilModel>> obtenerPerfiles({bool soloActivos = true}) async {
+    try {
+      var query = _supabase.from('perfiles').select();
+      if (soloActivos) {
+        query = query.eq('activo', true);
+      }
+
+      final response = await query.order('creado', ascending: true);
+
+      final rows = (response as List)
+          .whereType<Map<String, dynamic>>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+      AppDataCache().cachePerfiles(rows);
+
+      return rows.map(PerfilModel.fromJson).toList();
+    } catch (e) {
+      throw Exception('Error al obtener perfiles: $e');
+    }
   }
 }
