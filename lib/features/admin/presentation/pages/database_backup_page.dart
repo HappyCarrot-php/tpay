@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/services/app_data_cache.dart';
+import '../../../../core/services/app_data_cache.dart' show DatabaseSnapshotData;
 import '../../../../core/services/database_backup_service.dart';
 
 class BackupPreparationException implements Exception {

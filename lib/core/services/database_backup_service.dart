@@ -78,17 +78,8 @@ class DatabaseBackupService {
       return _sanitizeSnapshot(snapshot);
     }
 
-    try {
-      final freshSnapshot = await _fetchLatestSnapshotFromSupabase();
-      return freshSnapshot;
-    } on BackupDataUnavailableException {
-      final cache = AppDataCache();
-      final cachedSnapshot = cache.toSnapshot();
-      if (cachedSnapshot.hasAnyData) {
-        return _sanitizeSnapshot(cachedSnapshot);
-      }
-      rethrow;
-    }
+    final freshSnapshot = await _fetchLatestSnapshotFromSupabase();
+    return freshSnapshot;
   }
 
   Future<String> _buildBackupContent(
@@ -288,23 +279,17 @@ class DatabaseBackupService {
   ) {
     final activos = <Map<String, dynamic>>[];
     final eliminados = <Map<String, dynamic>>[];
-    final firmasEliminados = <String>{};
 
     for (final row in rows) {
       final clone = Map<String, dynamic>.from(row)
         ..remove('nombre_cliente');
 
       clone['eliminado'] = clone['eliminado'] == true;
-
-      if (clone['motivo_eliminacion'] == null) {
-        clone['motivo_eliminacion'] = '';
-      }
+      clone['motivo_eliminacion'] =
+          (clone['motivo_eliminacion'] ?? '').toString();
 
       if (clone['eliminado'] == true) {
-        final firma = _movementSignature(clone);
-        if (firmasEliminados.add(firma)) {
-          eliminados.add(clone);
-        }
+        eliminados.add(clone);
       } else {
         activos.add(clone);
       }
@@ -337,16 +322,6 @@ class DatabaseBackupService {
     final updatedA = a['actualizado']?.toString() ?? '';
     final updatedB = b['actualizado']?.toString() ?? '';
     return updatedA.compareTo(updatedB);
-  }
-
-  String _movementSignature(Map<String, dynamic> row) {
-    final keys = row.keys.toList()
-      ..sort();
-    final buffer = StringBuffer();
-    for (final key in keys) {
-      buffer.write('$key=${row[key]};');
-    }
-    return buffer.toString();
   }
 
   Future<void> _requestStoragePermission() async {
