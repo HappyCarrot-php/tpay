@@ -459,6 +459,49 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final searchBackground = Color.alphaBlend(
+      theme.colorScheme.primary.withAlpha(isDark ? 18 : 10),
+      theme.colorScheme.surface,
+    );
+    final fieldFillColor = Color.alphaBlend(
+      theme.colorScheme.primary.withAlpha(isDark ? 32 : 18),
+      theme.colorScheme.surface,
+    );
+    final borderColor = theme.dividerColor.withAlpha(isDark ? 70 : 110);
+
+    InputDecoration filterDecoration(
+      String label, {
+      Widget? prefixIcon,
+      Widget? suffixIcon,
+    }) {
+      final labelStyle = theme.textTheme.labelMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      );
+      return InputDecoration(
+        labelText: label,
+        labelStyle: labelStyle,
+        floatingLabelStyle: labelStyle?.copyWith(fontWeight: FontWeight.w600),
+        prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: fieldFillColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.colorScheme.primary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      );
+    }
+
     return Scaffold(
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
@@ -466,7 +509,12 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
               children: [
                 // Barra de búsqueda y filtros
                 Container(
-                  color: Colors.grey[100],
+                  decoration: BoxDecoration(
+                    color: searchBackground,
+                    border: Border(
+                      bottom: BorderSide(color: borderColor),
+                    ),
+                  ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
@@ -477,11 +525,12 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                             flex: 2,
                             child: DropdownButtonFormField<String>(
                               value: _tipoBusqueda,
-                              decoration: const InputDecoration(
-                                labelText: 'Buscar por',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
+                              decoration: filterDecoration('Buscar por'),
+                              dropdownColor: fieldFillColor,
+                              style: theme.textTheme.bodyMedium,
+                              iconEnabledColor: theme.colorScheme.primary,
+                              iconDisabledColor: theme.disabledColor,
+                              borderRadius: BorderRadius.circular(12),
                               items: const [
                                 DropdownMenuItem(value: 'todos', child: Text('Todos')),
                                 DropdownMenuItem(value: 'id_prestamo', child: Text('ID Préstamo')),
@@ -503,11 +552,12 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                             flex: 2,
                             child: DropdownButtonFormField<String>(
                               value: _filtroEstado,
-                              decoration: const InputDecoration(
-                                labelText: 'Estado',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
+                              decoration: filterDecoration('Estado'),
+                              dropdownColor: fieldFillColor,
+                              style: theme.textTheme.bodyMedium,
+                              iconEnabledColor: theme.colorScheme.primary,
+                              iconDisabledColor: theme.disabledColor,
+                              borderRadius: BorderRadius.circular(12),
                               items: const [
                                 DropdownMenuItem(value: 'todos', child: Text('Todos')),
                                 DropdownMenuItem(value: 'pagado', child: Text('Pagados')),
@@ -525,17 +575,17 @@ class AdminLoansListPageState extends State<AdminLoansListPage> {
                       if (_tipoBusqueda != 'todos')
                         TextField(
                           controller: _busquedaController,
-                          decoration: InputDecoration(
-                            labelText: _tipoBusqueda == 'id_prestamo'
+                          style: theme.textTheme.bodyMedium,
+                          decoration: filterDecoration(
+                            _tipoBusqueda == 'id_prestamo'
                                 ? 'Ingrese ID del préstamo'
                                 : _tipoBusqueda == 'id_cliente'
                                     ? 'Ingrese ID del cliente'
                                     : 'Ingrese nombre del cliente',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.search),
+                            prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
                             suffixIcon: _busquedaController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear),
+                                    icon: Icon(Icons.clear, color: theme.colorScheme.primary),
                                     onPressed: () {
                                       setState(() {
                                         _busquedaController.clear();

@@ -29,6 +29,20 @@ class _AdminHomePageState extends State<AdminHomePage> {
     _selectedIndex = widget.initialIndex;
   }
 
+  @override
+  void didUpdateWidget(covariant AdminHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex &&
+      widget.initialIndex >= 0 &&
+      widget.initialIndex < _titles.length) {
+      // Post-frame update avoids setState during build when coming from router rebuilds.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selectedIndex = widget.initialIndex);
+      });
+    }
+  }
+
   List<Widget> get _pages => [
     const AdminDashboardPage(),
     AdminLoansListPage(key: _loansPageKey),
