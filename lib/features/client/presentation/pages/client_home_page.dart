@@ -22,10 +22,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
   FiltroEstadoPrestamo _filtroActual = FiltroEstadoPrestamo.todos;
   bool _isLoading = false;
   double _deudaTotal = 0;
-  
-  // Paginación
   int _paginaActual = 0;
   final int _prestamosPorPagina = 5;
+  final Set<int> _expandedLoans = {};
 
   @override
   void initState() {
@@ -37,59 +36,55 @@ class _ClientHomePageState extends State<ClientHomePage> {
     setState(() => _isLoading = true);
 
     try {
-      // Obtener email del usuario autenticado
       final email = Supabase.instance.client.auth.currentUser?.email;
       if (email == null) {
         throw Exception('No se pudo obtener el email del usuario');
       }
 
-      // Buscar cliente por email
       final cliente = await _clienteRepo.buscarClientePorEmail(email);
       if (cliente == null) {
         throw Exception('No hay préstamos asociados a tu cuenta. Contacta al moderador.');
       }
 
-      final clienteId = cliente.id;
-
-      // Cargar préstamos del cliente
       final prestamos = await _movimientoRepo.obtenerMovimientos(
-        clienteId: clienteId,
+        clienteId: cliente.id,
         filtro: _filtroActual,
       );
 
-      // Cargar deuda total
-      final deuda = await _clienteRepo.obtenerDeudaTotal(clienteId);
+      final deuda = await _clienteRepo.obtenerDeudaTotal(cliente.id);
 
       setState(() {
         _prestamos = prestamos;
         _deudaTotal = deuda;
+        _paginaActual = 0;
+        _expandedLoans.clear();
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
   void _cambiarFiltro(FiltroEstadoPrestamo nuevoFiltro) {
     setState(() {
       _filtroActual = nuevoFiltro;
-      _paginaActual = 0; // Resetear página al cambiar filtro
+      _paginaActual = 0;
     });
     _cargarDatos();
   }
 
   List<MovimientoModel> get _prestamosPaginados {
     final inicio = _paginaActual * _prestamosPorPagina;
-    final fin = (inicio + _prestamosPorPagina).clamp(0, _prestamos.length);
-    return _prestamos.sublist(inicio.clamp(0, _prestamos.length), fin);
+    final fin = (inicio + _prestamosPorPagina).clamp(0, _prestamos.length).toInt();
+    final inicioAjustado = inicio.clamp(0, _prestamos.length).toInt();
+    return _prestamos.sublist(inicioAjustado, fin);
   }
 
   int get _totalPaginas => (_prestamos.length / _prestamosPorPagina).ceil();
@@ -122,9 +117,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Préstamos'),
-        backgroundColor: const Color(0xFF00BCD4),
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const ClientDrawer(),
       body: _isLoading
@@ -165,7 +157,11 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   // Info header
                   Container(
                     padding: const EdgeInsets.all(12),
-                    color: Colors.grey[100],
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant
+                          .withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.25 : 0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -187,7 +183,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       ],
                     ),
                   ),
-
                   // Lista de préstamos
                   Expanded(
                     child: _prestamos.isEmpty
@@ -212,10 +207,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
                             ),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             itemCount: _prestamosPaginados.length,
                             itemBuilder: (context, index) {
-                              return _buildPrestamoCard(_prestamosPaginados[index]);
+                              return _buildPrestamoTile(_prestamosPaginados[index]);
                             },
                           ),
                   ),
@@ -225,9 +220,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: Theme.of(context).colorScheme.surfaceVariant
+                            .withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.5),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                         border: Border(
-                          top: BorderSide(color: Colors.grey[300]!),
+                          top: BorderSide(
+                            color: Theme.of(context).dividerColor.withOpacity(0.4),
+                          ),
                         ),
                       ),
                       child: Row(
@@ -239,9 +238,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
                             icon: const Icon(Icons.arrow_back, size: 16),
                             label: const Text('Anterior'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00BCD4),
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: Colors.grey[300],
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              disabledBackgroundColor: Theme.of(context).disabledColor.withOpacity(0.2),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             ),
                           ),
@@ -250,17 +249,17 @@ class _ClientHomePageState extends State<ClientHomePage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00BCD4).withOpacity(0.1),
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: const Color(0xFF00BCD4).withOpacity(0.3),
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.35),
                               ),
                             ),
                             child: Text(
                               'Página ${_paginaActual + 1} de $_totalPaginas',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF00BCD4),
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ),
@@ -273,9 +272,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
                             icon: const Icon(Icons.arrow_forward, size: 16),
                             label: const Text('Siguiente'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00BCD4),
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: Colors.grey[300],
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              disabledBackgroundColor: Theme.of(context).disabledColor.withOpacity(0.2),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             ),
                           ),
@@ -289,24 +288,30 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   Widget _buildDeudaTotalCard() {
+    final theme = Theme.of(context);
+    final hasDebt = _deudaTotal > 0;
+    final startColor = hasDebt
+        ? theme.colorScheme.error.withOpacity(0.85)
+        : Colors.tealAccent.shade400.withOpacity(theme.brightness == Brightness.dark ? 0.7 : 0.9);
+    final endColor = hasDebt
+        ? theme.colorScheme.error
+        : Colors.teal.shade600;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: _deudaTotal > 0
-              ? [Colors.red[400]!, Colors.red[600]!]
-              : [Colors.green[400]!, Colors.green[600]!],
+          colors: [startColor, endColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (_deudaTotal > 0 ? Colors.red : Colors.green)
-                .withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: endColor.withOpacity(0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -316,14 +321,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _deudaTotal > 0
+                hasDebt
                     ? Icons.account_balance_wallet
                     : Icons.check_circle,
                 color: Colors.white,
                 size: 32,
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Deuda Total',
                 style: TextStyle(
                   color: Colors.white,
@@ -344,9 +349,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            _deudaTotal > 0 ? 'Monto pendiente de pago' : 'Sin deuda activa',
-            style: const TextStyle(
-              color: Colors.white70,
+            hasDebt ? 'Monto pendiente de pago' : 'Sin deuda activa',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.75),
               fontSize: 14,
             ),
           ),
@@ -361,6 +366,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     IconData icon,
   ) {
     final isSelected = _filtroActual == filtro;
+    final theme = Theme.of(context);
     return Expanded(
       child: FilterChip(
         label: Row(
@@ -373,114 +379,262 @@ class _ClientHomePageState extends State<ClientHomePage> {
         ),
         selected: isSelected,
         onSelected: (selected) => _cambiarFiltro(filtro),
-        selectedColor: const Color(0xFF00BCD4),
-        checkmarkColor: Colors.white,
+        selectedColor: theme.colorScheme.primary,
+        checkmarkColor: theme.colorScheme.onPrimary,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected
+              ? theme.colorScheme.onPrimary
+              : theme.textTheme.bodyMedium?.color,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
         ),
       ),
     );
   }
 
-  Widget _buildPrestamoCard(MovimientoModel prestamo) {
+  Widget _buildPrestamoTile(MovimientoModel prestamo) {
+    final theme = Theme.of(context);
+    final statusColor = Color(prestamo.estadoColor);
+    final isExpanded = _expandedLoans.contains(prestamo.id);
+    final progreso = prestamo.totalAPagar == 0
+        ? 0.0
+        : (prestamo.abonos / prestamo.totalAPagar).clamp(0.0, 1.0);
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Color(prestamo.estadoColor).withOpacity(0.08),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Color(prestamo.estadoColor).withOpacity(0.3),
-          width: 1.5,
-        ),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Color(prestamo.estadoColor),
-          child: Text(
-            '#${prestamo.id}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: PageStorageKey<int>(prestamo.id),
+          initiallyExpanded: isExpanded,
+          onExpansionChanged: (expanded) {
+            setState(() {
+              if (expanded) {
+                _expandedLoans.add(prestamo.id);
+              } else {
+                _expandedLoans.remove(prestamo.id);
+              }
+            });
+          },
+          title: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Text(
+                    '#${prestamo.id}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Préstamo ${prestamo.id}',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      prestamo.estadoTexto,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatCurrency(prestamo.totalAPagar),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDate(prestamo.fechaPago),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              children: [
+                _buildMiniChip(
+                  icon: Icons.monetization_on_outlined,
+                  label: 'Monto ${_formatCurrency(prestamo.monto)}',
+                  color: theme.colorScheme.primary,
+                ),
+                _buildMiniChip(
+                  icon: Icons.wallet_outlined,
+                  label: 'Pendiente ${_formatCurrency(prestamo.saldoPendiente)}',
+                  color: prestamo.estadoPagado ? Colors.green : theme.colorScheme.secondary,
+                ),
+              ],
             ),
           ),
-        ),
-        title: Row(
           children: [
-            Expanded(
-              child: Text(
-                'Préstamo #${prestamo.id}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: progreso,
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(8),
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${prestamo.porcentajePagado.toStringAsFixed(1)}% pagado',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildLoanInfoRow(
+                    icon: Icons.account_balance_wallet,
+                    label: 'Abonos realizados',
+                    value: _formatCurrency(prestamo.abonos),
+                  ),
+                  _buildLoanInfoRow(
+                    icon: Icons.attach_money,
+                    label: 'Interés generado',
+                    value: _formatCurrency(prestamo.interes),
+                  ),
+                  _buildLoanInfoRow(
+                    icon: Icons.calendar_today,
+                    label: 'Fecha de inicio',
+                    value: _formatDate(prestamo.fechaInicio),
+                  ),
+                  _buildLoanInfoRow(
+                    icon: Icons.timer_outlined,
+                    label: 'Plazo',
+                    value: '${prestamo.diasPrestamo} días',
+                  ),
+                  if (prestamo.estaVencido)
+                    _buildLoanInfoRow(
+                      icon: Icons.warning_amber_rounded,
+                      label: 'En mora',
+                      value: '${prestamo.diasVencido} días atrasado',
+                      valueColor: Colors.red,
+                    ),
+                  const SizedBox(height: 16),
+                  ClientLoanActionButtons(prestamo: prestamo),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => _mostrarDetalles(prestamo),
+                      icon: const Icon(Icons.list_alt),
+                      label: const Text('Detalles completos'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoanInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 18, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall,
                 ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Color(prestamo.estadoColor),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                prestamo.estadoTexto,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: valueColor ?? theme.textTheme.titleSmall?.color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text('Monto: ${_formatCurrency(prestamo.monto)}'),
-            Text(
-              'Pendiente: ${_formatCurrency(prestamo.saldoPendiente)}',
-              style: TextStyle(
-                color: prestamo.estadoPagado ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'Vence: ${_formatDate(prestamo.fechaPago)}',
-              style: TextStyle(
-                color: prestamo.estaVencido ? Colors.red : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              _formatCurrency(prestamo.totalAPagar),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              '${prestamo.porcentajePagado.toInt()}% pagado',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-        onTap: () => _mostrarDetalles(prestamo),
+          ),
+        ],
       ),
     );
   }
 
   void _mostrarDetalles(MovimientoModel prestamo) {
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -491,9 +645,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
         maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(20),
           child: ListView(
@@ -505,7 +659,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: theme.dividerColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -612,18 +766,26 @@ class _ClientHomePageState extends State<ClientHomePage> {
     bool isHighlighted = false,
     Color? valueColor,
   }) {
+    final theme = Theme.of(context);
+    final highlightColor = theme.colorScheme.primary;
+    final backgroundColor = isHighlighted
+        ? highlightColor.withOpacity(0.12)
+        : theme.colorScheme.surfaceVariant.withOpacity(0.25);
+    final borderColor = isHighlighted
+        ? highlightColor.withOpacity(0.3)
+        : theme.dividerColor.withOpacity(0.4);
+    final iconBackground = isHighlighted
+        ? highlightColor.withOpacity(0.2)
+        : theme.colorScheme.primary.withOpacity(0.15);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isHighlighted
-            ? const Color(0xFF00BCD4).withOpacity(0.1)
-            : Colors.grey[50],
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isHighlighted
-              ? const Color(0xFF00BCD4).withOpacity(0.3)
-              : Colors.grey[200]!,
+          color: borderColor,
         ),
       ),
       child: Row(
@@ -631,14 +793,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isHighlighted
-                  ? const Color(0xFF00BCD4).withOpacity(0.2)
-                  : Colors.grey[200],
+              color: iconBackground,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
-              color: isHighlighted ? const Color(0xFF00BCD4) : Colors.grey[600],
+              color: isHighlighted ? highlightColor : theme.colorScheme.primary,
               size: 20,
             ),
           ),
@@ -649,9 +809,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -661,7 +820,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     fontSize: isHighlighted ? 18 : 16,
                     fontWeight:
                         isHighlighted ? FontWeight.bold : FontWeight.w500,
-                    color: valueColor ?? Colors.black87,
+                    color: valueColor ?? (isHighlighted
+                        ? highlightColor
+                        : theme.textTheme.titleMedium?.color),
                   ),
                 ),
               ],

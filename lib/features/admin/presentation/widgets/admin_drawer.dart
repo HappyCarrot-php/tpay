@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../data/repositories/perfil_repository.dart';
+import '../../../../core/settings/app_settings.dart';
 
 class AdminDrawer extends StatefulWidget {
   const AdminDrawer({super.key});
@@ -37,6 +40,40 @@ class _AdminDrawerState extends State<AdminDrawer> {
         });
       }
     }
+  }
+
+  Future<void> _handleSignOut() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Seguro que deseas salir del panel administrador?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true || !mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop();
+
+    await Supabase.instance.client.auth.signOut();
+    if (!mounted) return;
+    context.go('/login');
   }
 
   @override
@@ -89,17 +126,15 @@ class _AdminDrawerState extends State<AdminDrawer> {
             ),
           ),
           
-          // Dashboard
+          // Navegación principal
           ListTile(
-            leading: const Icon(Icons.dashboard),
+            leading: const Icon(Icons.dashboard_outlined),
             title: const Text('Dashboard'),
             onTap: () {
               Navigator.pop(context);
               context.go('/admin');
             },
           ),
-          
-          // Préstamos
           ListTile(
             leading: const Icon(Icons.receipt_long),
             title: const Text('Préstamos'),
@@ -108,8 +143,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/loans');
             },
           ),
-          
-          // Clientes
           ListTile(
             leading: const Icon(Icons.people),
             title: const Text('Clientes'),
@@ -118,8 +151,15 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/clients');
             },
           ),
-          
-          // Perfiles (Gestión de usuarios)
+          ListTile(
+            leading: const Icon(Icons.calendar_month),
+            title: const Text('Calendario'),
+            subtitle: const Text('Préstamos por fecha'),
+            onTap: () {
+              Navigator.pop(context);
+              context.go('/admin/calendar');
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.badge, color: Colors.purple),
             title: const Text('Perfiles'),
@@ -129,10 +169,9 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/profiles');
             },
           ),
-          
+
           const Divider(),
-          
-          // Registrar Préstamo
+
           ListTile(
             leading: const Icon(Icons.add_circle, color: Color(0xFF00BCD4)),
             title: const Text('Registrar Préstamo'),
@@ -142,8 +181,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/create-loan');
             },
           ),
-          
-          // Simulador de Préstamo
           ListTile(
             leading: const Icon(Icons.calculate_outlined),
             title: const Text('Simular Préstamo'),
@@ -153,8 +190,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/loan-simulator');
             },
           ),
-          
-          // Calcular Inversión
           ListTile(
             leading: const Icon(Icons.trending_up, color: Colors.green),
             title: const Text('Calcular Inversión'),
@@ -164,8 +199,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/investment-calculator');
             },
           ),
-          
-          // Calculadora
           ListTile(
             leading: const Icon(Icons.calculate, color: Colors.orange),
             title: const Text('Calculadora'),
@@ -175,32 +208,59 @@ class _AdminDrawerState extends State<AdminDrawer> {
               context.go('/admin/calculator');
             },
           ),
-          
+
           const Divider(),
-          
-          // Actualizar BD (Solo para moderadores)
-          if (_rol == 'moderador')
-            ListTile(
-              leading: const Icon(Icons.backup, color: Colors.purple),
-              title: const Text('Actualizar BD'),
-              subtitle: const Text('Backup de base de datos'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go('/admin/database-backup');
-              },
-            ),
-          
-          const Divider(),
-          
-          // Perfil (al final)
+
           ListTile(
-            leading: const Icon(Icons.person),
+            leading: const Icon(Icons.person_outline),
             title: const Text('Mi Perfil'),
             onTap: () {
               Navigator.pop(context);
               context.go('/admin/profile');
             },
           ),
+
+          ExpansionTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Ajustes'),
+            childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              ValueListenableBuilder<ThemeMode>(
+                valueListenable: AppSettings.instance.themeModeNotifier,
+                builder: (context, mode, _) {
+                  return SwitchListTile.adaptive(
+                    value: mode == ThemeMode.dark,
+                    onChanged: (value) => AppSettings.instance.setDarkMode(value),
+                    title: const Text('Modo oscuro'),
+                    secondary: const Icon(Icons.dark_mode),
+                    contentPadding: EdgeInsets.zero,
+                  );
+                },
+              ),
+              if (_rol == 'moderador')
+                ListTile(
+                  leading: const Icon(Icons.backup, color: Colors.purple),
+                  title: const Text('Actualizar BD'),
+                  subtitle: const Text('Backup de base de datos'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go('/admin/database-backup');
+                  },
+                ),
+            ],
+          ),
+
+          const Divider(),
+
+          ListTile(
+            leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+            title: Text(
+              'Cerrar sesión',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            onTap: _handleSignOut,
+          ),
+          const SizedBox(height: 12),
         ],
       ),
     );

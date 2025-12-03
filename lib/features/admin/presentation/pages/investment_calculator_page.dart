@@ -104,16 +104,22 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calcular Inversión'),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, color: colorScheme.onPrimary),
             onPressed: _limpiar,
             tooltip: 'Limpiar',
           ),
@@ -126,26 +132,33 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Card informativo
               Card(
-                color: Colors.blue[50],
+                color: colorScheme.primaryContainer.withAlpha(60),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
                       Icon(
                         Icons.trending_up,
-                        color: Colors.blue[700],
+                        color: colorScheme.primary,
                         size: 32,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Simula el crecimiento de tu inversión a largo plazo',
-                          style: TextStyle(
-                            color: Colors.blue[900],
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style:
+                              textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onPrimaryContainer,
+                              ) ??
+                              TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
                         ),
                       ),
                     ],
@@ -154,15 +167,19 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ),
               const SizedBox(height: 24),
 
-              // Monto inicial
               TextFormField(
                 controller: _montoController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Capital Inicial',
-                  prefixIcon: Icon(Icons.attach_money),
+                  prefixIcon: Icon(
+                    Icons.attach_money,
+                    color: colorScheme.primary,
+                  ),
                   suffixText: 'MXN',
                   helperText: 'Monto inicial de la inversión',
+                  filled: true,
+                  fillColor: colorScheme.surface,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -177,15 +194,16 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ),
               const SizedBox(height: 16),
 
-              // Tasa de interés anual
               TextFormField(
                 controller: _tasaController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Tasa de Interés Anual',
-                  prefixIcon: Icon(Icons.percent),
+                  prefixIcon: Icon(Icons.percent, color: colorScheme.primary),
                   suffixText: '%',
                   helperText: 'Rendimiento anual esperado',
+                  filled: true,
+                  fillColor: colorScheme.surface,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -200,15 +218,19 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ),
               const SizedBox(height: 16),
 
-              // Plazo en años
               TextFormField(
                 controller: _plazoController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Plazo',
-                  prefixIcon: Icon(Icons.calendar_today),
+                  prefixIcon: Icon(
+                    Icons.calendar_today,
+                    color: colorScheme.primary,
+                  ),
                   suffixText: 'años',
                   helperText: 'Duración de la inversión',
+                  filled: true,
+                  fillColor: colorScheme.surface,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -223,14 +245,24 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
               ),
               const SizedBox(height: 24),
 
-              // Switch para aportaciones
               SwitchListTile(
-                title: const Text('¿Hay aportaciones anuales?'),
+                title: Text(
+                  '¿Hay aportaciones anuales?',
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 subtitle: Text(
                   _tieneAportaciones
                       ? 'Puede ser positivo (ahorro) o negativo (gastos)'
                       : 'Sin aportaciones adicionales',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: textTheme.bodySmall?.color?.withAlpha(170),
+                  ),
+                ),
+                tileColor: colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 value: _tieneAportaciones,
                 onChanged: (value) {
@@ -243,7 +275,6 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                 },
               ),
 
-              // Campo de aportaciones anuales
               if (_tieneAportaciones)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
@@ -253,12 +284,17 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                       signed: true,
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Aportaciones Anuales',
-                      prefixIcon: Icon(Icons.savings),
+                      prefixIcon: Icon(
+                        Icons.savings,
+                        color: colorScheme.primary,
+                      ),
                       suffixText: 'MXN',
                       helperText:
                           'Positivo = ahorro, Negativo = gastos mensuales/anuales',
+                      filled: true,
+                      fillColor: colorScheme.surface,
                     ),
                     validator: (value) {
                       if (_tieneAportaciones &&
@@ -277,7 +313,6 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                 ),
               const SizedBox(height: 32),
 
-              // Botón calcular
               ElevatedButton.icon(
                 onPressed: _calcularInversion,
                 icon: const Icon(Icons.calculate),
@@ -288,24 +323,22 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                 ),
               ),
 
-              // Resultados
               if (_mostrarResultados) ...[
                 const SizedBox(height: 32),
-                const Divider(thickness: 2),
+                Divider(thickness: 2, color: colorScheme.outlineVariant),
                 const SizedBox(height: 16),
 
-                // Resumen
                 _buildResumenCard(),
                 const SizedBox(height: 24),
 
-                // Gráfica circular
                 _buildGraficaCircular(),
                 const SizedBox(height: 24),
 
-                // Tabla año por año
                 _buildTablaAnual(),
               ],
             ],
@@ -317,36 +350,45 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
 
   Widget _buildResumenCard() {
     final double capitalInicial = double.parse(_montoController.text);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Card(
       elevation: 4,
-      color: const Color(0xFFE3F2FD),
+      color: colorScheme.surfaceContainerHighest.withAlpha(80),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Text(
+            Text(
               'Resumen de Inversión',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style:
+                  theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ) ??
+                  const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             _buildResumenRow(
               'Capital Inicial',
               _formatCurrency(capitalInicial),
-              Colors.blue,
+              colorScheme.primary,
             ),
             const Divider(),
             _buildResumenRow(
               'Rendimiento Total',
               _formatCurrency(_rendimientoTotal),
-              Colors.green,
+              colorScheme.secondary,
             ),
             if (_tieneAportaciones && _aportacionesTotal != 0) ...[
               const Divider(),
               _buildResumenRow(
                 _aportacionesTotal >= 0 ? 'Aportaciones Total' : 'Gastos Total',
                 _formatCurrency(_aportacionesTotal.abs()),
-                _aportacionesTotal >= 0 ? Colors.purple : Colors.red,
+                _aportacionesTotal >= 0
+                    ? colorScheme.tertiary
+                    : colorScheme.error,
               ),
             ],
             const Divider(thickness: 2),
@@ -354,7 +396,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
             _buildResumenRow(
               'Total Final',
               _formatCurrency(_totalFinal),
-              const Color(0xFF00BCD4),
+              colorScheme.primary,
               isTotal: true,
             ),
           ],
@@ -369,33 +411,33 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     Color color, {
     bool isTotal = false,
   }) {
+    final theme = Theme.of(context);
+    final labelStyle =
+        (isTotal ? theme.textTheme.titleMedium : theme.textTheme.bodyMedium)
+            ?.copyWith(
+              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
+              color: theme.colorScheme.onSurface,
+            );
+    final valueStyle =
+        (isTotal ? theme.textTheme.headlineSmall : theme.textTheme.titleSmall)
+            ?.copyWith(fontWeight: FontWeight.bold, color: color);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 16,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-              color: Colors.grey[800],
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isTotal ? 20 : 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
+          Text(label, style: labelStyle),
+          Text(value, style: valueStyle),
         ],
       ),
     );
   }
 
   Widget _buildGraficaCircular() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final double capitalInicial = double.tryParse(_montoController.text) ?? 0;
     final double capitalPositivo = capitalInicial > 0 ? capitalInicial : 0;
     final double rendimientoPositivo = _rendimientoTotal > 0
@@ -410,41 +452,55 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     if (totalGraficable <= 0) {
       return Card(
         elevation: 4,
+        color: colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, color: Colors.blue.shade700),
+              Icon(Icons.info_outline, color: colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Sin datos para graficar',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style:
+                          textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Ingresa capital, rendimiento o aportaciones positivas para visualizar la composición de tu inversión.',
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 13,
-                      ),
+                      style:
+                          textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ) ??
+                          TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
                     ),
                     if (_tieneAportaciones && _aportacionesTotal < 0) ...[
                       const SizedBox(height: 8),
                       Text(
                         'Las aportaciones negativas (gastos) no se incluyen en la gráfica circular.',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
+                        style:
+                            textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ) ??
+                            TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
                       ),
                     ],
                   ],
@@ -460,6 +516,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
 
     return Card(
       elevation: 4,
+      color: colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -467,11 +524,19 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.donut_large, color: Colors.blue.shade700, size: 20),
+                Icon(Icons.donut_large, color: colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Composición',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style:
+                      textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ) ??
+                      const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),
@@ -528,7 +593,14 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   'Nota: Las aportaciones negativas (gastos) no se muestran en la gráfica.',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                  style:
+                      textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ) ??
+                      TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -546,10 +618,27 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     required int touchedIndex,
   }) {
     final List<PieChartSectionData> sections = [];
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final TextStyle baseLabelStyle =
+        textTheme.labelMedium ??
+        const TextStyle(fontSize: 12, fontWeight: FontWeight.bold);
     final segments = [
-      {'value': capital, 'color': const Color(0xFF2196F3)},
-      {'value': rendimiento, 'color': const Color(0xFF4CAF50)},
-      {'value': aportaciones, 'color': const Color(0xFF9C27B0)},
+      {
+        'value': capital,
+        'color': colorScheme.primary,
+        'onColor': colorScheme.onPrimary,
+      },
+      {
+        'value': rendimiento,
+        'color': colorScheme.secondary,
+        'onColor': colorScheme.onSecondary,
+      },
+      {
+        'value': aportaciones,
+        'color': colorScheme.tertiary,
+        'onColor': colorScheme.onTertiary,
+      },
     ];
 
     int sectionIndex = 0;
@@ -557,6 +646,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
       final double value = segment['value'] as double;
       if (value <= 0) continue;
       final Color color = segment['color'] as Color;
+      final Color onColor = segment['onColor'] as Color;
       final bool isTouched = sectionIndex == touchedIndex;
       sections.add(
         PieChartSectionData(
@@ -564,10 +654,9 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
           title: '${_percentage(value, total).round()}%',
           color: color,
           radius: isTouched ? 65 : 55,
-          titleStyle: const TextStyle(
-            fontSize: 12,
+          titleStyle: baseLabelStyle.copyWith(
+            color: onColor,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
         ),
       );
@@ -583,6 +672,8 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     required double aportaciones,
     required double total,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,7 +681,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
         if (capital > 0) ...[
           _buildCompactLeyendaItem(
             'Capital',
-            const Color(0xFF2196F3),
+            colorScheme.primary,
             capital,
             _percentage(capital, total),
           ),
@@ -599,7 +690,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
         if (rendimiento > 0) ...[
           _buildCompactLeyendaItem(
             'Rendimiento',
-            const Color(0xFF4CAF50),
+            colorScheme.secondary,
             rendimiento,
             _percentage(rendimiento, total),
           ),
@@ -608,7 +699,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
         if (aportaciones > 0)
           _buildCompactLeyendaItem(
             'Aportaciones',
-            const Color(0xFF9C27B0),
+            colorScheme.tertiary,
             aportaciones,
             _percentage(aportaciones, total),
           ),
@@ -622,6 +713,11 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     double amount,
     double percentage,
   ) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+    final Color descriptionColor = colorScheme.onSurfaceVariant;
+
     return Row(
       children: [
         Container(
@@ -636,14 +732,18 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                style:
+                    textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ) ??
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
               Text(
                 _formatCurrency(amount),
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                style:
+                    textTheme.bodySmall?.copyWith(color: descriptionColor) ??
+                    TextStyle(fontSize: 11, color: descriptionColor),
               ),
             ],
           ),
@@ -651,11 +751,16 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
         const SizedBox(width: 8),
         Text(
           '${percentage.toStringAsFixed(1)}%',
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w600,
-          ),
+          style:
+              textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: descriptionColor,
+              ) ??
+              TextStyle(
+                fontSize: 11,
+                color: descriptionColor,
+                fontWeight: FontWeight.w600,
+              ),
         ),
       ],
     );
@@ -671,8 +776,13 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
   Widget _buildTablaAnual() {
     final bool muestraAportaciones = _tieneAportaciones;
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Card(
       elevation: 6,
+      color: colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         decoration: BoxDecoration(
@@ -680,7 +790,10 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, Colors.green.shade50],
+            colors: [
+              colorScheme.surface,
+              colorScheme.surfaceContainerHighest.withAlpha(90),
+            ],
           ),
         ),
         child: Padding(
@@ -693,22 +806,21 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade100,
+                      color: colorScheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.timeline,
-                      color: Colors.green.shade700,
+                      color: colorScheme.onSecondaryContainer,
                       size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Proyección Año por Año',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -742,10 +854,12 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: esUltimo
-                            ? const Color(0xFF26C6DA)
-                            : Colors.grey.shade200,
+                            ? colorScheme.secondary
+                            : colorScheme.outlineVariant,
                       ),
-                      color: esUltimo ? const Color(0xFFE0F7FA) : Colors.white,
+                      color: esUltimo
+                          ? colorScheme.secondaryContainer
+                          : colorScheme.surface,
                     ),
                     padding: const EdgeInsets.all(18),
                     child: Column(
@@ -760,34 +874,44 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blue.shade700,
+                                color: colorScheme.primary,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 'Año ${resultado['anio']}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style:
+                                    (textTheme.labelLarge ??
+                                            const TextStyle(fontSize: 14))
+                                        .copyWith(
+                                          color: colorScheme.onPrimary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                               ),
                             ),
                             Row(
                               children: [
                                 if (esUltimo) ...[
-                                  const Icon(
+                                  Icon(
                                     Icons.star,
-                                    color: Color(0xFF00838F),
+                                    color: colorScheme.secondary,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 4),
                                 ],
                                 Text(
                                   _formatCurrency(total),
-                                  style: TextStyle(
-                                    color: const Color(0xFF006064),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                  style:
+                                      textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: esUltimo
+                                            ? colorScheme.onSecondaryContainer
+                                            : colorScheme.onSurface,
+                                      ) ??
+                                      TextStyle(
+                                        color: colorScheme.onSurface,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                 ),
                               ],
                             ),
@@ -802,21 +926,21 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                               icon: Icons.payments_outlined,
                               label: 'Capital inicial',
                               value: _formatCurrency(capitalInicio),
-                              color: Colors.indigo,
+                              color: colorScheme.primary,
                             ),
                             _buildMetricPill(
                               icon: Icons.trending_up,
                               label: 'Rendimiento',
                               value: _formatCurrency(rendimiento),
                               color: rendimiento >= 0
-                                  ? Colors.green
-                                  : Colors.red,
+                                  ? colorScheme.secondary
+                                  : colorScheme.error,
                             ),
                             _buildMetricPill(
                               icon: Icons.auto_graph,
                               label: 'Rendimiento acum.',
                               value: _formatCurrency(rendimientoAcumulado),
-                              color: Colors.teal,
+                              color: colorScheme.tertiary,
                             ),
                             if (aportacionTieneValor)
                               _buildMetricPill(
@@ -826,8 +950,8 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                                 label: aportacion >= 0 ? 'Aportación' : 'Gasto',
                                 value: _formatCurrency(aportacion),
                                 color: aportacion >= 0
-                                    ? Colors.deepPurple
-                                    : Colors.red,
+                                    ? colorScheme.tertiary
+                                    : colorScheme.error,
                               ),
                             if (aportacionesAcumTienenValor)
                               _buildMetricPill(
@@ -839,8 +963,8 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
                                     : 'Gastos acumulados',
                                 value: _formatCurrency(aportacionesAcumuladas),
                                 color: aportacionesAcumuladas >= 0
-                                    ? Colors.deepPurple
-                                    : Colors.red,
+                                    ? colorScheme.tertiary
+                                    : colorScheme.error,
                               ),
                           ],
                         ),
@@ -864,7 +988,9 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
     required String value,
     required Color color,
   }) {
-    final Color background = color.withValues(alpha: 0.08);
+    final theme = Theme.of(context);
+    final Color background = color.withAlpha(30);
+    final Color borderColor = color.withAlpha(110);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
@@ -873,7 +999,7 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
+          border: Border.all(color: borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -898,11 +1024,12 @@ class _InvestmentCalculatorPageState extends State<InvestmentCalculatorPage> {
             const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ) ??
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ],
         ),

@@ -297,12 +297,14 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registrar Préstamo'),
-        backgroundColor: const Color(0xFF00BCD4),
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        iconTheme: IconThemeData(color: colorScheme.onPrimary),
       ),
       body: _isLoading && _clientes.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -326,17 +328,23 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   }
 
   Widget _buildClienteSection() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.person_search, color: Color(0xFF00BCD4)),
-                SizedBox(width: 8),
-                Text('Cliente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Icon(Icons.person_search, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Cliente',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold) ??
+                      const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -375,12 +383,13 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   }
 
   Widget _buildDropdown() {
+    final theme = Theme.of(context);
     return Column(
       children: [
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: theme.dividerColor.withAlpha(120)),
             borderRadius: BorderRadius.circular(8),
           ),
           constraints: const BoxConstraints(maxHeight: 200),
@@ -404,26 +413,34 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   }
 
   Widget _buildSelectedClienteCard() {
+    final theme = Theme.of(context);
+    const successColor = Colors.green;
     return Column(
       children: [
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.green[50],
+            color: successColor.withAlpha(32),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green[300]!),
+            border: Border.all(color: successColor.withAlpha(96)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.green),
+              const Icon(Icons.check_circle, color: successColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_clienteSeleccionado!.nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text('ID: ${_clienteSeleccionado!.id}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      _clienteSeleccionado!.nombreCompleto,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'ID: ${_clienteSeleccionado!.id}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.textTheme.bodySmall?.color?.withAlpha(170)),
+                    ),
                   ],
                 ),
               ),
@@ -435,35 +452,40 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   }
 
   Widget _buildNuevoClienteForm() {
+    final theme = Theme.of(context);
+    const warningColor = Colors.orange;
     return Column(
       children: [
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.orange[50],
+            color: warningColor.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange[300]!),
+            border: Border.all(color: warningColor.withAlpha(90)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.person_add, color: Colors.orange),
-                  SizedBox(width: 8),
-                  Text('Crear Nuevo Cliente', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Icon(Icons.person_add, color: warningColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Crear Nuevo Cliente',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _nombreController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nombre *',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: theme.colorScheme.surface,
                 ),
                 validator: (value) => value == null || value.trim().isEmpty ? 'Requerido' : null,
               ),
@@ -471,11 +493,11 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
               TextFormField(
                 controller: _apellidoPaternoController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Apellido Paterno *',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: theme.colorScheme.surface,
                 ),
                 validator: (value) => value == null || value.trim().isEmpty ? 'Requerido' : null,
               ),
@@ -483,11 +505,11 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
               TextFormField(
                 controller: _apellidoMaternoController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Apellido Materno (opcional)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: theme.colorScheme.surface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -495,11 +517,11 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
                 controller: _telefonoController,
                 keyboardType: TextInputType.phone,
                 maxLength: 10,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Teléfono (opcional)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: theme.colorScheme.surface,
                   counterText: '',
                 ),
               ),
@@ -507,11 +529,11 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Email (opcional)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: theme.colorScheme.surface,
                 ),
               ),
             ],
@@ -522,17 +544,23 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   }
 
   Widget _buildPrestamoSection() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.attach_money, color: Color(0xFF00BCD4)),
-                SizedBox(width: 8),
-                Text('Datos del Préstamo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Icon(Icons.attach_money, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Datos del Préstamo',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold) ??
+                      const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -561,15 +589,21 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: colorScheme.primary.withAlpha(24),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
+                border: Border.all(color: colorScheme.primary.withAlpha(90)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Días del préstamo:', style: TextStyle(fontWeight: FontWeight.w500)),
-                  Text('${_fechaPago.difference(_fechaInicio).inDays} días', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    'Días del préstamo:',
+                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${_fechaPago.difference(_fechaInicio).inDays} días',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
@@ -590,6 +624,8 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
   }
 
   Widget _buildSelectorInteres() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -597,12 +633,12 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
           value: _tipoInteres,
           decoration: InputDecoration(
             labelText: 'Tipo de Interés *',
-            prefixIcon: const Icon(Icons.percent, color: Color(0xFF00BCD4)),
+            prefixIcon: Icon(Icons.percent, color: colorScheme.primary),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: theme.colorScheme.surface,
           ),
           items: const [
             DropdownMenuItem(
@@ -642,12 +678,12 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
             decoration: InputDecoration(
               labelText: 'Interés en \$',
               prefixText: '\$',
-              prefixIcon: const Icon(Icons.attach_money, color: Color(0xFF00BCD4)),
+              prefixIcon: Icon(Icons.attach_money, color: colorScheme.primary),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: theme.colorScheme.surface,
               helperText: 'Ingrese el monto del interés en pesos',
             ),
             validator: (value) {
@@ -667,9 +703,9 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: colorScheme.primary.withAlpha(24),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
+              border: Border.all(color: colorScheme.primary.withAlpha(90)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -677,10 +713,13 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Plazo:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    Text(
+                      'Plazo:',
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
                     Text(
                       _obtenerPlazoDias(),
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -688,17 +727,26 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Interés calculado:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    Text(
+                      'Interés calculado:',
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
                     Text(
                       _obtenerInteresPreview(),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Regla: 30 días = 1 mes de interés',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.textTheme.bodySmall?.color?.withAlpha(170),
+                  ),
                   textAlign: TextAlign.right,
                 ),
               ],
@@ -726,12 +774,14 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surface,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(_formatDate(selectedDate)),
-            const Icon(Icons.calendar_today, size: 20),
+            Icon(Icons.calendar_today, size: 20, color: Theme.of(context).colorScheme.primary),
           ],
         ),
       ),
@@ -742,15 +792,21 @@ class _CreateLoanPageState extends State<CreateLoanPage> {
     return ElevatedButton.icon(
       onPressed: _creandoPrestamo ? null : _guardarPrestamo,
       icon: _creandoPrestamo
-          ? const SizedBox(
+          ? SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
             )
           : const Icon(Icons.save),
       label: Text(_creandoPrestamo ? 'Guardando...' : 'Guardar Préstamo'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF00BCD4),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         padding: const EdgeInsets.symmetric(vertical: 16),
         textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),

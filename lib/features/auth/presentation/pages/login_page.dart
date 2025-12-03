@@ -90,10 +90,12 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (!mounted) return;
       
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
+          backgroundColor: colorScheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
@@ -105,8 +107,12 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -121,11 +127,11 @@ class _LoginPageState extends State<LoginPage> {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
+                    color: colorScheme.surfaceContainerHighest.withAlpha(180),
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: colorScheme.shadow.withOpacity(0.08),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -136,10 +142,10 @@ class _LoginPageState extends State<LoginPage> {
                     'assets/icons/TPayIcon.png',
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
+                      return Icon(
                         Icons.account_balance_wallet,
                         size: 60,
-                        color: Color(0xFF00BCD4),
+                        color: colorScheme.primary,
                       );
                     },
                   ),
@@ -147,21 +153,28 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 32),
 
                 // Título
-                const Text(
+                Text(
                   'TPay',
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF00BCD4),
-                  ),
+                  style: textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ) ??
+                      TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Sistema de Préstamos',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
+                  style: textTheme.titleMedium?.copyWith(
+                        color: textTheme.titleMedium?.color?.withOpacity(0.7),
+                      ) ??
+                      TextStyle(
+                        fontSize: 16,
+                        color: textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      ),
                 ),
                 const SizedBox(height: 48),
 
@@ -172,18 +185,20 @@ class _LoginPageState extends State<LoginPage> {
                   enabled: !_isLoading,
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    prefixIcon: const Icon(Icons.email, color: Color(0xFF00BCD4)),
+                    prefixIcon: Icon(Icons.email, color: colorScheme.primary),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF00BCD4)),
+                      borderSide: BorderSide(color: colorScheme.primary),
                     ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest.withAlpha(90),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -207,11 +222,11 @@ class _LoginPageState extends State<LoginPage> {
                   enabled: !_isLoading,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
-                    prefixIcon: const Icon(Icons.lock, color: Color(0xFF00BCD4)),
+                    prefixIcon: Icon(Icons.lock, color: colorScheme.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.grey,
+                        color: textTheme.bodyMedium?.color?.withOpacity(0.6),
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
@@ -222,12 +237,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF00BCD4)),
+                      borderSide: BorderSide(color: colorScheme.primary),
                     ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest.withAlpha(90),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -249,11 +266,12 @@ class _LoginPageState extends State<LoginPage> {
                       onChanged: _isLoading ? null : (value) {
                         setState(() => _rememberMe = value ?? false);
                       },
-                      activeColor: const Color(0xFF00BCD4),
+                      activeColor: colorScheme.primary,
                     ),
-                    const Text(
+                    Text(
                       'Recordar esta cuenta',
-                      style: TextStyle(fontSize: 14),
+                      style: textTheme.bodyMedium?.copyWith(fontSize: 14) ??
+                          const TextStyle(fontSize: 14),
                     ),
                   ],
                 ),
@@ -266,21 +284,22 @@ class _LoginPageState extends State<LoginPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00BCD4),
-                      foregroundColor: Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 0,
-                      disabledBackgroundColor: Colors.grey[300],
+                      disabledBackgroundColor:
+                          colorScheme.onSurface.withOpacity(0.12),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                             ),
                           )
                         : const Text(
@@ -299,12 +318,18 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: _isLoading ? null : () {
                     context.push('/register');
                   },
-                  child: const Text(
+                  child: Text(
                     '¿No tienes cuenta? Regístrate',
-                    style: TextStyle(
-                      color: Color(0xFF00BCD4),
-                      fontSize: 14,
-                    ),
+                    style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        TextStyle(
+                          color: colorScheme.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
               ],

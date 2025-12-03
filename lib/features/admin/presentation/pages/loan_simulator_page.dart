@@ -14,7 +14,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
   double _interes = 10.0; // Porcentaje de interés por defecto
   DateTime _fechaInicio = DateTime.now();
   DateTime _fechaPago = DateTime.now().add(const Duration(days: 30));
-  
+
   bool _recalcular = false;
   double _totalConInteres = 0.0;
   double _interesCalculado = 0.0;
@@ -27,25 +27,30 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
 
   /// Calcula el interés mensual con la regla: 30 días = 1 mes
   /// Días adicionales se calculan proporcionalmente
-  /// 
+  ///
   /// Ejemplo: $100 al 10% durante 60 días (2 meses)
   /// - Días totales: 60
   /// - Meses completos: 60 ÷ 30 = 2 meses
   /// - Días restantes: 60 % 30 = 0 días
   /// - Interés: $100 × 10% × 2 = $20
-  double _calcularInteresMensual(double monto, double tasaMensual, DateTime fechaInicio, DateTime fechaPago) {
+  double _calcularInteresMensual(
+    double monto,
+    double tasaMensual,
+    DateTime fechaInicio,
+    DateTime fechaPago,
+  ) {
     final diasTotales = fechaPago.difference(fechaInicio).inDays;
-    
+
     // Cada 30 días cuenta como 1 mes completo
     final mesesCompletos = diasTotales ~/ 30;
     final diasRestantes = diasTotales % 30;
-    
+
     // Interés por meses completos
     final interesMeses = monto * tasaMensual * mesesCompletos;
-    
+
     // Interés por días restantes (proporcional)
     final interesDias = monto * tasaMensual * (diasRestantes / 30);
-    
+
     return interesMeses + interesDias;
   }
 
@@ -53,7 +58,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
     final mesesCompletos = diasTotales ~/ 30;
     final diasRestantes = diasTotales % 30;
-    
+
     if (mesesCompletos == 0) {
       return '$diasTotales días';
     } else if (diasRestantes == 0) {
@@ -67,7 +72,12 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     if (_formKey.currentState!.validate()) {
       final monto = double.tryParse(_montoController.text) ?? 0.0;
       final tasaMensual = _interes / 100;
-      final interesCalculado = _calcularInteresMensual(monto, tasaMensual, _fechaInicio, _fechaPago);
+      final interesCalculado = _calcularInteresMensual(
+        monto,
+        tasaMensual,
+        _fechaInicio,
+        _fechaPago,
+      );
       final totalConInteres = monto + interesCalculado;
 
       setState(() {
@@ -92,13 +102,16 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Simular Préstamo'),
-        backgroundColor: const Color(0xFF00BCD4),
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -117,38 +130,35 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Información
               Card(
-                color: Colors.blue.shade50,
+                color: colorScheme.primary.withAlpha(24),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700),
+                      Icon(Icons.info_outline, color: colorScheme.primary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Este simulador NO guarda datos. Solo calcula un recibo de ejemplo.',
-                          style: TextStyle(
-                            color: Colors.blue.shade900,
-                            fontSize: 13,
-                          ),
+                          style:
+                              theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onPrimaryContainer,
+                              ) ??
+                              const TextStyle(fontSize: 13),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Campo Monto
+
               TextFormField(
                 controller: _montoController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                   labelText: 'Monto del Préstamo',
                   prefixText: '\$',
@@ -156,7 +166,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: theme.colorScheme.surface,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -169,10 +179,9 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Fecha de Inicio
+
               InkWell(
                 onTap: () async {
                   final fecha = await showDatePicker(
@@ -189,23 +198,25 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     labelText: 'Fecha de Inicio',
-                    prefixIcon: const Icon(Icons.calendar_today),
+                    prefixIcon: Icon(
+                      Icons.calendar_today,
+                      color: colorScheme.primary,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: theme.colorScheme.surface,
                   ),
                   child: Text(
                     '${_fechaInicio.day}/${_fechaInicio.month}/${_fechaInicio.year}',
-                    style: const TextStyle(fontSize: 16),
+                    style: theme.textTheme.bodyLarge,
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Fecha de Pago
+
               InkWell(
                 onTap: () async {
                   final fecha = await showDatePicker(
@@ -222,33 +233,32 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     labelText: 'Fecha de Pago',
-                    prefixIcon: const Icon(Icons.event),
+                    prefixIcon: Icon(Icons.event, color: colorScheme.primary),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: theme.colorScheme.surface,
                   ),
                   child: Text(
                     '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}',
-                    style: const TextStyle(fontSize: 16),
+                    style: theme.textTheme.bodyLarge,
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Selector de Interés (Dropdown moderno)
+
               DropdownButtonFormField<double>(
                 value: _interes,
                 decoration: InputDecoration(
                   labelText: 'Tipo de Interés',
-                  prefixIcon: const Icon(Icons.percent, color: Color(0xFF00BCD4)),
+                  prefixIcon: Icon(Icons.percent, color: colorScheme.primary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: theme.colorScheme.surface,
                 ),
                 items: const [
                   DropdownMenuItem(value: 3.0, child: Text('3% mensual')),
@@ -265,119 +275,136 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
                   }
                 },
               ),
-              
+
               const SizedBox(height: 32),
-              
-              // Información sobre cálculo
+
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green[50],
+                  color: Colors.green.withAlpha(32),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green[200]!),
+                  border: Border.all(color: Colors.green.withAlpha(90)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.lightbulb_outline, color: Colors.green[700], size: 20),
+                    Icon(
+                      Icons.lightbulb_outline,
+                      color: Colors.green.shade600,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Regla de cálculo: 30 días = 1 mes de interés. Días adicionales se calculan proporcionalmente.',
-                        style: TextStyle(fontSize: 12, color: Colors.green[900]),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.green.shade800,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
-              // Botón Simular
+
               ElevatedButton.icon(
                 onPressed: _simular,
                 icon: const Icon(Icons.calculate),
-                label: const Text(
-                  'Simular Préstamo',
-                  style: TextStyle(fontSize: 16),
-                ),
+                label: const Text('Simular Préstamo'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00BCD4),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
-              
-              // Resultado (Recibo falso)
+
               if (_recalcular) ...[
                 const SizedBox(height: 32),
                 const Divider(thickness: 2),
                 const SizedBox(height: 16),
-                
-                // Título del recibo
-                const Text(
+
+                Text(
                   'RECIBO DE SIMULACIÓN',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00BCD4),
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '(No válido para transacciones reales)',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                  ),
+                  style:
+                      theme.textTheme.bodySmall?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: theme.textTheme.bodySmall?.color?.withAlpha(170),
+                      ) ??
+                      const TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
-                // Detalles del recibo
-                _buildReciboItem('Monto Prestado', '\$${_montoController.text}'),
-                _buildReciboItem('Tasa de Interés', '${_interes.toStringAsFixed(1)}% mensual'),
-                _buildReciboItem('Fecha de Inicio', '${_fechaInicio.day}/${_fechaInicio.month}/${_fechaInicio.year}'),
-                _buildReciboItem('Fecha de Pago', '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}'),
+
+                _buildReciboItem(
+                  'Monto Prestado',
+                  '\$${_montoController.text}',
+                ),
+                _buildReciboItem(
+                  'Tasa de Interés',
+                  '${_interes.toStringAsFixed(1)}% mensual',
+                ),
+                _buildReciboItem(
+                  'Fecha de Inicio',
+                  '${_fechaInicio.day}/${_fechaInicio.month}/${_fechaInicio.year}',
+                ),
+                _buildReciboItem(
+                  'Fecha de Pago',
+                  '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}',
+                ),
                 _buildReciboItem('Plazo', _obtenerPlazoDias()),
                 const SizedBox(height: 8),
                 _buildDesglosInteresItem(),
                 const SizedBox(height: 8),
-                _buildReciboItem('Interés Total', '\$${_interesCalculado.toStringAsFixed(2)}', destacado: true, color: Colors.orange),
-                
+                _buildReciboItem(
+                  'Interés Total',
+                  '\$${_interesCalculado.toStringAsFixed(2)}',
+                  destacado: true,
+                  color: colorScheme.secondary,
+                ),
+
                 const Divider(thickness: 2, height: 32),
-                
+
                 _buildReciboItem(
                   'Total a Pagar',
                   '\$${_totalConInteres.toStringAsFixed(2)}',
                   destacado: true,
                 ),
-                
+
                 const SizedBox(height: 24),
-                
-                // Nota final
+
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
-                    border: Border.all(color: Colors.amber.shade200),
+                    color: colorScheme.tertiary.withAlpha(26),
+                    border: Border.all(
+                      color: colorScheme.tertiary.withAlpha(90),
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber, color: Colors.amber.shade700),
+                      Icon(Icons.warning_amber, color: colorScheme.tertiary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Este es un cálculo estimado. No se ha guardado ningún dato en la base de datos.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.amber.shade900,
-                          ),
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
                     ],
@@ -395,13 +422,15 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
     final diasTotales = _fechaPago.difference(_fechaInicio).inDays;
     final mesesCompletos = diasTotales ~/ 30;
     final diasRestantes = diasTotales % 30;
-    
+    final theme = Theme.of(context);
+    const accentColor = Colors.orange;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange[50],
+        color: accentColor.withAlpha(26),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange[200]!),
+        border: Border.all(color: accentColor.withAlpha(90)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,31 +440,50 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.orange[900],
+              color: accentColor.shade700,
             ),
           ),
           const SizedBox(height: 8),
           if (mesesCompletos > 0)
             Text(
               '• $mesesCompletos ${mesesCompletos == 1 ? "mes" : "meses"} completo${mesesCompletos == 1 ? "" : "s"}: \$${((double.tryParse(_montoController.text) ?? 0) * (_interes / 100) * mesesCompletos).toStringAsFixed(2)}',
-              style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accentColor.shade700,
+              ),
             ),
           if (diasRestantes > 0)
             Text(
               '• $diasRestantes días adicionales: \$${((double.tryParse(_montoController.text) ?? 0) * (_interes / 100) * (diasRestantes / 30)).toStringAsFixed(2)}',
-              style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accentColor.shade700,
+              ),
             ),
           if (mesesCompletos == 0 && diasRestantes == 0)
             Text(
               '• Sin días transcurridos',
-              style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accentColor.shade700,
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildReciboItem(String label, String valor, {bool destacado = false, Color? color}) {
+  Widget _buildReciboItem(
+    String label,
+    String valor, {
+    bool destacado = false,
+    Color? color,
+  }) {
+    final theme = Theme.of(context);
+    final Color resolvedColor =
+        color ??
+        (destacado ? theme.colorScheme.primary : theme.colorScheme.onSurface);
+    final Color secondaryColor = destacado
+        ? resolvedColor
+        : theme.textTheme.bodyMedium?.color ?? theme.colorScheme.onSurface;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -446,7 +494,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
             style: TextStyle(
               fontSize: destacado ? 18 : 16,
               fontWeight: destacado ? FontWeight.bold : FontWeight.w500,
-              color: color ?? (destacado ? const Color(0xFF00BCD4) : Colors.black87),
+              color: destacado ? resolvedColor : secondaryColor,
             ),
           ),
           Text(
@@ -454,7 +502,7 @@ class _LoanSimulatorPageState extends State<LoanSimulatorPage> {
             style: TextStyle(
               fontSize: destacado ? 20 : 16,
               fontWeight: destacado ? FontWeight.bold : FontWeight.w600,
-              color: color ?? (destacado ? const Color(0xFF00BCD4) : Colors.black),
+              color: resolvedColor,
             ),
           ),
         ],

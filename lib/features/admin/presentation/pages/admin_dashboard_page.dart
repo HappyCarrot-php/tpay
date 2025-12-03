@@ -244,6 +244,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return formatter.format(amount);
   }
 
+  String _formatShortDate(DateTime date) {
+    return DateFormat('dd MMM', 'es_MX').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     return _isLoading
@@ -305,6 +309,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   _buildGraficaBarrasComparativa(),
                   const SizedBox(height: 24),
                   _buildEstadisticasAdicionales(),
+                  const SizedBox(height: 24),
+                  _buildInsightsSection(),
                 ],
               ),
             ),
@@ -993,6 +999,292 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ),
     );
   }
+
+  Widget _buildInsightsSection() {
+    final theme = Theme.of(context);
+    final proximos = List<MovimientoModel>.from(_prestamosActivos)
+      ..sort((a, b) => a.fechaPago.compareTo(b.fechaPago));
+    final upcoming = proximos.where((p) => !p.estadoPagado).take(4).toList();
+
+    final capitalEnRiesgo = _prestamosActivos
+        .where((loan) => loan.estaVencido)
+        .fold<double>(0, (sum, loan) => sum + loan.saldoPendiente);
+
+    final clientesMapa = <int, _ClientInsight>{};
+    for (final prestamo in _prestamosActivos) {
+      final insight = clientesMapa.putIfAbsent(
+        prestamo.idCliente,
+        () => _ClientInsight(
+          name: prestamo.nombreCliente ?? 'Cliente ${prestamo.idCliente}',
+        ),
+      );
+      insight.totalPendiente += prestamo.saldoPendiente;
+      insight.prestamos += 1;
+    }
+
+    final topClientes = clientesMapa.values.toList()
+      ..sort((a, b) => b.totalPendiente.compareTo(a.totalPendiente));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Insights del mes',
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildInsightMetrics(capitalEnRiesgo),
+        if (upcoming.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _buildUpcomingLoansCard(upcoming),
+        ] else ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.event_available_outlined, color: theme.colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No hay vencimientos próximos en la agenda.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (topClientes.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _buildTopClientsCard(topClientes.take(3).toList()),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInsightMetrics(double capitalEnRiesgo) {
+    final theme = Theme.of(context);
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _buildInsightPill(
+          icon: Icons.restart_alt,
+          label: 'Recuperación',
+          value: '${_tasaRecuperacion.toStringAsFixed(1)}%',
+          color: Colors.green,
+        ),
+        _buildInsightPill(
+          icon: Icons.shield_outlined,
+          label: 'Capital en riesgo',
+          value: _formatCurrency(capitalEnRiesgo),
+          color: theme.colorScheme.tertiary,
+        ),
+        _buildInsightPill(
+          icon: Icons.warning_amber_outlined,
+          label: 'Préstamos vencidos',
+          value: '$_prestamosVencidos',
+          color: Colors.orange,
+        ),
+        _buildInsightPill(
+          icon: Icons.percent,
+          label: 'Tasa de mora',
+          value: '${_tasaMora.toStringAsFixed(1)}%',
+          color: theme.colorScheme.error,
+        ),
+        _buildInsightPill(
+          icon: Icons.timelapse,
+          label: 'Duración promedio',
+          value: '${_promedioDuracionDias.toStringAsFixed(0)} días',
+          color: theme.colorScheme.primary,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInsightPill({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: color.withOpacity(0.9),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingLoansCard(List<MovimientoModel> loans) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.calendar_month, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Próximos vencimientos',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < loans.length; i++) ...[
+              _buildUpcomingLoanTile(loans[i], theme),
+              if (i != loans.length - 1) const Divider(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpcomingLoanTile(MovimientoModel loan, ThemeData theme) {
+    final statusColor = Color(loan.estadoColor);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: statusColor.withOpacity(0.15),
+        child: Icon(Icons.event_available, color: statusColor),
+      ),
+      title: Text(
+        loan.nombreCliente ?? 'Cliente ${loan.idCliente}',
+        style: theme.textTheme.titleMedium,
+      ),
+      subtitle: Text(
+        '${_formatShortDate(loan.fechaPago)} • ${_formatCurrency(loan.totalAPagar)}',
+        style: theme.textTheme.bodySmall,
+      ),
+      trailing: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            loan.estadoTexto,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: statusColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${loan.porcentajePagado.toStringAsFixed(0)}% pagado',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopClientsCard(List<_ClientInsight> clients) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.workspace_premium_outlined, color: theme.colorScheme.secondary),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Clientes destacados',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < clients.length; i++) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.15),
+                  child: Text('${i + 1}', style: TextStyle(color: theme.colorScheme.secondary)),
+                ),
+                title: Text(
+                  clients[i].name,
+                  style: theme.textTheme.titleMedium,
+                ),
+                subtitle: Text(
+                  'Pendiente: ${_formatCurrency(clients[i].totalPendiente)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+                trailing: Chip(
+                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.15),
+                  label: Text(
+                    '${clients[i].prestamos} préstamos',
+                    style: TextStyle(
+                      color: theme.colorScheme.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              if (i != clients.length - 1) const Divider(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _IndicatorConfig {
@@ -1007,4 +1299,12 @@ class _IndicatorConfig {
   final String value;
   final IconData icon;
   final Color color;
+}
+
+class _ClientInsight {
+  _ClientInsight({required this.name});
+
+  final String name;
+  double totalPendiente = 0;
+  int prestamos = 0;
 }

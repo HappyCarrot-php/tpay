@@ -16,11 +16,13 @@ import '../../features/admin/presentation/pages/admin_movements_page.dart';
 import '../../features/admin/presentation/pages/admin_profile_settings_page.dart';
 import '../../features/admin/presentation/pages/database_backup_page.dart';
 import '../../features/admin/presentation/pages/admin_profiles_page.dart';
+import '../../features/admin/presentation/pages/admin_calendar_page.dart';
 
 // Client
 import '../../features/client/presentation/pages/client_home_page.dart';
 import '../../features/client/presentation/pages/client_contact_page.dart';
 import '../../features/client/presentation/pages/client_profile_page.dart';
+import '../../features/client/presentation/pages/client_calendar_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -113,6 +115,11 @@ class AppRouter {
             builder: (context, state) => const AdminProfilesPage(),
             name: 'admin-profiles',
           ),
+          GoRoute(
+            path: 'calendar',
+            builder: (context, state) => const AdminCalendarPage(),
+            name: 'admin-calendar',
+          ),
         ],
       ),
 
@@ -131,6 +138,11 @@ class AppRouter {
         path: '/client-profile',
         builder: (context, state) => const ClientProfilePage(),
         name: 'client-profile',
+      ),
+      GoRoute(
+        path: '/client/calendar',
+        builder: (context, state) => const ClientCalendarPage(),
+        name: 'client-calendar',
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
