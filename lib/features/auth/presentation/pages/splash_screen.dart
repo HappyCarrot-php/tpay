@@ -92,273 +92,170 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final backgroundGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: isDark
+          ? [colorScheme.surface, colorScheme.surfaceContainerHighest]
+          : [colorScheme.primary.withOpacity(0.12), colorScheme.surface],
+    );
+
+    final bubbleColor = colorScheme.surface.withOpacity(isDark ? 0.9 : 0.96);
+    final borderColor = colorScheme.primary.withOpacity(0.24);
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo animado
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
+      body: Container(
+        decoration: BoxDecoration(gradient: backgroundGradient),
+        child: SafeArea(
+          child: Center(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ScaleTransition(
                     scale: _scaleAnimation,
                     child: Container(
-                      width: 150,
-                      height: 150,
+                      width: 140,
+                      height: 140,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(30),
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            colorScheme.primary.withOpacity(0.35),
+                            colorScheme.primary,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 15,
-                            spreadRadius: 2,
+                            color: colorScheme.shadow.withOpacity(0.18),
+                            blurRadius: 28,
+                            offset: const Offset(0, 18),
                           ),
                         ],
                       ),
-                      padding: const EdgeInsets.all(20),
-                      child: Image.asset(
-                        'assets/icons/TPayIcon.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.account_balance_wallet,
-                            size: 60,
-                            color: Color(0xFF00BCD4),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 40),
-
-            // Nombre de la app
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: const Text(
-                    'TPay',
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF00BCD4), // Turquesa
-                      letterSpacing: 2,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-
-            // Subtítulo
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    'Sistema de Préstamos',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      letterSpacing: 1,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 60),
-
-            // Indicador de carga
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: const SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF00BCD4),
-                      ),
-                      strokeWidth: 3,
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 60),
-
-            // Mensaje de conexión a internet
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF00BCD4).withValues(alpha: 0.18),
-                          const Color(0xFF006064).withValues(alpha: 0.16),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFF00ACC1).withValues(alpha: 0.5),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.cloud_outlined,
-                            color: Color(0xFF00838F),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Conéctate a la nube',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF006064),
-                              ),
-                            ),
-                            Text(
-                              'Necesitas internet para sincronizar',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blueGrey.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
+                      padding: const EdgeInsets.all(18),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bubbleColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: colorScheme.shadow.withOpacity(0.08),
+                              blurRadius: 14,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
-                      ],
+                        padding: const EdgeInsets.all(18),
+                        child: Image.asset(
+                          'assets/icons/TPayIcon.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.account_balance_wallet,
+                              size: 60,
+                              color: colorScheme.onPrimary,
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // Créditos del desarrollador
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                      vertical: 16,
+                  const SizedBox(height: 32),
+                  Text(
+                    'TPay',
+                    style: textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                          color: colorScheme.primary,
+                        ) ??
+                        TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Administración de préstamos inteligentes',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: textTheme.titleMedium?.color?.withOpacity(0.7),
                     ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  Container(
+                    width: 320,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      color: Colors.white.withValues(alpha: 0.9),
-                      border: Border.all(
-                        color: const Color(0xFF26C6DA).withValues(alpha: 0.4),
-                      ),
+                      color: bubbleColor,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: borderColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 18,
+                          color: colorScheme.shadow.withOpacity(0.12),
+                          blurRadius: 22,
                           offset: const Offset(0, 12),
                         ),
                       ],
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(
-                              Icons.auto_awesome,
-                              color: Color(0xFF00ACC1),
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.sync_rounded, color: colorScheme.primary),
+                            const SizedBox(width: 12),
                             Text(
-                              'Creado por',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF007C91),
+                              'Sincronizando tus datos seguros',
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: textTheme.titleSmall?.color,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        ShaderMask(
-                          shaderCallback: (bounds) {
-                            return const LinearGradient(
-                              colors: [Color(0xFF00ACC1), Color(0xFF006064)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ).createShader(bounds);
-                          },
-                          child: const Text(
-                            'Toledo Ávalos Ricardo',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.6,
-                              color: Colors.white,
-                            ),
+                        const SizedBox(height: 16),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: LinearProgressIndicator(
+                            minHeight: 6,
+                            color: colorScheme.primary,
+                            backgroundColor: colorScheme.primary.withOpacity(0.12),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 14),
                         Text(
-                          'Experiencias financieras diseñadas con Flutter',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.blueGrey.shade600,
-                            fontWeight: FontWeight.w500,
+                          'Preparando tu panel personalizado. Si tarda, verifica tu conexión a internet.',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: textTheme.bodySmall?.color?.withOpacity(0.7),
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 48),
+                  Text(
+                    'Diseñado con Flutter • TPay Team',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: textTheme.bodySmall?.color?.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -84,10 +84,10 @@ class _AdminDrawerState extends State<AdminDrawer> {
         children: [
           DrawerHeader(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.secondary,
+                  Color(0xFF00838F),
+                  Color(0xFF00BCD4),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,

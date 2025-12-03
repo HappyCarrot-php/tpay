@@ -856,6 +856,21 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final searchFill = Color.alphaBlend(
+      colorScheme.primary.withAlpha(isDark ? 28 : 18),
+      colorScheme.surface,
+    );
+    final searchBorder = colorScheme.outlineVariant.withAlpha(isDark ? 140 : 110);
+    final labelStyle = theme.textTheme.labelMedium?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+    final counterColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ??
+        colorScheme.onSurface.withOpacity(0.7);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Perfiles'),
@@ -877,14 +892,26 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
+              style: theme.textTheme.bodyMedium,
+              cursorColor: colorScheme.primary,
               decoration: InputDecoration(
                 labelText: 'Buscar perfil',
-                prefixIcon: const Icon(Icons.search),
+                labelStyle: labelStyle,
+                prefixIcon: Icon(Icons.search, color: colorScheme.primary),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: searchBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: searchFill,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
@@ -899,10 +926,11 @@ class _AdminProfilesPageState extends State<AdminProfilesPage> {
               children: [
                 Text(
                   '${_perfilesFiltrados.length} perfil(es) encontrado(s)',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                        color: counterColor,
+                        fontWeight: FontWeight.w600,
+                      ) ??
+                      TextStyle(color: counterColor, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
