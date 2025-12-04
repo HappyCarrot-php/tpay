@@ -323,6 +323,18 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final infoCardBackground = isDark
+        ? Color.alphaBlend(colorScheme.primary.withAlpha(32), colorScheme.surfaceVariant)
+        : Colors.blue.shade50;
+    final infoIconColor = isDark ? colorScheme.primary : Colors.blue.shade700;
+    final headlineColor = theme.textTheme.titleLarge?.color ?? colorScheme.onSurface;
+    final bodyColor = isDark
+        ? colorScheme.onSurfaceVariant
+        : Colors.grey[700];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Actualizar BD'),
@@ -361,7 +373,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                 children: [
                   // Información
                   Card(
-                    color: Colors.blue.shade50,
+                    color: infoCardBackground,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -369,17 +381,18 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.blue.shade700,
-                              ),
+                              Icon(Icons.info_outline, color: infoIconColor),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Backup de Base de Datos',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                      color: headlineColor,
+                                      fontWeight: FontWeight.w700,
+                                    ) ??
+                                    const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                             ],
                           ),
@@ -388,7 +401,7 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                             'Genera un respaldo completo de todas las tablas de la base de datos en formato SQL.',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[700],
+                              color: bodyColor,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -396,7 +409,9 @@ class _DatabaseBackupPageState extends State<DatabaseBackupPage> {
                             'El respaldo consulta directamente la información más reciente en Supabase, incluyendo registros eliminados como referencia.',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey[600],
+                              color: isDark
+                                  ? colorScheme.onSurfaceVariant.withOpacity(0.8)
+                                  : Colors.grey[600],
                             ),
                           ),
                           const SizedBox(height: 8),

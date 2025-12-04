@@ -10,7 +10,6 @@ import '../../data/repositories/perfil_repository.dart';
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
 
-  @override
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
@@ -24,7 +23,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     '¿Qué tal tu día?',
     '¿Todo en orden?',
     '¿Listo para revisar los números?',
-    '¿Preparado para seguir?'
+    '¿Preparado para seguir?',
   ];
 
   bool _isLoading = true;
@@ -65,15 +64,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final saludo = _obtenerSaludoSegunHora(ahora);
       final apellido = (perfil?.apellidoPaterno ?? '').trim();
       final nombre = (perfil?.nombre ?? '').trim();
-      final nombreFormateado = [apellido, nombre]
-          .where((parte) => parte.isNotEmpty)
-          .join(' ');
+      final nombreFormateado = [
+        apellido,
+        nombre,
+      ].where((parte) => parte.isNotEmpty).join(' ');
       final frase = _obtenerFraseAleatoria();
 
       if (!mounted) return;
       setState(() {
         _saludoBase = saludo;
-        _nombreSaludo = nombreFormateado.isNotEmpty ? nombreFormateado : 'Administrador';
+        _nombreSaludo = nombreFormateado.isNotEmpty
+            ? nombreFormateado
+            : 'Administrador';
         _fraseSaludo = frase;
       });
     } catch (_) {
@@ -155,20 +157,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
       capitalLiberado += totalAbonosActivos;
 
-        final totalAbonosRecibidos = totalAbonosActivos + totalAbonosPagados;
-        final promedioAbonosActivos = activos.isNotEmpty
+      final totalAbonosRecibidos = totalAbonosActivos + totalAbonosPagados;
+      final promedioAbonosActivos = activos.isNotEmpty
           ? totalAbonosActivos / activos.length
           : 0.0;
-        final tasaRecuperacion = capitalTotal > 0
+      final tasaRecuperacion = capitalTotal > 0
           ? (capitalLiberado / capitalTotal) * 100
           : 0.0;
-        final tasaMora = todos.isNotEmpty
+      final tasaMora = todos.isNotEmpty
           ? (prestamosVencidos / todos.length) * 100
           : 0.0;
-        final promedioInteres = todos.isNotEmpty
+      final promedioInteres = todos.isNotEmpty
           ? gananciasNetas / todos.length
           : 0.0;
-        final montoPromedio = todos.isNotEmpty
+      final montoPromedio = todos.isNotEmpty
           ? capitalTotal / todos.length
           : 0.0;
 
@@ -184,7 +186,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ? DateTime.now().difference(fechaMasAntigua).inDays
           : 0;
       final mesesOperando = diasOperando > 0 ? diasOperando / 30 : 1.0;
-        final prestamosPromedioMensual = mesesOperando > 0
+      final prestamosPromedioMensual = mesesOperando > 0
           ? todos.length / mesesOperando
           : todos.length.toDouble();
 
@@ -192,7 +194,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         0,
         (acumulado, prestamo) => acumulado + prestamo.diasPrestamo,
       );
-        final promedioDuracionDias = todos.isNotEmpty
+      final promedioDuracionDias = todos.isNotEmpty
           ? totalDiasPrestamos / todos.length
           : 0.0;
 
@@ -254,10 +256,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
             onRefresh: () async {
-              await Future.wait([
-                _cargarEstadisticas(),
-                _cargarSaludo(),
-              ]);
+              await Future.wait([_cargarEstadisticas(), _cargarSaludo()]);
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -278,7 +277,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _fraseSaludo.isNotEmpty ? _fraseSaludo : '¿Cómo estás hoy?',
+                          _fraseSaludo.isNotEmpty
+                              ? _fraseSaludo
+                              : '¿Cómo estás hoy?',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -293,10 +294,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   const SizedBox(height: 16),
                   const Text(
                     'Resumen Financiero',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   // Grid de 2 columnas para las primeras 3 gráficas
@@ -394,13 +392,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               color: color,
             ),
           ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
         ],
       ),
     );
@@ -408,7 +400,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildGraficaCapitalTotal() {
     final porcentaje = _capitalTotal > 0 ? 100.0 : 0.0;
-    
+
     return Column(
       children: [
         const Text(
@@ -434,7 +426,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     value: 1.0,
                     strokeWidth: 12,
                     backgroundColor: Colors.teal.withOpacity(0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.teal,
+                    ),
                   ),
                 ),
                 Column(
@@ -466,18 +460,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Text(
           'Todos los montos + intereses',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 9, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildGraficaCapitalTrabajando() {
-    final porcentaje = _capitalTotal > 0 ? (_capitalTrabajando / _capitalTotal) * 100 : 0.0;
-    
+    final porcentaje = _capitalTotal > 0
+        ? (_capitalTrabajando / _capitalTotal) * 100
+        : 0.0;
+
     return Column(
       children: [
         const Text(
@@ -503,7 +496,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     value: porcentaje / 100,
                     strokeWidth: 12,
                     backgroundColor: Colors.green.withOpacity(0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.green,
+                    ),
                   ),
                 ),
                 Column(
@@ -535,18 +530,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Text(
           'Activos (sin abonos)',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 9, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildGraficaCapitalLiberado() {
-    final porcentaje = _capitalTotal > 0 ? (_capitalLiberado / _capitalTotal) * 100 : 0.0;
-    
+    final porcentaje = _capitalTotal > 0
+        ? (_capitalLiberado / _capitalTotal) * 100
+        : 0.0;
+
     return Column(
       children: [
         const Text(
@@ -572,7 +566,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     value: porcentaje / 100,
                     strokeWidth: 12,
                     backgroundColor: Colors.orange.withOpacity(0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.orange,
+                    ),
                   ),
                 ),
                 Column(
@@ -604,18 +600,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Text(
           'Pagados + abonos',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 9, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildGraficaGananciasNetas() {
-    final porcentaje = _capitalTotal > 0 ? (_gananciasNetas / _capitalTotal) * 100 : 0.0;
-    
+    final porcentaje = _capitalTotal > 0
+        ? (_gananciasNetas / _capitalTotal) * 100
+        : 0.0;
+
     return Column(
       children: [
         const Text(
@@ -641,7 +636,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     value: 1.0,
                     strokeWidth: 12,
                     backgroundColor: Colors.purple.withOpacity(0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.purple),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.purple,
+                    ),
                   ),
                 ),
                 Column(
@@ -674,65 +671,119 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Text(
           'Solo intereses',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 9, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildResumenTexto() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color cardColor = isDark
+        ? theme.colorScheme.surfaceVariant.withOpacity(0.35)
+        : Colors.white;
+    final Color borderColor = isDark
+        ? theme.colorScheme.outlineVariant
+        : Colors.transparent;
+    final Color titleColor = isDark
+        ? theme.colorScheme.onSurface
+        : const Color(0xFF1A237E);
+    final Color labelColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : const Color(0xFF546E7A);
+
     return Card(
-      elevation: 4,
-      color: Colors.white, // Fondo blanco
+      elevation: isDark ? 0 : 4,
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: borderColor, width: isDark ? 1 : 0),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Resumen Financiero',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E), // Título azul oscuro formal
-              ),
+              style:
+                  theme.textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                  ) ??
+                  TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                  ),
             ),
             const SizedBox(height: 16),
-            _buildResumenRow('Capital Total', _formatCurrency(_capitalTotal.toDouble()), const Color(0xFF1565C0)),
-            _buildResumenRow('Capital Trabajando', _formatCurrency(_capitalTrabajando.toDouble()), const Color(0xFF2E7D32)),
-            _buildResumenRow('Capital Liberado', _formatCurrency(_capitalLiberado.toDouble()), const Color(0xFFE65100)),
-            _buildResumenRow('Ganancias Netas', _formatCurrency(_gananciasNetas.toDouble()), const Color(0xFF6A1B9A)),
+            _buildResumenRow(
+              'Capital Total',
+              _formatCurrency(_capitalTotal.toDouble()),
+              const Color(0xFF1565C0),
+              labelColor: labelColor,
+            ),
+            _buildResumenRow(
+              'Capital Trabajando',
+              _formatCurrency(_capitalTrabajando.toDouble()),
+              const Color(0xFF2E7D32),
+              labelColor: labelColor,
+            ),
+            _buildResumenRow(
+              'Capital Liberado',
+              _formatCurrency(_capitalLiberado.toDouble()),
+              const Color(0xFFE65100),
+              labelColor: labelColor,
+            ),
+            _buildResumenRow(
+              'Ganancias Netas',
+              _formatCurrency(_gananciasNetas.toDouble()),
+              const Color(0xFF6A1B9A),
+              labelColor: labelColor,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildResumenRow(String label, String value, Color color) {
+  Widget _buildResumenRow(
+    String label,
+    String value,
+    Color color, {
+    Color? labelColor,
+  }) {
+    final theme = Theme.of(context);
+    final Color resolvedLabelColor = labelColor ?? const Color(0xFF546E7A);
+    final TextStyle labelStyle =
+        theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: resolvedLabelColor,
+        ) ??
+        TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: resolvedLabelColor,
+        );
+    final TextStyle valueStyle =
+        theme.textTheme.titleMedium?.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ) ??
+        TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF546E7A), // Gris azulado formal
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
+          Text(label, style: labelStyle),
+          Text(value, style: valueStyle),
         ],
       ),
     );
@@ -754,10 +805,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           children: [
             const Text(
               'Comparativa General',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             _buildBarra(
@@ -822,10 +870,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             Text(
               displayValue,
@@ -852,6 +897,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildEstadisticasAdicionales() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color interesColor = isDark
+        ? const Color(0xFFFFD54F)
+        : const Color(0xFFFFB74D);
+    final Color montoColor = isDark
+        ? const Color(0xFF4DD0E1)
+        : const Color(0xFF26C6DA);
+
     final indicatorRows = [
       [
         _IndicatorConfig(
@@ -870,7 +924,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       [
         _IndicatorConfig(
           label: 'Préstamos en Mora',
-          value: '${_prestamosVencidos.toString()} (${_tasaMora.toStringAsFixed(1)}%)',
+          value:
+              '${_prestamosVencidos.toString()} (${_tasaMora.toStringAsFixed(1)}%)',
           icon: Icons.warning_amber,
           color: _tasaMora > 10 ? Colors.red : Colors.orange,
         ),
@@ -914,13 +969,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           label: 'Interés Promedio',
           value: _formatCurrency(_promedioInteres),
           icon: Icons.attach_money,
-          color: Colors.brown,
+          color: interesColor,
         ),
         _IndicatorConfig(
           label: 'Monto Promedio',
           value: _formatCurrency(_montoPromedio),
           icon: Icons.stacked_line_chart,
-          color: Colors.blueGrey,
+          color: montoColor,
         ),
       ],
     ];
@@ -929,10 +984,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         const Text(
           'Indicadores Clave',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         for (var i = 0; i < indicatorRows.length; i++) ...[
@@ -940,6 +992,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             children: [
               Expanded(
                 child: _buildIndicadorCard(
+                  context,
                   indicatorRows[i][0].label,
                   indicatorRows[i][0].value,
                   indicatorRows[i][0].icon,
@@ -949,6 +1002,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildIndicadorCard(
+                  context,
                   indicatorRows[i][1].label,
                   indicatorRows[i][1].value,
                   indicatorRows[i][1].icon,
@@ -964,6 +1018,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildIndicadorCard(
+    BuildContext context,
     String label,
     String value,
     IconData icon,
@@ -991,7 +1046,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 9,
-                color: Colors.grey[600],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[300]
+                    : Colors.grey[600],
               ),
             ),
           ],
@@ -1049,7 +1106,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.event_available_outlined, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.event_available_outlined,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -1169,7 +1229,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     color: theme.colorScheme.primary.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Icons.calendar_month, color: theme.colorScheme.primary),
+                  child: Icon(
+                    Icons.calendar_month,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -1242,13 +1305,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     color: theme.colorScheme.secondary.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Icons.workspace_premium_outlined, color: theme.colorScheme.secondary),
+                  child: Icon(
+                    Icons.workspace_premium_outlined,
+                    color: theme.colorScheme.secondary,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Clientes destacados',
-                  style: theme.textTheme.titleLarge,
-                ),
+                Text('Clientes destacados', style: theme.textTheme.titleLarge),
               ],
             ),
             const SizedBox(height: 16),
@@ -1256,8 +1319,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
-                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.15),
-                  child: Text('${i + 1}', style: TextStyle(color: theme.colorScheme.secondary)),
+                  backgroundColor: theme.colorScheme.secondary.withOpacity(
+                    0.15,
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(color: theme.colorScheme.secondary),
+                  ),
                 ),
                 title: Text(
                   clients[i].name,
@@ -1268,7 +1336,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   style: theme.textTheme.bodySmall,
                 ),
                 trailing: Chip(
-                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.15),
+                  backgroundColor: theme.colorScheme.secondary.withOpacity(
+                    0.15,
+                  ),
                   label: Text(
                     '${clients[i].prestamos} préstamos',
                     style: TextStyle(

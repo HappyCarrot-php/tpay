@@ -756,6 +756,20 @@ class _EditClientPageState extends State<EditClientPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final infoCardColor = isDark
+        ? Color.alphaBlend(colorScheme.primary.withAlpha(28), colorScheme.surfaceVariant)
+        : Colors.blue[50];
+    final infoIconColor = isDark ? colorScheme.primary : Colors.blue;
+    final titleStyle = theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        );
+    final subtitleColor = isDark
+        ? colorScheme.onSurfaceVariant
+        : Colors.grey[700];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Editar Cliente'),
@@ -776,7 +790,7 @@ class _EditClientPageState extends State<EditClientPage> {
             children: [
               // Info card
               Card(
-                color: Colors.blue[50],
+                color: infoCardColor,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -784,18 +798,19 @@ class _EditClientPageState extends State<EditClientPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.info_outline, color: Colors.blue),
+                          Icon(Icons.info_outline, color: infoIconColor),
                           const SizedBox(width: 12),
                           Text(
                             'ID: ${widget.cliente.id}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: titleStyle ??
+                                const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Cliente: ${widget.cliente.nombreCompleto}',
-                        style: TextStyle(color: Colors.grey[700]),
+                        style: TextStyle(color: subtitleColor),
                       ),
                     ],
                   ),

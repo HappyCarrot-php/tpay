@@ -109,11 +109,24 @@ class LoanActionButtons extends StatelessWidget {
   void _mostrarRecibo(BuildContext context) {
     final screenshotController = ScreenshotController();
     final fechaEmision = DateTime.now();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final receiptBackground = isDark ? colorScheme.surface : Colors.white;
+    final panelBackground = isDark
+        ? Color.alphaBlend(colorScheme.primary.withAlpha(16), colorScheme.surfaceVariant)
+        : Colors.grey.shade50;
+    final panelBorderColor = isDark
+        ? colorScheme.primary.withAlpha(60)
+        : Colors.grey.shade200;
+    final highlightColor = isDark ? colorScheme.primary : const Color(0xFF00838F);
+    final sectionLabelColor = isDark ? colorScheme.onSurfaceVariant : Colors.grey;
     
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: theme.colorScheme.surface,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -123,7 +136,7 @@ class LoanActionButtons extends StatelessWidget {
                 controller: screenshotController,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: receiptBackground,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   padding: const EdgeInsets.all(20),
@@ -145,7 +158,19 @@ class LoanActionButtons extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.account_balance_wallet, size: 32, color: Colors.white),
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Image.asset(
+                              'assets/icons/TPayIcon.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const Icon(
+                                Icons.account_balance_wallet,
+                                size: 32,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           const Text(
                             'TPay',
@@ -175,9 +200,9 @@ class LoanActionButtons extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: panelBackground,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[200]!),
+                        border: Border.all(color: panelBorderColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,10 +212,10 @@ class LoanActionButtons extends StatelessWidget {
                             children: [
                               Text(
                                 'Préstamo #${prestamo.id.toString().padLeft(6, '0')}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00838F),
+                                  color: highlightColor,
                                 ),
                               ),
                               Container(
@@ -211,9 +236,10 @@ class LoanActionButtons extends StatelessWidget {
                             ],
                           ),
                           const Divider(height: 16),
-                          _buildReciboInfoRow('Cliente', prestamo.nombreCliente ?? 'N/A', Icons.person),
+                          _buildReciboInfoRow(context, 'Cliente', prestamo.nombreCliente ?? 'N/A', Icons.person),
                           const SizedBox(height: 6),
                           _buildReciboInfoRow(
+                            context,
                             'Fecha de Emisión',
                             '${fechaEmision.day.toString().padLeft(2, '0')}/${fechaEmision.month.toString().padLeft(2, '0')}/${fechaEmision.year}',
                             Icons.calendar_today,
@@ -224,28 +250,35 @@ class LoanActionButtons extends StatelessWidget {
                     const SizedBox(height: 12),
                     
                     // Detalles financieros
-                    const Text(
+                    Text(
                       'DETALLES FINANCIEROS',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                        color: sectionLabelColor,
                         letterSpacing: 1,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildMontoRow('Monto Prestado', prestamo.monto, false),
-                    _buildMontoRow('Interés', prestamo.interes, false),
+                    _buildMontoRow(context, 'Monto Prestado', prestamo.monto, false,
+                      color: theme.colorScheme.onSurface),
+                    _buildMontoRow(context, 'Interés', prestamo.interes, false,
+                      color: theme.colorScheme.onSurfaceVariant),
                     const Divider(height: 16),
-                    _buildMontoRow('Total a Pagar', prestamo.totalAPagar, true, color: Colors.blue),
+                    _buildMontoRow(context, 'Total a Pagar', prestamo.totalAPagar, true,
+                      color: theme.colorScheme.primary, isLarge: true),
                     const SizedBox(height: 4),
-                    _buildMontoRow('Abonos Realizados', prestamo.abonos, false, color: Colors.green),
+                    _buildMontoRow(context, 'Abonos Realizados', prestamo.abonos, false,
+                      color: Colors.green),
                     const Divider(height: 16, thickness: 2),
                     _buildMontoRow(
+                      context,
                       'Saldo Pendiente',
                       prestamo.saldoPendiente,
                       true,
-                      color: prestamo.saldoPendiente > 0 ? Colors.red : Colors.green,
+                      color: prestamo.saldoPendiente > 0
+                        ? theme.colorScheme.error
+                        : Colors.green,
                       isLarge: true,
                     ),
                     const SizedBox(height: 16),
@@ -273,6 +306,7 @@ class LoanActionButtons extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.black,
                                   ),
                                 ),
                               ],
@@ -421,8 +455,8 @@ class LoanActionButtons extends StatelessWidget {
                     icon: const Icon(Icons.download, size: 18),
                     label: const Text('Descargar', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00BCD4),
-                      foregroundColor: Colors.white,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
                   ),
@@ -436,32 +470,54 @@ class LoanActionButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildReciboInfoRow(String label, String value, IconData icon) {
+  Widget _buildReciboInfoRow(BuildContext context, String label, String value, IconData icon) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final iconColor = colorScheme.onSurfaceVariant;
+    final labelColor = colorScheme.onSurfaceVariant.withOpacity(0.9);
+    final valueStyle = theme.textTheme.bodySmall?.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ) ??
+        const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        );
+
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey[600]),
+        Icon(icon, size: 14, color: iconColor),
         const SizedBox(width: 6),
         Text(
           '$label: ',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: Colors.grey,
+            color: labelColor,
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            style: valueStyle,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMontoRow(String label, double monto, bool isBold, {Color? color, bool isLarge = false}) {
+  Widget _buildMontoRow(
+    BuildContext context,
+    String label,
+    double monto,
+    bool isBold, {
+    Color? color,
+    bool isLarge = false,
+  }) {
+    final theme = Theme.of(context);
+    final resolvedColor = color ?? theme.colorScheme.onSurface;
+    final labelOpacity = isBold ? 0.95 : 0.78;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -472,7 +528,7 @@ class LoanActionButtons extends StatelessWidget {
             style: TextStyle(
               fontSize: isLarge ? 14 : 12,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: color ?? Colors.black87,
+              color: resolvedColor.withOpacity(labelOpacity),
             ),
           ),
           Text(
@@ -480,7 +536,7 @@ class LoanActionButtons extends StatelessWidget {
             style: TextStyle(
               fontSize: isLarge ? 16 : 13,
               fontWeight: FontWeight.bold,
-              color: color ?? Colors.black,
+              color: resolvedColor,
             ),
           ),
         ],
@@ -1371,6 +1427,20 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
   }
 
   Widget _buildDiasExtraSection() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final highlightBackground = isDark
+        ? Color.alphaBlend(colorScheme.primary.withAlpha(28), colorScheme.surfaceVariant)
+        : Colors.blue[50];
+    final borderColor = isDark
+        ? colorScheme.primary.withAlpha(90)
+        : Colors.blue[200]!;
+    final textColor = theme.textTheme.bodyMedium?.color ?? colorScheme.onSurface;
+    final accentTextColor = isDark
+        ? colorScheme.primary
+        : Colors.black87;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1435,19 +1505,29 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: highlightBackground,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
+              border: Border.all(color: borderColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Nueva fecha de pago: ${_formatDate(_fechaPago)}'),
+                Text(
+                  'Nueva fecha de pago: ${_formatDate(_fechaPago)}',
+                  style: TextStyle(
+                    color: accentTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('Interés extra estimado: \$${_interesExtraCalculado.toStringAsFixed(2)}'),
+                Text(
+                  'Interés extra estimado: \$${_interesExtraCalculado.toStringAsFixed(2)}',
+                  style: TextStyle(color: textColor),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Interés total: \$${(_interesExtraCalculado + (double.tryParse(_interesController.text) ?? 0)).toStringAsFixed(2)}',
+                  style: TextStyle(color: textColor),
                 ),
               ],
             ),
