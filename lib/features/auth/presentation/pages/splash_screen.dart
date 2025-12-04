@@ -172,7 +172,8 @@ class _SplashScreenState extends State<SplashScreen>
                   const SizedBox(height: 32),
                   Text(
                     'TPay',
-                    style: textTheme.displaySmall?.copyWith(
+                    style:
+                        textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.5,
                           color: colorScheme.primary,
@@ -183,74 +184,24 @@ class _SplashScreenState extends State<SplashScreen>
                           color: colorScheme.primary,
                         ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 32),
                   Text(
-                    'Administración de préstamos inteligentes',
-                    style: textTheme.titleMedium?.copyWith(
-                      color: textTheme.titleMedium?.color?.withOpacity(0.7),
+                    'Requiere conexión a internet',
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                      color: textTheme.titleSmall?.color?.withOpacity(0.85),
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 40),
-                  Container(
-                    width: 320,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-                    decoration: BoxDecoration(
-                      color: bubbleColor,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: borderColor),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorScheme.shadow.withOpacity(0.12),
-                          blurRadius: 22,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.sync_rounded, color: colorScheme.primary),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Sincronizando tus datos seguros',
-                              style: textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: textTheme.titleSmall?.color,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: LinearProgressIndicator(
-                            minHeight: 6,
-                            color: colorScheme.primary,
-                            backgroundColor: colorScheme.primary.withOpacity(0.12),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Preparando tu panel personalizado. Si tarda, verifica tu conexión a internet.',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: textTheme.bodySmall?.color?.withOpacity(0.7),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 8),
                   Text(
-                    'Diseñado con Flutter • TPay Team',
+                    'Desarrollado por el Ingeniero Toledo Avalos Ricardo',
                     style: textTheme.bodySmall?.copyWith(
-                      color: textTheme.bodySmall?.color?.withOpacity(0.6),
-                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                      color: textTheme.bodySmall?.color?.withOpacity(0.7),
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

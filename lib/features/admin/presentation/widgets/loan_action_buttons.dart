@@ -42,8 +42,7 @@ class LoanActionButtons extends StatelessWidget {
               color: Colors.green,
               onPressed: () => _marcarComoPagado(context),
             ),
-          if (!prestamo.estadoPagado)
-            const SizedBox(width: 6),
+          if (!prestamo.estadoPagado) const SizedBox(width: 6),
           if (!prestamo.estadoPagado)
             _buildActionButton(
               context: context,
@@ -52,8 +51,7 @@ class LoanActionButtons extends StatelessWidget {
               color: Colors.orange,
               onPressed: () => _agregarAbono(context),
             ),
-          if (!prestamo.estadoPagado)
-            const SizedBox(width: 6),
+          if (!prestamo.estadoPagado) const SizedBox(width: 6),
           _buildActionButton(
             context: context,
             icon: Icons.edit,
@@ -90,17 +88,12 @@ class LoanActionButtons extends StatelessWidget {
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 14),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 10),
-      ),
+      label: Text(label, style: const TextStyle(fontSize: 10)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         minimumSize: const Size(0, 32),
       ),
     );
@@ -114,14 +107,17 @@ class LoanActionButtons extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final receiptBackground = isDark ? colorScheme.surface : Colors.white;
     final panelBackground = isDark
-        ? Color.alphaBlend(colorScheme.primary.withAlpha(16), colorScheme.surfaceVariant)
-        : Colors.grey.shade50;
+      ? Color.alphaBlend(
+        colorScheme.primary.withAlpha(16),
+        colorScheme.surfaceVariant,
+        )
+      : Colors.grey.shade50;
     final panelBorderColor = isDark
-        ? colorScheme.primary.withAlpha(60)
-        : Colors.grey.shade200;
+      ? colorScheme.primary.withAlpha(60)
+      : Colors.grey.shade200;
     final highlightColor = isDark ? colorScheme.primary : const Color(0xFF00838F);
     final sectionLabelColor = isDark ? colorScheme.onSurfaceVariant : Colors.grey;
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -137,332 +133,388 @@ class LoanActionButtons extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: receiptBackground,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
                   ),
                   padding: const EdgeInsets.all(20),
                   constraints: const BoxConstraints(maxWidth: 380),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Encabezado con logo
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Encabezado con logo
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF01376F),Color(0xFF01376F),],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: Image.asset(
-                              'assets/icons/TPayIcon.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(
-                                Icons.account_balance_wallet,
-                                size: 32,
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Image.asset(
+                                'assets/icons/TPayIcon.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                      Icons.account_balance_wallet,
+                                      size: 32,
+                                      color: Colors.white,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'TPay',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                                 color: Colors.white,
+                                letterSpacing: 2,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'TPay',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'RECIBO DE PRÉSTAMO',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Información del préstamo
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: panelBackground,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: panelBorderColor),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Préstamo #${prestamo.id.toString().padLeft(6, '0')}',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: highlightColor,
-                                ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'RECIBO DE PRÉSTAMO',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white70,
+                                letterSpacing: 1.2,
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: prestamo.estadoPagado ? Colors.green : Colors.orange,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  prestamo.estadoTexto.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 16),
-                          _buildReciboInfoRow(context, 'Cliente', prestamo.nombreCliente ?? 'N/A', Icons.person),
-                          const SizedBox(height: 6),
-                          _buildReciboInfoRow(
-                            context,
-                            'Fecha de Emisión',
-                            '${fechaEmision.day.toString().padLeft(2, '0')}/${fechaEmision.month.toString().padLeft(2, '0')}/${fechaEmision.year}',
-                            Icons.calendar_today,
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Detalles financieros
-                    Text(
-                      'DETALLES FINANCIEROS',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: sectionLabelColor,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildMontoRow(context, 'Monto Prestado', prestamo.monto, false,
-                      color: theme.colorScheme.onSurface),
-                    _buildMontoRow(context, 'Interés', prestamo.interes, false,
-                      color: theme.colorScheme.onSurfaceVariant),
-                    const Divider(height: 16),
-                    _buildMontoRow(context, 'Total a Pagar', prestamo.totalAPagar, true,
-                      color: theme.colorScheme.primary, isLarge: true),
-                    const SizedBox(height: 4),
-                    _buildMontoRow(context, 'Abonos Realizados', prestamo.abonos, false,
-                      color: Colors.green),
-                    const Divider(height: 16, thickness: 2),
-                    _buildMontoRow(
-                      context,
-                      'Saldo Pendiente',
-                      prestamo.saldoPendiente,
-                      true,
-                      color: prestamo.saldoPendiente > 0
-                        ? theme.colorScheme.error
-                        : Colors.green,
-                      isLarge: true,
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Fechas importantes
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+
+                      // Información del préstamo
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: panelBackground,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: panelBorderColor),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Fecha Inicio',
-                                  style: TextStyle(fontSize: 9, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 2),
                                 Text(
-                                  '${prestamo.fechaInicio.day}/${prestamo.fechaInicio.month}/${prestamo.fechaInicio.year}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 24,
-                            color: Colors.grey[300],
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text(
-                                  'Fecha Vencimiento',
-                                  style: TextStyle(fontSize: 9, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${prestamo.fechaPago.day}/${prestamo.fechaPago.month}/${prestamo.fechaPago.year}',
+                                  'Préstamo #${prestamo.id.toString().padLeft(6, '0')}',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: prestamo.estaVencido ? Colors.red : Colors.black,
+                                    color: highlightColor,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: prestamo.estadoPagado
+                                        ? Colors.green
+                                        : Colors.orange,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    prestamo.estadoTexto.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            const Divider(height: 16),
+                            _buildReciboInfoRow(
+                              context,
+                              'Cliente',
+                              prestamo.nombreCliente ?? 'N/A',
+                              Icons.person,
+                            ),
+                            const SizedBox(height: 6),
+                            _buildReciboInfoRow(
+                              context,
+                              'Fecha de Emisión',
+                              '${fechaEmision.day.toString().padLeft(2, '0')}/${fechaEmision.month.toString().padLeft(2, '0')}/${fechaEmision.year}',
+                              Icons.calendar_today,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Detalles financieros
+                      Text(
+                        'DETALLES FINANCIEROS',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: sectionLabelColor,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildMontoRow(
+                        context,
+                        'Monto Prestado',
+                        prestamo.monto,
+                        false,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      _buildMontoRow(
+                        context,
+                        'Interés',
+                        prestamo.interes,
+                        false,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const Divider(height: 16),
+                      _buildMontoRow(
+                        context,
+                        'Total a Pagar',
+                        prestamo.totalAPagar,
+                        true,
+                        color: theme.colorScheme.primary,
+                        isLarge: true,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildMontoRow(
+                        context,
+                        'Abonos Realizados',
+                        prestamo.abonos,
+                        false,
+                        color: Colors.green,
+                      ),
+                      const Divider(height: 16, thickness: 2),
+                      _buildMontoRow(
+                        context,
+                        'Saldo Pendiente',
+                        prestamo.saldoPendiente,
+                        true,
+                        color: prestamo.saldoPendiente > 0
+                            ? theme.colorScheme.error
+                            : Colors.green,
+                        isLarge: true,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Fechas importantes
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Fecha Inicio',
+                                    style: TextStyle(fontSize: 9, color: Color.fromARGB(255, 0, 0, 0)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${prestamo.fechaInicio.day}/${prestamo.fechaInicio.month}/${prestamo.fechaInicio.year}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 24,
+                              color: Colors.grey[300],
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text(
+                                    'Fecha Vencimiento',
+                                    style: TextStyle(fontSize: 9, color: Color.fromARGB(255, 0, 0, 0)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${prestamo.fechaPago.day}/${prestamo.fechaPago.month}/${prestamo.fechaPago.year}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: prestamo.estaVencido
+                                          ? theme.colorScheme.error
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Pie de página
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 2,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF00838F),
+                                    Color(0xFF00BCD4),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Documento generado el ${fechaEmision.day}/${fechaEmision.month}/${fechaEmision.year}',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'TPay - Sistema de Gestión de Préstamos',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Colors.grey[500],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Botones (NO incluidos en el screenshot)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text(
+                        'Cerrar',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Pie de página
-                    Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 2,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          // Verificar permisos
+                          final hasAccess = await Gal.hasAccess();
+                          if (!hasAccess) {
+                            final granted = await Gal.requestAccess();
+                            if (!granted) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Permiso de almacenamiento denegado',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                          }
+
+                          // Capturar screenshot
+                          final image = await screenshotController.capture();
+                          if (image == null) {
+                            throw Exception('No se pudo capturar la imagen');
+                          }
+
+                          // Guardar en galería usando gal
+                          await Gal.putImageBytes(
+                            image,
+                            name:
+                                'recibo_prestamo_${prestamo.id}_${DateTime.now().millisecondsSinceEpoch}',
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('✅ Recibo guardado en Galería'),
+                                backgroundColor: Colors.green,
                               ),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Documento generado el ${fechaEmision.day}/${fechaEmision.month}/${fechaEmision.year}',
-                            style: TextStyle(
-                              fontSize: 8,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'TPay - Sistema de Gestión de Préstamos',
-                            style: TextStyle(
-                              fontSize: 8,
-                              color: Colors.grey[500],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text(
+                        'Descargar',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            
-            // Botones (NO incluidos en el screenshot)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Cerrar', style: TextStyle(fontSize: 13)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[700],
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        // Verificar permisos
-                        final hasAccess = await Gal.hasAccess();
-                        if (!hasAccess) {
-                          final granted = await Gal.requestAccess();
-                          if (!granted) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Permiso de almacenamiento denegado'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                            return;
-                          }
-                        }
-                        
-                        // Capturar screenshot
-                        final image = await screenshotController.capture();
-                        if (image == null) {
-                          throw Exception('No se pudo capturar la imagen');
-                        }
-                        
-                        // Guardar en galería usando gal
-                        await Gal.putImageBytes(
-                          image,
-                          name: 'recibo_prestamo_${prestamo.id}_${DateTime.now().millisecondsSinceEpoch}',
-                        );
-                        
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✅ Recibo guardado en Galería'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.download, size: 18),
-                    label: const Text('Descargar', style: TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             ],
           ),
         ),
@@ -470,7 +522,12 @@ class LoanActionButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildReciboInfoRow(BuildContext context, String label, String value, IconData icon) {
+  Widget _buildReciboInfoRow(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final iconColor = colorScheme.onSurfaceVariant;
@@ -567,13 +624,15 @@ class LoanActionButtons extends StatelessWidget {
             onPressed: () async {
               final dialogContext = context;
               Navigator.pop(dialogContext);
-              
+
               try {
                 await MovimientoRepository().marcarComoPagado(prestamo.id);
-                
+
                 // Cancelar notificaciones pendientes del préstamo (sin bloquear)
                 try {
-                  await NotificationService().cancelLoanNotifications(prestamo.id);
+                  await NotificationService().cancelLoanNotifications(
+                    prestamo.id,
+                  );
                   await NotificationService().notifyLoanPaidOff(
                     loanId: prestamo.id,
                     clientName: prestamo.nombreCliente ?? 'Cliente',
@@ -583,7 +642,7 @@ class LoanActionButtons extends StatelessWidget {
                   // Ignorar errores de notificación
                   print('Error en notificaciones: $notifError');
                 }
-                
+
                 if (dialogContext.mounted) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
@@ -637,12 +696,19 @@ class LoanActionButtons extends StatelessWidget {
               children: [
                 Text('Préstamo #${prestamo.id}'),
                 Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
-                Text('Saldo pendiente: \$${prestamo.saldoPendiente.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  'Saldo pendiente: \$${prestamo.saldoPendiente.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: montoController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Monto del abono *',
                     prefixText: '\$',
@@ -696,9 +762,9 @@ class LoanActionButtons extends StatelessWidget {
                 final metodoPago = metodoPagoController.text.trim();
                 final notas = notasController.text.trim();
                 final dialogContext = context;
-                
+
                 Navigator.pop(dialogContext);
-                
+
                 try {
                   await AbonoRepository().registrarAbono(
                     movimientoId: prestamo.id,
@@ -706,10 +772,10 @@ class LoanActionButtons extends StatelessWidget {
                     metodoPago: metodoPago.isNotEmpty ? metodoPago : null,
                     notas: notas.isNotEmpty ? notas : null,
                   );
-                  
+
                   // Calcular nueva deuda después del abono
                   final nuevaDeuda = prestamo.saldoPendiente - monto;
-                  
+
                   // Notificaciones (sin bloquear operación principal)
                   try {
                     await NotificationService().notifyPaymentReceived(
@@ -718,9 +784,11 @@ class LoanActionButtons extends StatelessWidget {
                       amount: monto,
                       remainingDebt: nuevaDeuda,
                     );
-                    
+
                     if (nuevaDeuda <= 0) {
-                      await NotificationService().cancelLoanNotifications(prestamo.id);
+                      await NotificationService().cancelLoanNotifications(
+                        prestamo.id,
+                      );
                       await NotificationService().notifyLoanPaidOff(
                         loanId: prestamo.id,
                         clientName: prestamo.nombreCliente ?? 'Cliente',
@@ -730,11 +798,13 @@ class LoanActionButtons extends StatelessWidget {
                   } catch (notifError) {
                     print('Error en notificaciones: $notifError');
                   }
-                  
+
                   if (dialogContext.mounted) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(
-                        content: Text('Abono de \$${monto.toStringAsFixed(2)} registrado'),
+                        content: Text(
+                          'Abono de \$${monto.toStringAsFixed(2)} registrado',
+                        ),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -764,10 +834,8 @@ class LoanActionButtons extends StatelessWidget {
     final shouldRefresh = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => _EditLoanDialog(
-        prestamo: prestamo,
-        parentContext: context,
-      ),
+      builder: (dialogContext) =>
+          _EditLoanDialog(prestamo: prestamo, parentContext: context),
     );
 
     if (shouldRefresh == true) {
@@ -782,171 +850,212 @@ class LoanActionButtons extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Eliminar Préstamo'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '¿Estás seguro de eliminar el préstamo #${prestamo.id}?',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        final colorScheme = theme.colorScheme;
+        final bool isDark = theme.brightness == Brightness.dark;
+        final warningBackground = Color.alphaBlend(
+          colorScheme.error.withOpacity(isDark ? 0.18 : 0.1),
+          theme.colorScheme.surface,
+        );
+        final warningBorder = colorScheme.error.withOpacity(
+          isDark ? 0.45 : 0.3,
+        );
+        final warningTextColor = colorScheme.onSurface;
+        final secondaryTextColor =
+            theme.textTheme.bodySmall?.color?.withOpacity(0.8) ??
+            colorScheme.onSurface.withOpacity(0.7);
+
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: colorScheme.error),
+              const SizedBox(width: 8),
+              Text(
+                'Eliminar Préstamo',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: warningBackground,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: warningBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: colorScheme.error),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '¿Estás seguro de eliminar el préstamo #${prestamo.id}?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: warningTextColor,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
-                Text('Monto: \$${prestamo.monto.toStringAsFixed(2)}'),
-                Text('Saldo: \$${prestamo.saldoPendiente.toStringAsFixed(2)}'),
-                const SizedBox(height: 16),
-                const Text(
-                  'Esta acción marcará el préstamo como eliminado (no se borra de la BD).',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: motivoController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivo de eliminación *',
-                    hintText: 'Explica por qué se elimina este préstamo',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  Text('Cliente: ${prestamo.nombreCliente ?? "N/A"}'),
+                  Text('Monto: \$${prestamo.monto.toStringAsFixed(2)}'),
+                  Text(
+                    'Saldo: \$${prestamo.saldoPendiente.toStringAsFixed(2)}',
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'El motivo es obligatorio';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña de tu cuenta *',
-                    hintText: 'Confirma tu identidad',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Esta acción marcará el préstamo como eliminado (no se borra de la BD).',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: secondaryTextColor,
+                    ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'La contraseña es obligatoria';
-                    }
-                    if (value.length < 6) {
-                      return 'Contraseña debe tener al menos 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: motivoController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Motivo de eliminación *',
+                      hintText: 'Explica por qué se elimina este préstamo',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El motivo es obligatorio';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Contraseña de tu cuenta *',
+                      hintText: 'Confirma tu identidad',
+                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'La contraseña es obligatoria';
+                      }
+                      if (value.length < 6) {
+                        return 'Contraseña debe tener al menos 6 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final password = passwordController.text;
-                final motivo = motivoController.text.trim();
-                final dialogContext = context;
-                
-                Navigator.of(dialogContext).pop(); // Cerrar diálogo del formulario
-                
-                bool operacionExitosa = false;
-                String? mensajeError;
-                
-                try {
-                  // Verificar contraseña (re-autenticar)
-                  final supabase = SupabaseService().client;
-                  final email = supabase.auth.currentUser?.email;
-                  
-                  if (email == null) {
-                    throw Exception('No se pudo obtener el email del usuario');
-                  }
-                  
-                  // Re-autenticar para verificar contraseña
-                  await supabase.auth.signInWithPassword(
-                    email: email,
-                    password: password,
-                  );
-                  
-                  // Si llegamos aquí, la contraseña es correcta
-                  await MovimientoRepository().eliminarPrestamo(prestamo.id, motivo);
-                  
-                  // Cancelar notificaciones del préstamo (sin bloquear)
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final password = passwordController.text;
+                  final motivo = motivoController.text.trim();
+                  final localDialogContext = dialogContext;
+
+                  Navigator.of(
+                    localDialogContext,
+                  ).pop(); // Cerrar diálogo del formulario
+
+                  bool operacionExitosa = false;
+                  String? mensajeError;
+
                   try {
-                    await NotificationService().cancelLoanNotifications(prestamo.id);
-                  } catch (notifError) {
-                    print('Error al cancelar notificaciones: $notifError');
-                  }
-                  
-                  operacionExitosa = true;
-                } catch (e) {
-                  operacionExitosa = false;
-                  mensajeError = e.toString().contains('Invalid')
-                      ? '❌ Contraseña incorrecta'
-                      : '❌ Error: $e';
-                }
-                
-                // Pequeño delay antes de refrescar
-                await Future.delayed(const Duration(milliseconds: 300));
-                
-                // Mostrar resultado
-                if (dialogContext.mounted) {
-                  if (operacionExitosa) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Préstamo eliminado correctamente'),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 3),
-                      ),
+                    // Verificar contraseña (re-autenticar)
+                    final supabase = SupabaseService().client;
+                    final email = supabase.auth.currentUser?.email;
+
+                    if (email == null) {
+                      throw Exception(
+                        'No se pudo obtener el email del usuario',
+                      );
+                    }
+
+                    // Re-autenticar para verificar contraseña
+                    await supabase.auth.signInWithPassword(
+                      email: email,
+                      password: password,
                     );
-                    onActionComplete();
-                  } else {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(
-                        content: Text(mensajeError ?? '❌ Error al eliminar préstamo'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 3),
-                      ),
+
+                    // Si llegamos aquí, la contraseña es correcta
+                    await MovimientoRepository().eliminarPrestamo(
+                      prestamo.id,
+                      motivo,
                     );
+
+                    // Cancelar notificaciones del préstamo (sin bloquear)
+                    try {
+                      await NotificationService().cancelLoanNotifications(
+                        prestamo.id,
+                      );
+                    } catch (notifError) {
+                      print('Error al cancelar notificaciones: $notifError');
+                    }
+
+                    operacionExitosa = true;
+                  } catch (e) {
+                    operacionExitosa = false;
+                    mensajeError = e.toString().contains('Invalid')
+                        ? '❌ Contraseña incorrecta'
+                        : '❌ Error: $e';
+                  }
+
+                  // Pequeño delay antes de refrescar
+                  await Future.delayed(const Duration(milliseconds: 300));
+
+                  // Mostrar resultado
+                  if (context.mounted) {
+                    if (operacionExitosa) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Préstamo eliminado correctamente'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                      onActionComplete();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            mensajeError ?? '❌ Error al eliminar préstamo',
+                          ),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
                   }
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Confirmar Eliminación'),
-          ),
-        ],
-      ),
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Confirmar Eliminación'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -955,10 +1064,7 @@ class _EditLoanDialog extends StatefulWidget {
   final MovimientoModel prestamo;
   final BuildContext parentContext;
 
-  const _EditLoanDialog({
-    required this.prestamo,
-    required this.parentContext,
-  });
+  const _EditLoanDialog({required this.prestamo, required this.parentContext});
 
   @override
   State<_EditLoanDialog> createState() => _EditLoanDialogState();
@@ -1003,9 +1109,15 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
   @override
   void initState() {
     super.initState();
-    _montoController = TextEditingController(text: widget.prestamo.monto.toStringAsFixed(2));
-    _interesController = TextEditingController(text: widget.prestamo.interes.toStringAsFixed(2));
-    _abonosController = TextEditingController(text: widget.prestamo.abonos.toStringAsFixed(2));
+    _montoController = TextEditingController(
+      text: widget.prestamo.monto.toStringAsFixed(2),
+    );
+    _interesController = TextEditingController(
+      text: widget.prestamo.interes.toStringAsFixed(2),
+    );
+    _abonosController = TextEditingController(
+      text: widget.prestamo.abonos.toStringAsFixed(2),
+    );
     _notasController = TextEditingController(text: widget.prestamo.notas ?? '');
     _searchController = TextEditingController();
     _diasExtraController = TextEditingController();
@@ -1082,7 +1194,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Préstamo #${widget.prestamo.id}'),
-              Text('Cliente actual: ${_clienteActual?.nombreCompleto ?? widget.prestamo.nombreCliente ?? "N/A"}'),
+              Text(
+                'Cliente actual: ${_clienteActual?.nombreCompleto ?? widget.prestamo.nombreCliente ?? "N/A"}',
+              ),
               const SizedBox(height: 16),
               _buildClienteSection(),
               const SizedBox(height: 12),
@@ -1112,7 +1226,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
                     'Marcar como pagado',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: const Text('El préstamo se marcará como completamente pagado'),
+                  subtitle: const Text(
+                    'El préstamo se marcará como completamente pagado',
+                  ),
                   value: _marcarComoPagado,
                   activeColor: Colors.green,
                   onChanged: (value) {
@@ -1136,7 +1252,10 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Guardar cambios'),
         ),
@@ -1151,7 +1270,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Cambiar cliente asociado'),
-          subtitle: const Text('Usa esta opción si el préstamo debe asociarse a otro cliente'),
+          subtitle: const Text(
+            'Usa esta opción si el préstamo debe asociarse a otro cliente',
+          ),
           value: _cambiandoCliente,
           onChanged: (value) {
             setState(() {
@@ -1168,7 +1289,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
         if (_cambiandoCliente)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: _cargandoClientes ? const Center(child: CircularProgressIndicator()) : _buildClienteSelector(),
+            child: _cargandoClientes
+                ? const Center(child: CircularProgressIndicator())
+                : _buildClienteSelector(),
           ),
       ],
     );
@@ -1216,7 +1339,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
                     leading: CircleAvatar(child: Text(cliente.iniciales)),
                     title: Text(cliente.nombreCompleto),
                     subtitle: Text('ID: ${cliente.id}'),
-                    trailing: seleccionado ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                    trailing: seleccionado
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : null,
                     onTap: () {
                       setState(() {
                         _clienteSeleccionado = cliente;
@@ -1247,8 +1372,14 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
                 }
               });
             },
-            icon: Icon(_mostrarNuevoCliente ? Icons.close : Icons.person_add_alt_1),
-            label: Text(_mostrarNuevoCliente ? 'Cancelar nuevo cliente' : 'Registrar nuevo cliente'),
+            icon: Icon(
+              _mostrarNuevoCliente ? Icons.close : Icons.person_add_alt_1,
+            ),
+            label: Text(
+              _mostrarNuevoCliente
+                  ? 'Cancelar nuevo cliente'
+                  : 'Registrar nuevo cliente',
+            ),
           ),
         ),
         if (_mostrarNuevoCliente) _buildNuevoClienteForm(),
@@ -1269,7 +1400,10 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Nuevo cliente', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'Nuevo cliente',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _nombreController,
@@ -1431,15 +1565,17 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final highlightBackground = isDark
-        ? Color.alphaBlend(colorScheme.primary.withAlpha(28), colorScheme.surfaceVariant)
+        ? Color.alphaBlend(
+            colorScheme.primary.withAlpha(28),
+            colorScheme.surfaceVariant,
+          )
         : Colors.blue[50];
     final borderColor = isDark
         ? colorScheme.primary.withAlpha(90)
         : Colors.blue[200]!;
-    final textColor = theme.textTheme.bodyMedium?.color ?? colorScheme.onSurface;
-    final accentTextColor = isDark
-        ? colorScheme.primary
-        : Colors.black87;
+    final textColor =
+        theme.textTheme.bodyMedium?.color ?? colorScheme.onSurface;
+    final accentTextColor = isDark ? colorScheme.primary : Colors.black87;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1447,7 +1583,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Extender vencimiento (días extra)'),
-          subtitle: const Text('Calcula interés adicional del 10% o 5% mensual'),
+          subtitle: const Text(
+            'Calcula interés adicional del 10% o 5% mensual',
+          ),
           value: _extenderVencimiento,
           onChanged: (value) {
             setState(() {
@@ -1491,8 +1629,14 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
               border: OutlineInputBorder(),
             ),
             items: const [
-              DropdownMenuItem(value: '10', child: Text('10% mensual (por defecto)')),
-              DropdownMenuItem(value: '5', child: Text('5% mensual (avisado con tiempo)')),
+              DropdownMenuItem(
+                value: '10',
+                child: Text('10% mensual (por defecto)'),
+              ),
+              DropdownMenuItem(
+                value: '5',
+                child: Text('5% mensual (avisado con tiempo)'),
+              ),
             ],
             onChanged: (value) {
               if (value == null) return;
@@ -1567,7 +1711,10 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
       _apellidoPaternoController.text = partes[1].capitalize();
     }
     if (_apellidoMaternoController.text.isEmpty && partes.length > 2) {
-      _apellidoMaternoController.text = partes.sublist(2).join(' ').capitalize();
+      _apellidoMaternoController.text = partes
+          .sublist(2)
+          .join(' ')
+          .capitalize();
     }
   }
 
@@ -1593,9 +1740,12 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
     }
 
     final tasaMensual = double.parse(_tasaDiasExtra) / 100;
-    final monto = double.tryParse(_montoController.text) ?? widget.prestamo.monto;
-    final interesBase = double.tryParse(_interesController.text) ?? widget.prestamo.interes;
-    final abonos = double.tryParse(_abonosController.text) ?? widget.prestamo.abonos;
+    final monto =
+        double.tryParse(_montoController.text) ?? widget.prestamo.monto;
+    final interesBase =
+        double.tryParse(_interesController.text) ?? widget.prestamo.interes;
+    final abonos =
+        double.tryParse(_abonosController.text) ?? widget.prestamo.abonos;
     double saldoBase = (monto + interesBase) - abonos;
     if (saldoBase < 0) saldoBase = 0;
     final extra = saldoBase * tasaMensual * (dias / 30);
@@ -1615,10 +1765,15 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
 
     if (_cambiandoCliente) {
       if (_mostrarNuevoCliente) {
-        final valido = _nombreController.text.trim().isNotEmpty && _apellidoPaternoController.text.trim().isNotEmpty;
+        final valido =
+            _nombreController.text.trim().isNotEmpty &&
+            _apellidoPaternoController.text.trim().isNotEmpty;
         if (!valido) {
           ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-            const SnackBar(content: Text('Completa los datos del nuevo cliente'), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Text('Completa los datos del nuevo cliente'),
+              backgroundColor: Colors.red,
+            ),
           );
           return;
         }
@@ -1627,21 +1782,33 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
           final nuevoCliente = await _clienteRepo.crearClienteSimple(
             nombre: _nombreController.text.trim(),
             apellidoPaterno: _apellidoPaternoController.text.trim(),
-            apellidoMaterno: _apellidoMaternoController.text.trim().isNotEmpty ? _apellidoMaternoController.text.trim() : null,
-            telefono: _telefonoController.text.trim().isNotEmpty ? _telefonoController.text.trim() : null,
-            email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+            apellidoMaterno: _apellidoMaternoController.text.trim().isNotEmpty
+                ? _apellidoMaternoController.text.trim()
+                : null,
+            telefono: _telefonoController.text.trim().isNotEmpty
+                ? _telefonoController.text.trim()
+                : null,
+            email: _emailController.text.trim().isNotEmpty
+                ? _emailController.text.trim()
+                : null,
           );
           clienteIdFinal = nuevoCliente.id;
         } catch (e) {
           ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-            SnackBar(content: Text('Error al crear cliente: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Error al crear cliente: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
           return;
         }
       } else {
         if (_clienteSeleccionado == null) {
           ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-            const SnackBar(content: Text('Selecciona un cliente'), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Text('Selecciona un cliente'),
+              backgroundColor: Colors.red,
+            ),
           );
           return;
         }
@@ -1660,7 +1827,9 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
     if (_extenderVencimiento && _diasExtraSeleccionados > 0) {
       interesFinal += _interesExtraCalculado;
       if (_fechaPagoBase != null) {
-        fechaPagoFinal = _fechaPagoBase!.add(Duration(days: _diasExtraSeleccionados));
+        fechaPagoFinal = _fechaPagoBase!.add(
+          Duration(days: _diasExtraSeleccionados),
+        );
       }
     }
 
@@ -1691,7 +1860,10 @@ class _EditLoanDialogState extends State<_EditLoanDialog> {
       if (!mounted) return;
       setState(() => _guardando = false);
       ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-        SnackBar(content: Text('Error al actualizar préstamo: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Error al actualizar préstamo: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

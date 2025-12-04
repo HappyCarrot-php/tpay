@@ -771,18 +771,39 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         );
     final TextStyle valueStyle =
         theme.textTheme.titleMedium?.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: color,
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+          color: theme.colorScheme.onSurface,
         ) ??
-        TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color);
+        TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+          color: theme.colorScheme.onSurface,
+        );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: labelStyle),
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Flexible(child: Text(label, style: labelStyle)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
           Text(value, style: valueStyle),
         ],
       ),

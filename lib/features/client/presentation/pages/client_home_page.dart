@@ -379,8 +379,15 @@ class _ClientHomePageState extends State<ClientHomePage> {
         ),
         selected: isSelected,
         onSelected: (selected) => _cambiarFiltro(filtro),
+        backgroundColor: theme.colorScheme.surfaceVariant.withOpacity(
+          theme.brightness == Brightness.dark ? 0.35 : 0.9,
+        ),
         selectedColor: theme.colorScheme.primary,
         checkmarkColor: theme.colorScheme.onPrimary,
+        showCheckmark: false,
+        side: BorderSide(
+          color: theme.colorScheme.outline.withOpacity(0.25),
+        ),
         labelStyle: TextStyle(
           color: isSelected
               ? theme.colorScheme.onPrimary

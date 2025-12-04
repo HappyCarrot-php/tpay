@@ -6,10 +6,7 @@ import '../../../admin/data/models/movimiento_model.dart';
 class ClientLoanActionButtons extends StatelessWidget {
   final MovimientoModel prestamo;
 
-  const ClientLoanActionButtons({
-    super.key,
-    required this.prestamo,
-  });
+  const ClientLoanActionButtons({super.key, required this.prestamo});
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +36,7 @@ class ClientLoanActionButtons extends StatelessWidget {
         backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -54,14 +49,17 @@ class ClientLoanActionButtons extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final receiptBackground = isDark ? colorScheme.surface : Colors.white;
     final panelBackground = isDark
-        ? Color.alphaBlend(colorScheme.primary.withAlpha(16), colorScheme.surfaceVariant)
-        : Colors.grey.shade50;
+      ? Color.alphaBlend(
+        colorScheme.primary.withAlpha(16),
+        colorScheme.surfaceVariant,
+        )
+      : Colors.grey.shade50;
     final panelBorderColor = isDark
-        ? colorScheme.primary.withAlpha(60)
-        : Colors.grey.shade200;
+      ? colorScheme.primary.withAlpha(60)
+      : Colors.grey.shade200;
     final highlightColor = isDark ? colorScheme.primary : const Color(0xFF00838F);
     final sectionLabelColor = isDark ? colorScheme.onSurfaceVariant : Colors.grey;
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -76,7 +74,9 @@ class ClientLoanActionButtons extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: receiptBackground,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
                 ),
                 padding: const EdgeInsets.all(32),
                 constraints: const BoxConstraints(maxWidth: 450),
@@ -89,7 +89,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
+                          colors: [Color(0xFF01376F),Color(0xFF01376F),],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -103,11 +103,12 @@ class ClientLoanActionButtons extends StatelessWidget {
                             child: Image.asset(
                               'assets/icons/TPayIcon.png',
                               fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(
-                                Icons.account_balance_wallet,
-                                size: 48,
-                                color: Colors.white,
-                              ),
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(
+                                    Icons.account_balance_wallet,
+                                    size: 48,
+                                    color: Colors.white,
+                                  ),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -134,7 +135,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Información del préstamo
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -158,9 +159,14 @@ class ClientLoanActionButtons extends StatelessWidget {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: prestamo.estadoPagado ? Colors.green : Colors.orange,
+                                  color: prestamo.estadoPagado
+                                      ? Colors.green
+                                      : Colors.orange,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -175,7 +181,12 @@ class ClientLoanActionButtons extends StatelessWidget {
                             ],
                           ),
                           const Divider(height: 24),
-                          _buildReciboInfoRow(context, 'Cliente', prestamo.nombreCliente ?? 'N/A', Icons.person),
+                          _buildReciboInfoRow(
+                            context,
+                            'Cliente',
+                            prestamo.nombreCliente ?? 'N/A',
+                            Icons.person,
+                          ),
                           const SizedBox(height: 8),
                           _buildReciboInfoRow(
                             context,
@@ -187,7 +198,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Detalles financieros
                     Text(
                       'DETALLES FINANCIEROS',
@@ -199,16 +210,37 @@ class ClientLoanActionButtons extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildMontoRow(context, 'Monto Prestado', prestamo.monto, false,
-                        color: theme.colorScheme.onSurface),
-                    _buildMontoRow(context, 'Interés', prestamo.interes, false,
-                        color: theme.colorScheme.onSurfaceVariant),
+                    _buildMontoRow(
+                      context,
+                      'Monto Prestado',
+                      prestamo.monto,
+                      false,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    _buildMontoRow(
+                      context,
+                      'Interés',
+                      prestamo.interes,
+                      false,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const Divider(height: 24),
-                    _buildMontoRow(context, 'Total a Pagar', prestamo.totalAPagar, true,
-                        color: theme.colorScheme.primary, isLarge: true),
+                    _buildMontoRow(
+                      context,
+                      'Total a Pagar',
+                      prestamo.totalAPagar,
+                      true,
+                      color: theme.colorScheme.primary,
+                      isLarge: true,
+                    ),
                     const SizedBox(height: 12),
-                    _buildMontoRow(context, 'Abonos Realizados', prestamo.abonos, false,
-                        color: Colors.green),
+                    _buildMontoRow(
+                      context,
+                      'Abonos Realizados',
+                      prestamo.abonos,
+                      false,
+                      color: Colors.green,
+                    ),
                     const Divider(height: 24, thickness: 2),
                     _buildMontoRow(
                       context,
@@ -221,7 +253,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                       isLarge: true,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Fechas importantes
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -237,7 +269,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Fecha Inicio',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  style: TextStyle(fontSize: 11, color: Color.fromARGB(255, 0, 0, 0)),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -262,7 +294,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Fecha Vencimiento',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  style: TextStyle(fontSize: 11, color: Color.fromARGB(255, 0, 0, 0)),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -270,7 +302,9 @@ class ClientLoanActionButtons extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: prestamo.estaVencido ? Colors.red : Colors.black,
+                                    color: prestamo.estaVencido
+                                        ? theme.colorScheme.error
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -280,7 +314,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Pie de página
                     Center(
                       child: Column(
@@ -290,7 +324,7 @@ class ClientLoanActionButtons extends StatelessWidget {
                             height: 3,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF00BCD4), Color(0xFF00838F)],
+                                colors: [Color(0xFF00838F), Color(0xFF00BCD4)],
                               ),
                               borderRadius: BorderRadius.circular(2),
                             ),
@@ -319,13 +353,15 @@ class ClientLoanActionButtons extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Botones (NO incluidos en el screenshot)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -349,7 +385,9 @@ class ClientLoanActionButtons extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Permiso de almacenamiento denegado'),
+                                  content: Text(
+                                    'Permiso de almacenamiento denegado',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -357,19 +395,20 @@ class ClientLoanActionButtons extends StatelessWidget {
                             return;
                           }
                         }
-                        
+
                         // Capturar screenshot
                         final image = await screenshotController.capture();
                         if (image == null) {
                           throw Exception('No se pudo capturar la imagen');
                         }
-                        
+
                         // Guardar en galería usando gal
                         await Gal.putImageBytes(
                           image,
-                          name: 'recibo_prestamo_${prestamo.id}_${DateTime.now().millisecondsSinceEpoch}',
+                          name:
+                              'recibo_prestamo_${prestamo.id}_${DateTime.now().millisecondsSinceEpoch}',
                         );
-                        
+
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -395,7 +434,10 @@ class ClientLoanActionButtons extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: theme.colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ],

@@ -12,6 +12,7 @@ import '../../features/admin/presentation/pages/loan_simulator_page.dart';
 import '../../features/admin/presentation/pages/create_loan_page.dart';
 import '../../features/admin/presentation/pages/investment_calculator_page.dart';
 import '../../features/admin/presentation/pages/calculator_page.dart';
+import '../../features/admin/presentation/pages/partner_mode_page.dart';
 import '../../features/admin/presentation/pages/admin_movements_page.dart';
 import '../../features/admin/presentation/pages/admin_profile_settings_page.dart';
 import '../../features/admin/presentation/pages/database_backup_page.dart';
@@ -34,7 +35,7 @@ class AppRouter {
         builder: (context, state) => const SplashScreen(),
         name: 'splash',
       ),
-      
+
       // Auth routes
       GoRoute(
         path: '/login',
@@ -53,6 +54,11 @@ class AppRouter {
         builder: (context, state) => const AdminHomePage(initialIndex: 0),
         name: 'admin-home',
         routes: [
+          GoRoute(
+            path: 'dashboard',
+            builder: (context, state) => const AdminHomePage(initialIndex: 0),
+            name: 'admin-dashboard',
+          ),
           GoRoute(
             path: 'loans',
             builder: (context, state) => const AdminHomePage(initialIndex: 1),
@@ -84,6 +90,11 @@ class AppRouter {
             path: 'investment-calculator',
             builder: (context, state) => const InvestmentCalculatorPage(),
             name: 'investment-calculator',
+          ),
+          GoRoute(
+            path: 'partner-mode',
+            builder: (context, state) => const PartnerModePage(),
+            name: 'partner-mode',
           ),
           GoRoute(
             path: 'calculator',

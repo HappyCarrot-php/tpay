@@ -47,7 +47,9 @@ class _AdminDrawerState extends State<AdminDrawer> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Cerrar sesión'),
-        content: const Text('¿Seguro que deseas salir del panel administrador?'),
+        content: const Text(
+          '¿Seguro que deseas salir del panel administrador?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -78,6 +80,8 @@ class _AdminDrawerState extends State<AdminDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsTilePadding = const EdgeInsets.symmetric(horizontal: 20);
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -85,10 +89,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
           DrawerHeader(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF00838F),
-                  Color(0xFF00BCD4),
-                ],
+                colors: [Color(0xFF00838F), Color(0xFF00BCD4)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -117,22 +118,19 @@ class _AdminDrawerState extends State<AdminDrawer> {
                 ),
                 Text(
                   _nombreCompleto,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
             ),
           ),
-          
+
           // Navegación principal
           ListTile(
             leading: const Icon(Icons.dashboard_outlined),
             title: const Text('Dashboard'),
             onTap: () {
               Navigator.pop(context);
-              context.go('/admin');
+              context.go('/admin/dashboard');
             },
           ),
           ListTile(
@@ -200,6 +198,15 @@ class _AdminDrawerState extends State<AdminDrawer> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.handshake, color: Color(0xFF1A237E)),
+            title: const Text('Modo Socio'),
+            subtitle: const Text('Reparte utilidades'),
+            onTap: () {
+              Navigator.pop(context);
+              context.go('/admin/partner-mode');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.calculate, color: Colors.orange),
             title: const Text('Calculadora'),
             subtitle: const Text('Cálculos express'),
@@ -211,29 +218,31 @@ class _AdminDrawerState extends State<AdminDrawer> {
 
           const Divider(),
 
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('Mi Perfil'),
-            onTap: () {
-              Navigator.pop(context);
-              context.go('/admin/profile');
-            },
-          ),
-
           ExpansionTile(
             leading: const Icon(Icons.settings),
             title: const Text('Ajustes'),
-            childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Mi Perfil'),
+                contentPadding: settingsTilePadding,
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go('/admin/profile');
+                },
+              ),
               ValueListenableBuilder<ThemeMode>(
                 valueListenable: AppSettings.instance.themeModeNotifier,
                 builder: (context, mode, _) {
-                  return SwitchListTile.adaptive(
-                    value: mode == ThemeMode.dark,
-                    onChanged: (value) => AppSettings.instance.setDarkMode(value),
+                  return ListTile(
+                    leading: const Icon(Icons.dark_mode),
                     title: const Text('Modo oscuro'),
-                    secondary: const Icon(Icons.dark_mode),
-                    contentPadding: EdgeInsets.zero,
+                    contentPadding: settingsTilePadding,
+                    trailing: Switch.adaptive(
+                      value: mode == ThemeMode.dark,
+                      onChanged: (value) =>
+                          AppSettings.instance.setDarkMode(value),
+                    ),
                   );
                 },
               ),
@@ -242,6 +251,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
                   leading: const Icon(Icons.backup, color: Colors.purple),
                   title: const Text('Actualizar BD'),
                   subtitle: const Text('Backup de base de datos'),
+                  contentPadding: settingsTilePadding,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/admin/database-backup');
@@ -253,7 +263,10 @@ class _AdminDrawerState extends State<AdminDrawer> {
           const Divider(),
 
           ListTile(
-            leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+            leading: Icon(
+              Icons.logout,
+              color: Theme.of(context).colorScheme.error,
+            ),
             title: Text(
               'Cerrar sesión',
               style: TextStyle(color: Theme.of(context).colorScheme.error),

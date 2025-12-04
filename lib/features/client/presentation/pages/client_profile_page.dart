@@ -139,19 +139,26 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
   }
 
   Widget _buildFormularioPerfil() {
+    final theme = Theme.of(context);
+    final surfaceVariant = theme.colorScheme.surfaceVariant.withOpacity(
+      theme.brightness == Brightness.dark ? 0.35 : 1,
+    );
+    final onSurfaceVariant = theme.colorScheme.onSurfaceVariant;
+
     if (_perfil == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.person_off, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
+              Icon(Icons.person_off, size: 64, color: onSurfaceVariant),
+              const SizedBox(height: 16),
               Text(
                 'No se encontró información del perfil',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: theme.textTheme.bodyLarge?.copyWith(color: onSurfaceVariant) ??
+                    TextStyle(fontSize: 16, color: onSurfaceVariant),
               ),
             ],
           ),
@@ -186,10 +193,13 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
           const SizedBox(height: 16),
           Text(
             nombreCompleto,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ) ??
+                const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 32),
 
@@ -203,65 +213,71 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Mi Información Personal',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Solo puedes actualizar tu número de teléfono',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                            color: onSurfaceVariant,
+                          ) ??
+                          TextStyle(
+                            color: onSurfaceVariant,
+                            fontSize: 14,
+                          ),
                     ),
                     const Divider(height: 24),
                     
                     // Nombre (SOLO LECTURA)
                     TextFormField(
                       controller: _nombreController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nombre',
                         prefixIcon: Icon(Icons.person),
                         border: OutlineInputBorder(),
                         filled: true,
-                        fillColor: Color(0xFFF5F5F5),
+                        fillColor: surfaceVariant,
                       ),
                       enabled: false,
-                      style: const TextStyle(color: Colors.black54),
+                      style: TextStyle(color: onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     
                     // Apellido Paterno (SOLO LECTURA)
                     TextFormField(
                       controller: _apellidoPaternoController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Apellido Paterno',
                         prefixIcon: Icon(Icons.person_outline),
                         border: OutlineInputBorder(),
                         filled: true,
-                        fillColor: Color(0xFFF5F5F5),
+                        fillColor: surfaceVariant,
                       ),
                       enabled: false,
-                      style: const TextStyle(color: Colors.black54),
+                      style: TextStyle(color: onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     
                     // Apellido Materno (SOLO LECTURA)
                     TextFormField(
                       controller: _apellidoMaternoController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Apellido Materno',
                         prefixIcon: Icon(Icons.person_outline),
                         border: OutlineInputBorder(),
                         filled: true,
-                        fillColor: Color(0xFFF5F5F5),
+                        fillColor: surfaceVariant,
                       ),
                       enabled: false,
-                      style: const TextStyle(color: Colors.black54),
+                      style: TextStyle(color: onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     
@@ -299,8 +315,8 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
                             : const Icon(Icons.save),
                         label: Text(_isSaving ? 'Guardando...' : 'Guardar Cambios'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00BCD4),
-                          foregroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                       ),

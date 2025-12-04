@@ -63,6 +63,7 @@ class _ClientContactPageState extends State<ClientContactPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Contacto de Emergencia'),
@@ -81,18 +82,23 @@ class _ClientContactPageState extends State<ClientContactPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Card(
-              color: Color(0xFFFFF8E1),
+            Card(
+              color: theme.colorScheme.surfaceVariant.withOpacity(
+                theme.brightness == Brightness.dark ? 0.45 : 1,
+              ),
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.orange, size: 30),
-                    SizedBox(width: 12),
+                    Icon(Icons.info_outline, color: theme.colorScheme.primary, size: 30),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Contacta a un moderador en caso de emergencia o dudas sobre tus préstamos.',
-                        style: TextStyle(fontSize: 14),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                            ) ??
+                            const TextStyle(fontSize: 14),
                       ),
                     ),
                   ],
@@ -100,12 +106,15 @@ class _ClientContactPageState extends State<ClientContactPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Moderadores Disponibles',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -168,11 +177,14 @@ class _ClientContactPageState extends State<ClientContactPage> {
                               ),
                             ),
                           ] else
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
                               child: Text(
                                 'No hay teléfono registrado',
-                                style: TextStyle(color: Colors.grey),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ) ??
+                                    TextStyle(color: theme.colorScheme.onSurfaceVariant),
                               ),
                             ),
                         ],
